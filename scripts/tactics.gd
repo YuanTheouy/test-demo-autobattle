@@ -1,5 +1,8 @@
 extends RefCounted
 
+const RULE_LIMIT := 12
+const BASIC_ACTIVE := ["普通攻击", "调整站位", "接敌", "搜寻"]
+const BASIC_REACTIONS := ["步行避险"]
 const ACTIVE := ["留空", "标记弹", "强力射击", "绕侧", "后撤", "压制射击", "短冲刺", "风刃", "火矢", "落岩", "荆棘", "蓄能贯穿", "霰弹", "抛射轰击", "疾风连刃", "烈焰爆破", "裂地冲击"]
 const REACTIONS := ["留空", "侧闪", "架枪防御", "掩护队友", "协同追击", "追风", "焰返", "震山", "回春", "灵木护佑"]
 const CONDITIONS := ["自己精力≥80", "自己精力≥50", "自己精力≤30", "无", "优先队友目标", "优先低血量", "优先最近敌人", "仅已标记敌人", "仅未标记敌人", "敌人正在收招", "自己HP≤50", "队友HP≤50", "敌人距离≤2米", "敌人距离≥3米", "敌人正在攻击队友", "队友正在被瞄准", "自己被两人瞄准"]
@@ -105,7 +108,12 @@ const LINES := ["蓄能贯穿", "裂地冲击"]
 const AREAS := ["抛射轰击", "烈焰爆破"]
 const ELEMENT_COLORS := {"风": Color("9aeeff"), "火": Color("ff933c"), "山": Color("d8b08a"), "林": Color("70e598")}
 const DESCRIPTIONS := {
-  "留空": "基础行为仍会接敌、周旋与平A。平A7伤害，收招0.45秒；最后一发后公共CD1.8秒；快弹难以靠满速跑动躲开。",
+  "普通攻击": "有合法射位时射击，7伤害，消耗15精力；受独立CD和公共施法CD限制。可调整条件、排序或删除。",
+  "调整站位": "已有合法射位时，围绕目标调整距离和队友夹角，或小步周旋；没有安全位置则保持射位。无精力消耗。",
+  "接敌": "已看见或记住敌人时，寻找可射击的位置并移动过去。无精力消耗；不会凭空知道隐藏敌人的位置。",
+  "搜寻": "没有可见敌人和位置记忆时，巡查交战区域。无精力消耗；删除后不会自动搜索。",
+  "步行避险": "发现长蓄力或落点威胁且存在安全路径时，步行离开预警范围。无精力消耗，不取消吟唱、开火或收招。",
+  "留空": "删除这一条规则并空出一个共享槽。没有隐藏基础操作；普通攻击、移动和避险均需在列表中配置。",
   "标记弹": "8伤害，标记5秒，冷却5秒。",
   "强力射击": "18伤害，对已标记目标额外6伤害。收招0.8秒，冷却6秒。",
   "压制射击": "7伤害，减速40%持续2.4秒，冷却6秒。",
@@ -136,11 +144,38 @@ const DESCRIPTIONS := {
 static func build(active: Array, reaction: Array) -> Dictionary:
 	var a := active.duplicate(true)
 	var r := reaction.duplicate(true)
-	while a.size() < 4: a.append(["留空", "无", "无"])
-	while r.size() < 4: r.append(["留空", "无", "无"])
+	assert(a.size() + r.size() <= RULE_LIMIT)
 	return {"active": a, "reaction": r}
 
+static func all_skills() -> Array:
+	return ACTIVE + BASIC_ACTIVE + REACTIONS.slice(1) + BASIC_REACTIONS
+
+static func skill_kind(skill: String) -> String:
+	if skill == "留空": return ""
+	return "reaction" if skill in REACTIONS or skill in BASIC_REACTIONS else "active"
+
+static func compact(loadout: Dictionary) -> Dictionary:
+	return {
+		"active": loadout.active.filter(func(rule): return rule[0] != "留空").duplicate(true),
+		"reaction": loadout.reaction.filter(func(rule): return rule[0] != "留空").duplicate(true)
+	}
+
+static func basics() -> Dictionary:
+	var a: Array = []
+	for skill in BASIC_ACTIVE: a.append([skill, "无", "无"])
+	return {"active": a, "reaction": [["步行避险", "无", "无"]]}
+
 static func preset(index: int) -> Array:
+	var pair := skill_preset(index)
+	var base := basics()
+	for i in range(pair.size()):
+		pair[i] = compact(pair[i])
+		pair[i].active.append_array(base.active.duplicate(true))
+		pair[i].reaction.append_array(base.reaction.duplicate(true))
+		assert(pair[i].active.size() + pair[i].reaction.size() <= RULE_LIMIT)
+	return pair
+
+static func skill_preset(index: int) -> Array:
 	match index:
 		0:
 			return [

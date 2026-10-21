@@ -76,7 +76,7 @@ const CONDITIONS = Tactics.CONDITIONS
 var loadouts: Array = []
 var editor_unit := 0
 var editor_rows: Array = []
-var baseline_rows: Array = []
+var rule_count_label: Label
 var unit_menu: OptionButton
 var roster_buttons: Array = []
 var character_label: Label
@@ -297,7 +297,7 @@ func ui_theme() -> Theme:
 	theme.default_font_size = 14
 	for type in ["Button", "OptionButton"]:
 		for state in ["normal", "hover", "pressed", "focus", "disabled"]:
-			var box := make_box(Color("202b3b") if state == "normal" else Color("334357"), Color("46516a") if state == "normal" else GOLD)
+			var box := make_box(Color("111a26") if state == "disabled" else Color("202b3b") if state == "normal" else Color("334357"), Color("28364a") if state == "disabled" else Color("46516a") if state == "normal" else GOLD)
 			box.content_margin_left = 10
 			box.content_margin_right = 20 if type == "OptionButton" else 10
 			box.content_margin_top = 4
@@ -305,6 +305,7 @@ func ui_theme() -> Theme:
 			theme.set_stylebox(state, type, box)
 		theme.set_color("font_color", type, Color("e7e1d5"))
 		theme.set_color("font_hover_color", type, Color("fff1ce"))
+		theme.set_color("font_disabled_color", type, Color("697c92"))
 	theme.set_stylebox("panel", "PopupMenu", make_box(Color("182332"), Color("a58d61")))
 	theme.set_stylebox("hover", "PopupMenu", make_box(Color("3d4651"), GOLD))
 	theme.set_color("font_color", "PopupMenu", Color("eee7d9"))
@@ -317,19 +318,56 @@ func choose_editor_unit(uid: int) -> void:
 	unit_menu.select(uid)
 	rebuild_editor()
 
+func editor_entries() -> Array:
+	var entries: Array = []
+	for kind in ["active", "reaction"]:
+		var rules: Array = loadouts[editor_unit][kind]
+		for slot in range(rules.size()):
+			if rules[slot][0] != "留空": entries.append({"kind": kind, "slot": slot, "rule": rules[slot]})
+	return entries
+
 func move_rule(kind: String, slot: int, direction: int) -> void:
-	var other := slot + direction
-	if other < 0 or other >= 4: return
 	var rules: Array = loadouts[editor_unit][kind]
+	var other := slot + direction
+	if other < 0 or other >= rules.size(): return
 	var saved: Array = rules[slot]
 	rules[slot] = rules[other]
 	rules[other] = saved
 	rebuild_editor()
 	reset_round()
 
-func show_rule_help(kind: String, slot: int) -> void:
-	var skill: String = loadouts[editor_unit][kind][slot][0]
-	skill_help.text = "%s  ·  精力 %d\n%s" % [skill, energy_cost(skill), Tactics.DESCRIPTIONS.get(skill, "")]
+func move_editor_row(index: int, direction: int) -> void:
+	var entries := editor_entries()
+	if index >= entries.size(): return
+	var entry: Dictionary = entries[index]
+	move_rule(entry.kind, entry.slot, direction)
+
+func edit_rule_cell(index: int, column: int, value: String) -> void:
+	if index < 0 or index >= Tactics.RULE_LIMIT: return
+	var entries := editor_entries()
+	if index >= entries.size() and (column != 0 or value == "留空"): return
+	var rule: Array = ["留空", "无", "无"] if index >= entries.size() else entries[index].rule.duplicate()
+	rule[column] = value
+	var old_kind: String = "" if index >= entries.size() else entries[index].kind
+	var new_kind: String = Tactics.skill_kind(rule[0])
+	if old_kind == new_kind and not old_kind.is_empty():
+		loadouts[editor_unit][old_kind][entries[index].slot] = rule
+	else:
+		if not old_kind.is_empty(): loadouts[editor_unit][old_kind].remove_at(entries[index].slot)
+		if not new_kind.is_empty(): loadouts[editor_unit][new_kind].append(rule)
+	loadouts[editor_unit] = Tactics.compact(loadouts[editor_unit])
+	rebuild_editor()
+	reset_round()
+	skill_help.text = "%s\n%s" % [rule[0], Tactics.DESCRIPTIONS.get(rule[0], "空槽不执行；可添加任意AP或PP技能。")]
+
+func show_editor_help(index: int) -> void:
+	var entries := editor_entries()
+	if index >= entries.size():
+		skill_help.text = "空槽 · AP / PP 共用12格\n选择技能后自动归类；基础操作也可以加条件、排序或删除。"
+		return
+	var entry: Dictionary = entries[index]
+	var skill: String = entry.rule[0]
+	skill_help.text = "%s · %s · 精力 %d\n%s" % ["AP" if entry.kind == "active" else "PP", skill, energy_cost(skill), Tactics.DESCRIPTIONS.get(skill, "")]
 
 func setup_ui() -> void:
 	var title := text_label(self, "AUTOBATTLE", 28)
@@ -383,7 +421,8 @@ func setup_ui() -> void:
 	var caption := text_label(heading, "作 战 配 置", 23)
 	caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	caption.modulate = GOLD
-	add_button(heading, "清空本角色", func(): loadouts[editor_unit] = Tactics.build([], []); rebuild_editor(); reset_round())
+	add_button(heading, "仅基础", func(): loadouts[editor_unit] = Tactics.basics(); rebuild_editor(); reset_round())
+	add_button(heading, "清空", func(): loadouts[editor_unit] = Tactics.build([], []); rebuild_editor(); reset_round())
 	var presets := HBoxContainer.new()
 	panel.add_child(presets)
 	for team in range(2):
@@ -412,90 +451,64 @@ func setup_ui() -> void:
 	unit_menu.hide()
 	panel.add_child(unit_menu)
 	character_label = text_label(panel, "", 13)
-	for kind in ["active", "reaction"]:
-		var accent := Color("e39989") if kind == "active" else Color("85bfe5")
-		var band := HBoxContainer.new()
-		panel.add_child(band)
-		var category := text_label(band, "◆ AP  主动策略" if kind == "active" else "◆ PP  反应策略", 17)
-		category.modulate = accent
-		category.custom_minimum_size.x = 190
-		text_label(band, "行动循环 · 从上向下检查" if kind == "active" else "反应触发 · 满足时接管", 12).modulate = Color("94a4b8")
-		var columns := HBoxContainer.new()
-		panel.add_child(columns)
-		for spec in [["顺序", 45], ["技能", 147], ["条件一", 167], ["条件二", 167], ["检查 / 执行", 105]]:
-			var label := text_label(columns, spec[0], 11)
-			label.custom_minimum_size.x = spec[1]
-			label.modulate = Color("8696a9")
-		for slot in range(4):
-			var frame := PanelContainer.new()
-			frame.add_theme_stylebox_override("panel", make_box(Color("1d2939"), Color("344358")))
-			panel.add_child(frame)
-			var row := HBoxContainer.new()
-			row.add_theme_constant_override("separation", 3)
-			frame.add_child(row)
-			var rank := HBoxContainer.new()
-			rank.add_theme_constant_override("separation", 0)
-			row.add_child(rank)
-			var number := text_label(rank, "%02d" % (slot + 1), 13)
-			number.custom_minimum_size.x = 20
-			number.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			number.modulate = accent
-			var arrows := VBoxContainer.new()
-			arrows.add_theme_constant_override("separation", 0)
-			rank.add_child(arrows)
-			for direction in [-1, 1]:
-				var arrow := Button.new()
-				arrow.text = "↑" if direction == -1 else "↓"
-				arrow.add_theme_font_size_override("font_size", 10)
-				var tiny := StyleBoxEmpty.new()
-				arrow.add_theme_stylebox_override("normal", tiny)
-				arrow.add_theme_stylebox_override("hover", tiny)
-				arrow.add_theme_stylebox_override("pressed", tiny)
-				arrow.add_theme_stylebox_override("disabled", tiny)
-				arrow.add_theme_color_override("font_disabled_color", Color("45546a"))
-				arrow.custom_minimum_size.x = 20
-				arrow.disabled = slot + direction < 0 or slot + direction >= 4
-				arrow.tooltip_text = "调整优先级；修改后重开"
-				arrow.pressed.connect(func(): move_rule(kind, slot, direction))
-				arrows.add_child(arrow)
-			var picks: Array = []
-			for column in range(3):
-				var menu := OptionButton.new()
-				menu.custom_minimum_size = Vector2(145 if column == 0 else 165, 36)
-				menu.fit_to_longest_item = false
-				menu.clip_text = true
-				if column == 0: menu.add_theme_color_override("font_color", accent)
-				var options: Array = (ACTIVE_SKILLS if kind == "active" else REACTION_SKILLS) if column == 0 else CONDITIONS
-				for option in options:
-					menu.add_item(option)
-					if column == 0: menu.get_popup().set_item_tooltip(menu.item_count - 1, Tactics.DESCRIPTIONS[option])
-				menu.item_selected.connect(func(index: int): loadouts[editor_unit][kind][slot][column] = menu.get_item_text(index); rebuild_editor(); reset_round(); show_rule_help(kind, slot))
-				menu.mouse_entered.connect(func(): show_rule_help(kind, slot))
-				menu.focus_entered.connect(func(): show_rule_help(kind, slot))
-				row.add_child(menu)
-				picks.append(menu)
-			var state := text_label(row, "未检查", 11)
-			state.custom_minimum_size.x = 105
-			state.clip_text = true
-			editor_rows.append({"kind": kind, "slot": slot, "menus": picks, "row": row, "frame": frame, "state": state})
-		var names: Array = ["普通攻击", "调整站位", "接敌", "搜寻"] if kind == "active" else ["步行避险"]
-		for slot in range(names.size()):
-			var frame := PanelContainer.new()
-			frame.add_theme_stylebox_override("panel", make_box(Color("111a26"), Color("28364a")))
-			panel.add_child(frame)
-			var row := HBoxContainer.new()
-			frame.add_child(row)
-			var name_label := text_label(row, "  ·  %02d    %s" % [slot + 5, names[slot]], 12)
-			name_label.custom_minimum_size = Vector2(220, 21)
-			name_label.modulate = Color("9daabd")
-			var lock := text_label(row, "基础规则 · 锁定 · 玩家规则优先", 11)
-			lock.custom_minimum_size.x = 300
-			lock.modulate = Color("697c92")
-			var state := text_label(row, "待命", 11)
-			state.custom_minimum_size.x = 105
-			baseline_rows.append({"kind": "base_ap" if kind == "active" else "base_pp", "slot": slot, "frame": frame, "state": state})
+	rule_count_label = text_label(panel, "", 13)
+	rule_count_label.modulate = Color("c8b997")
+	var columns := HBoxContainer.new()
+	panel.add_child(columns)
+	for spec in [["顺序 / 类型", 68], ["技能", 145], ["条件一", 153], ["条件二", 153], ["检查 / 执行", 110]]:
+		var label := text_label(columns, spec[0], 11)
+		label.custom_minimum_size.x = spec[1]
+		label.modulate = Color("8696a9")
+	for index in range(Tactics.RULE_LIMIT):
+		var frame := PanelContainer.new()
+		frame.add_theme_stylebox_override("panel", make_box(Color("1d2939"), Color("344358")))
+		panel.add_child(frame)
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 3)
+		frame.add_child(row)
+		var number := text_label(row, "%02d" % (index + 1), 11)
+		number.custom_minimum_size.x = 18
+		var badge := text_label(row, "—", 12)
+		badge.custom_minimum_size.x = 24
+		var arrows := VBoxContainer.new()
+		arrows.add_theme_constant_override("separation", 0)
+		row.add_child(arrows)
+		var moves: Array = []
+		for direction in [-1, 1]:
+			var arrow := Button.new()
+			arrow.text = "↑" if direction == -1 else "↓"
+			arrow.add_theme_font_size_override("font_size", 9)
+			var tiny := StyleBoxEmpty.new()
+			for state in ["normal", "hover", "pressed", "disabled"]: arrow.add_theme_stylebox_override(state, tiny)
+			arrow.add_theme_color_override("font_disabled_color", Color("45546a"))
+			arrow.custom_minimum_size.x = 16
+			arrow.tooltip_text = "调整同类规则优先级；修改后重开"
+			arrow.pressed.connect(func(): move_editor_row(index, direction))
+			arrows.add_child(arrow)
+			moves.append(arrow)
+		var picks: Array = []
+		for column in range(3):
+			var menu := OptionButton.new()
+			menu.custom_minimum_size = Vector2(143 if column == 0 else 151, 34)
+			menu.fit_to_longest_item = false
+			menu.clip_text = true
+			var options: Array = Tactics.all_skills() if column == 0 else CONDITIONS
+			for option in options:
+				menu.add_item(option)
+				if column == 0:
+					menu.get_popup().set_item_tooltip(menu.item_count - 1, Tactics.DESCRIPTIONS.get(option, ""))
+			menu.item_selected.connect(func(choice: int): edit_rule_cell(index, column, menu.get_item_text(choice)))
+			menu.mouse_entered.connect(func(): show_editor_help(index))
+			menu.focus_entered.connect(func(): show_editor_help(index))
+			row.add_child(menu)
+			picks.append(menu)
+		var state := text_label(row, "空槽", 11)
+		state.custom_minimum_size.x = 110
+		state.clip_text = true
+		editor_rows.append({"kind": "", "slot": -1, "menus": picks, "row": row, "frame": frame, "state": state, "badge": badge, "arrows": moves})
+
 	text_label(panel, "─────────────────────────────────────────────", 12).modulate = Color("817052")
-	skill_help = text_label(panel, "技能说明\n指向技能或条件，查看该行技能说明。↑↓ 调整优先级。", 12)
+	skill_help = text_label(panel, "AP / PP 共用12格\n基础操作同样可编辑；清空所有规则后原地待命。", 12)
 	skill_help.custom_minimum_size = Vector2(640, 42)
 	skill_help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	skill_help.modulate = Color("c8b997")
@@ -516,20 +529,37 @@ func setup_ui() -> void:
 	rebuild_editor()
 
 func rebuild_editor() -> void:
-	for row in editor_rows:
+	var entries := editor_entries()
+	var active_count := 0
+	for entry in entries:
+		if entry.kind == "active": active_count += 1
+	rule_count_label.text = "规则 %d / 12    AP %d · PP %d    /    AP在前 · PP在后 · 各自从上向下检查" % [entries.size(), active_count, entries.size() - active_count]
+	for index in range(editor_rows.size()):
+		var row: Dictionary = editor_rows[index]
+		var occupied := index < entries.size()
+		var entry: Dictionary = entries[index] if occupied else {"kind": "", "slot": -1, "rule": ["留空", "无", "无"]}
+		row.kind = entry.kind
+		row.slot = entry.slot
+		var accent := Color("e39989") if row.kind == "active" else (Color("85bfe5") if row.kind == "reaction" else Color("697c92"))
+		row.badge.text = "AP" if row.kind == "active" else ("PP" if row.kind == "reaction" else "—")
+		row.badge.modulate = accent
+		row.arrows[0].disabled = not occupied or entry.slot == 0
+		row.arrows[1].disabled = not occupied or entry.slot + 1 >= loadouts[editor_unit][entry.kind].size()
 		for column in range(3):
 			var menu: OptionButton = row.menus[column]
 			if column > 0:
-				var allowed: Array = ["无", "优先低血量", "自己HP≤50", "队友HP≤50", "自己精力≥80", "自己精力≥50", "自己精力≤30"] if loadouts[editor_unit][row.kind][row.slot][0] in ["回春", "灵木护佑"] else CONDITIONS
+				var allowed: Array = ["无", "优先低血量", "自己HP≤50", "队友HP≤50", "自己精力≥80", "自己精力≥50", "自己精力≤30"] if entry.rule[0] in ["回春", "灵木护佑"] else CONDITIONS
 				menu.clear()
 				for condition in allowed: menu.add_item(condition)
-				if loadouts[editor_unit][row.kind][row.slot][column] not in allowed:
-					loadouts[editor_unit][row.kind][row.slot][column] = "无"
-			var value: String = loadouts[editor_unit][row.kind][row.slot][column]
-			for index in range(menu.item_count):
-				if menu.get_item_text(index) == value: menu.select(index)
+				if entry.rule[column] not in allowed: entry.rule[column] = "无"
+				menu.disabled = not occupied
+			var value: String = entry.rule[column]
+			for choice in range(menu.item_count):
+				if menu.get_item_text(choice) == value: menu.select(choice)
 			menu.tooltip_text = value
-			if column == 0: menu.tooltip_text = Tactics.DESCRIPTIONS.get(value, "") + "\n精力消耗：%d；%s" % [energy_cost(value), "受公共施法CD限制" if uses_public_cd(value) else "不受公共施法CD限制"]
+			if column == 0:
+				menu.add_theme_color_override("font_color", accent)
+				menu.tooltip_text = Tactics.DESCRIPTIONS.get(value, "空槽；可添加任意AP或PP规则") + "\n精力消耗：%d" % energy_cost(value)
 
 func add_button(parent: Node, title: String, callback: Callable) -> Button:
 	var b := Button.new()
@@ -574,7 +604,7 @@ func reset_round() -> void:
 		var attack: bool = (team == 0) == blue_attacks
 		for member in range(2):
 			var p: Vector2 = Vector2(120, 200 + member * 240) if attack else Vector2(520, 200 + member * 240)
-			units.append({"trace_base_pp": "未检查", "trace_base": ["未检查", "未检查", "未检查", "未检查"], "trace_ap": ["未检查", "未检查", "未检查", "未检查"], "trace_pp": ["未检查", "未检查", "未检查", "未检查"], "energy": 100.0, "ult_charge": 0.0, "ult_angle": 0.0, "uid": team * 2 + member, "team": team, "member": member, "attack": attack, "p": p,
+			units.append({"trace_ap": new_rule_trace("未检查"), "trace_pp": new_rule_trace("未检查"), "energy": 100.0, "ult_charge": 0.0, "ult_angle": 0.0, "uid": team * 2 + member, "team": team, "member": member, "attack": attack, "p": p,
 				"blast_impulse": Vector2.ZERO, "blast_lock": 0.0, "impulse": Vector2.ZERO, "evade_source": -1, "counter_left": 0.0, "thorns": 0.0, "thorn_tick": 0.0, "hurt_recent": 0.0, "hit_flash": 0.0, "heal_flash": 0.0, "reason": "基础作战就绪", "rule_kind": "", "rule_slot": -1, "slow": 0.0, "shield": 0.0, "shield_time": 0.0, "patrol": 0, "dash_recovery": false, "avoid_left": 0.0, "avoid_dir": Vector2.ZERO, "active_skill": "点射", "rule": "待机", "rule_flash": 0.0, "fire_flash": 0.0, "marked": 0.0, "guard": 0.0, "skill_cds": {}, "action_left": 0.0, "action_goal": p,
 				"intent": "待机", "retreat": 0.0, "retreat_cd": 0.0, "hp": MAX_HP, "phase": "移动", "timer": 0.0, "cooldown": 0.0,
 				"angle": 0.0 if attack else PI, "target": -1, "path": PackedVector2Array(),
@@ -769,8 +799,7 @@ func simulate(dt: float) -> void:
 			continue
 		var can_evade: bool = u.phase not in ["吟唱", "点射", "收招", "架枪防御", "回春", "灵木护佑", "掩护队友"] and not (u.phase == "瞄准" and u.shot_count > 0)
 		if can_evade:
-			if try_reaction(u, visible[u.team]): continue
-			if prepare_tactical_escape(u, visible[u.team]):
+			if try_reaction(u, visible[u.team]):
 				var step_to: Vector2 = u.p.move_toward(u.action_goal, unit_move_speed(u) * dt)
 				if u.phase == "规避预警" and movement_is_free(u, step_to): u.p = step_to
 				continue
@@ -778,12 +807,11 @@ func simulate(dt: float) -> void:
 		if u.phase in ["吟唱", "瞄准", "点射", "收招"]:
 			update_attack(u, dt)
 			continue
-		# Baseline footwork yields every tick to player AP and to a ready weapon.
+		# Configured movement yields only to higher-priority AP rules.
 		if u.intent in ["战斗走位", "战术换位"] and u.action_left > 0:
 			var movement_reason: String = u.reason
-			if try_active(u, visible[u.team]): continue
+			if try_active(u, visible[u.team], u.rule_slot if u.rule_kind == "active" else -1): continue
 			u.reason = movement_reason
-			if can_use_skill(u, "点射") and u.intent == "战斗走位": u.action_left = 0.0
 		if u.action_left > 0:
 			u.action_left = maxf(0, u.action_left - dt)
 			if u.intent not in ["架枪防御", "掩护队友", "回春", "灵木护佑"]:
@@ -796,7 +824,13 @@ func simulate(dt: float) -> void:
 				u.phase = "收招"
 				u.timer = 0.45
 			continue
-		if not try_active(u, visible[u.team]): baseline_action(u, visible[u.team])
+		if not try_active(u, visible[u.team]):
+			u.phase = "待命"
+			u.intent = "待命"
+			u.rule_kind = ""
+			u.rule_slot = -1
+			u.target = -1
+			u.reason = "没有满足条件的AP规则；等待恢复或反应事件"
 	body_impacts.clear()
 	body_pairs.clear()
 	for actor in next_units:
@@ -930,38 +964,44 @@ func unit_move_speed(u: Dictionary) -> float:
 	var skill_multiplier := 2.4 if u.intent == "短冲刺" else (1.2 if u.intent in ["绕侧", "后撤"] else 1.0)
 	return base_speed * (0.6 if u.slow > 0 else 1.0) * skill_multiplier * energy_speed(u)
 
-func baseline_action(u: Dictionary, visible: Array) -> void:
-	u.trace_base = ["无合法射位", "暂无调整目标", "未检查（上方优先）", "未检查（上方优先）"]
-	u.rule_kind = "base_ap"
-	u.rule_slot = 0
-	u.rule_flash = 0.0
-	var target := rule_target(u, visible, ["", "优先最近敌人", "无"], true)
-	if target >= 0:
-		if can_use_skill(u, "点射"):
-			u.trace_base[0] = "已选中（上次检查）"
-			begin_shot(u, target, "点射")
-			u.intent = "基础点射"
-			u.rule = "基础点射"
-			u.reason += "；执行普通点射"
-		else:
-			u.trace_base[0] = "精力不足" if u.energy < energy_cost("点射") else ("公共CD中" if u.cooldown > 0 else "技能CD中")
-			u.trace_base[1] = "已选中（上次检查）"
-			u.rule_slot = 1
-			if not prepare_reposition(u, target, visible) and not prepare_combat_step(u, target):
-				u.phase = "保持射位"
-				u.intent = "基础作战"
-				u.reason = "保持射线；附近没有安全的小幅走位空间"
-		return
-	u.rule_slot = 2 if not visible.is_empty() or u.memory > 0 else 3
-	u.trace_base[2] = "已选中（上次检查）" if u.rule_slot == 2 else "没有已知敌人"
-	if u.rule_slot == 3: u.trace_base[3] = "已选中（上次检查）"
-	u.action_goal = choose_goal(u, visible)
-	u.action_left = 2.0 if not visible.is_empty() else 0.8
+func basic_action(u: Dictionary, visible: Array, rule: Array) -> bool:
+	var skill: String = rule[0]
+	var target := rule_target(u, visible, rule, skill in ["普通攻击", "调整站位"])
+	if skill == "普通攻击":
+		if target < 0 or not can_use_skill(u, "点射"): return false
+		begin_shot(u, target, "点射")
+		return true
+	if skill == "调整站位":
+		if target < 0: return false
+		if not prepare_reposition(u, target, [target]) and not prepare_combat_step(u, target):
+			u.phase = "保持射位"
+			u.intent = "保持射位"
+			u.action_left = 0.2
+			u.action_goal = u.p
+			u.reason = "附近没有安全换位空间，保持射位"
+		return true
+	if skill == "接敌":
+		if visible.is_empty():
+			if u.memory <= 0 or not conditions_without_target(u, rule): return false
+		elif target < 0: return false
+	elif skill == "搜寻":
+		if not visible.is_empty() or u.memory > 0 or not conditions_without_target(u, rule): return false
+	else: return false
+	u.action_goal = choose_goal(u, [target] if target >= 0 else [])
+	u.action_left = 2.0 if target >= 0 else 0.8
 	u.repath = 0.0
-	u.target = rule_target(u, visible, ["", "优先最近敌人", "无"], false)
-	u.intent = "战术换位" if not visible.is_empty() else "搜索"
+	u.target = target
+	u.intent = "战术换位" if target >= 0 else "搜索"
 	u.phase = u.intent
-	u.reason = "目标被遮挡或超出射程，寻找射位" if not visible.is_empty() else ("前往最后发现敌人的位置" if u.memory > 0 else "巡查交战区域，寻找敌人")
+	u.reason = "寻找目标的有效射位" if target >= 0 else ("前往最后发现敌人的位置" if u.memory > 0 else "巡查交战区域，寻找敌人")
+	return true
+
+func conditions_without_target(u: Dictionary, rule: Array) -> bool:
+	for condition in [rule[1], rule[2]]:
+		if condition in ["无", "优先队友目标", "优先低血量", "优先最近敌人"]: continue
+		if condition not in ["自己HP≤50", "队友HP≤50", "自己精力≥80", "自己精力≥50", "自己精力≤30", "队友正在被瞄准", "自己被两人瞄准"]: return false
+		if not passes_condition(u, -1, condition): return false
+	return true
 
 # First configured offensive skill defines a stable distance preference, independent of CD.
 func preferred_range(u: Dictionary) -> float:
@@ -1342,18 +1382,13 @@ func refresh_ui() -> void:
 			info_label.text += "\n侧闪：" + ("冷却 %.1f秒" % remaining if remaining > 0 else "就绪（开火、吟唱与收招中不能发动）")
 			break
 	for row in editor_rows:
-		var active: bool = rule_is_executing(u, row.kind, row.slot)
+		var occupied: bool = row.slot >= 0
+		var active: bool = occupied and rule_is_executing(u, row.kind, row.slot)
 		var trace: Array = u.trace_ap if row.kind == "active" else u.trace_pp
-		row.state.text = ("▶ " + u.phase) if active else trace[row.slot]
-		row.state.tooltip_text = u.reason if active else "上次实际检查：" + trace[row.slot]
-		row.frame.add_theme_stylebox_override("panel", make_box(Color("453b29") if active else Color("1d2939"), GOLD if active else Color("253343")))
+		row.state.text = ("▶ " + u.phase) if active else (trace[row.slot] if occupied else "空槽")
+		row.state.tooltip_text = u.reason if active else ("上次实际检查：" + trace[row.slot] if occupied else "添加技能后自动归入AP或PP")
+		row.frame.add_theme_stylebox_override("panel", make_box(Color("453b29") if active else Color("1d2939") if occupied else Color("111a26"), GOLD if active else Color("344358") if occupied else Color("28364a")))
 		row.state.modulate = GOLD if active else Color("91a1b0")
-	for row in baseline_rows:
-		var active: bool = rule_is_executing(u, row.kind, row.slot)
-		row.state.text = "▶ " + u.phase if active else ("已倒下" if u.hp <= 0 else (u.trace_base[row.slot] if row.kind == "base_ap" else u.trace_base_pp))
-		row.state.tooltip_text = u.reason if active else "锁定的基础规则；玩家规则优先"
-		row.frame.add_theme_stylebox_override("panel", make_box(Color("3b3220") if active else Color("0d151e"), GOLD if active else Color("253343")))
-		row.state.modulate = GOLD if active else Color("718292")
 
 func _draw() -> void:
 	arena_view.render(self)
@@ -1537,19 +1572,21 @@ func rule_target(u: Dictionary, visible: Array, rule: Array, shooting: bool) -> 
 func record_rule(u: Dictionary, kind: String, slot: int, skill: String) -> void:
 	if kind == "主动":
 		u.trace_ap[slot] = "已选中（上次检查）"
-		u.trace_base = ["未检查（上方优先）", "未检查（上方优先）", "未检查（上方优先）", "未检查（上方优先）"]
 	else:
 		u.trace_pp[slot] = "已选中（上次检查）"
-		u.trace_base_pp = "未检查（上方优先）"
-	u.rule = "%s%d %s" % [kind, slot + 1, skill]
+	var display_slot := slot + 1
+	if kind == "反应":
+		for rule in loadouts[u.uid].active:
+			if rule[0] != "留空": display_slot += 1
+	u.rule = "%s%d %s" % [kind, display_slot, skill]
 	u.rule_kind = "active" if kind == "主动" else "reaction"
 	u.rule_slot = slot
-	u.reason = "命中%s规则%d：%s" % [kind, slot + 1, skill]
+	u.reason = "命中%s规则%d：%s" % [kind, display_slot, skill]
 	u.rule_flash = 1.4
 	u.intent = skill
 	var key := "%d:%s" % [u.uid, skill]
 	reaction_counts[key] = int(reaction_counts.get(key, 0)) + 1
-	if skill != "接敌" and skill != "点射":
+	if skill not in Tactics.BASIC_ACTIVE and skill not in Tactics.BASIC_REACTIONS and skill != "点射":
 		log_event("%s%d · %s" % ["蓝" if u.team == 0 else "红", u.member + 1, u.rule])
 
 func nearest_legal_goal(goal: Vector2) -> Vector2:
@@ -1570,16 +1607,34 @@ func shot_damage(skill: String) -> float:
 	if skill in Tactics.MAGIC: return Tactics.MAGIC[skill].damage
 	return {"点射": 7.0, "标记弹": 8.0, "强力射击": 18.0, "压制射击": 7.0, "协同追击": 8.0}.get(skill, 1.0)
 
-func try_active(u: Dictionary, visible: Array) -> bool:
+func new_rule_trace(message: String) -> Array:
+	var trace: Array = []
+	trace.resize(Tactics.RULE_LIMIT)
+	trace.fill(message)
+	return trace
+
+func try_active(u: Dictionary, visible: Array, before_slot := -1) -> bool:
 	var rows: Array = loadouts[u.uid].active
-	u.trace_ap = ["未检查（上方优先）", "未检查（上方优先）", "未检查（上方优先）", "未检查（上方优先）"]
+	u.trace_ap = new_rule_trace("未检查（上方优先）")
 	u.reason = "没有配置主动策略"
 	var first_skip := ""
-	for slot in range(rows.size()):
+	for slot in range(rows.size() if before_slot < 0 else mini(before_slot, rows.size())):
 		var rule: Array = rows[slot]
 		var skill: String = rule[0]
 		u.trace_ap[slot] = "留空" if skill == "留空" else "无符合条件的目标"
 		if skill == "留空": continue
+		if skill in Tactics.BASIC_ACTIVE:
+			if basic_action(u, visible, rule):
+				var intent: String = u.intent
+				var reason: String = u.reason
+				record_rule(u, "主动", slot, skill)
+				u.intent = intent
+				u.reason += "；" + reason
+				return true
+			u.trace_ap[slot] = "无合法射位" if skill == "普通攻击" else "情境/条件未满足"
+			if skill == "普通攻击" and rule_target(u, visible, rule, true) >= 0:
+				u.trace_ap[slot] = "精力不足" if u.energy < 15 else ("公共CD中" if u.cooldown > 0 else "技能CD中")
+			continue
 		if float(u.skill_cds.get(skill, 0.0)) > 0:
 			u.trace_ap[slot] = "技能CD中"
 			if first_skip.is_empty(): first_skip = "%s冷却中" % skill
@@ -1655,7 +1710,7 @@ func try_reaction(u: Dictionary, visible: Array, defensive_only := false) -> boo
 	var threats := threats_to(u, visible)
 	var ally := ally_index(u)
 	var rows: Array = loadouts[u.uid].reaction
-	u.trace_pp = ["未检查（上方优先）", "未检查（上方优先）", "未检查（上方优先）", "未检查（上方优先）"]
+	u.trace_pp = new_rule_trace("未检查（上方优先）")
 	for slot in range(rows.size()):
 		var rule: Array = rows[slot]
 		var skill: String = rule[0]
@@ -1665,11 +1720,22 @@ func try_reaction(u: Dictionary, visible: Array, defensive_only := false) -> boo
 		if float(u.skill_cds.get(skill, 0.0)) > 0:
 			u.trace_pp[slot] = "技能CD中"
 			continue
+		if skill == "步行避险":
+			var candidates: Array = []
+			for danger in perceived_dangers(u, visible):
+				if danger.source in visible and danger_contains(danger, u.p) and (danger.kind == "area" or danger.get("walk_evade", false)):
+					if danger.source not in candidates: candidates.append(danger.source)
+			if rule_target(u, candidates, rule, false) < 0 or not prepare_tactical_escape(u, candidates):
+				u.trace_pp[slot] = "无符合条件的安全避险路径"
+				continue
+			record_rule(u, "反应", slot, skill)
+			u.intent = "规避预警"
+			return true
 		if not can_use_skill(u, skill):
 			u.trace_pp[slot] = "精力不足" if u.energy < energy_cost(skill) else "公共CD中"
 			continue
 		u.trace_pp[slot] = "事件/条件未满足"
-		if defensive_only and skill not in ["侧闪", "架枪防御"]: continue
+		if defensive_only and skill not in ["侧闪", "架枪防御", "步行避险"]: continue
 		if skill in ["回春", "灵木护佑"]:
 			var recipient := heal_target(u, rule)
 			if recipient < 0: continue
@@ -1749,7 +1815,8 @@ func run_rules_tests() -> void:
 	# Exercise the actual editor callback, including closure binding and reset.
 	editor_unit = 2
 	var edit: OptionButton = editor_rows[1].menus[0]
-	edit.item_selected.emit(ACTIVE_SKILLS.find("标记弹"))
+	rebuild_editor()
+	edit.item_selected.emit(Tactics.all_skills().find("标记弹"))
 	assert(loadouts[2].active[1][0] == "标记弹")
 	assert(loadouts[0].active[1][0] == "强力射击")
 	setup_loadouts()
@@ -1775,8 +1842,9 @@ func run_rules_tests() -> void:
 	loadouts[0].active = [["留空", "无", "无"]]
 	assert(not try_active(units[0], [2, 3]), "Empty strategy has no special action")
 	units[0].dodge = 0
-	baseline_action(units[0], [2, 3])
-	assert(units[0].active_skill == "点射" and units[0].phase == "瞄准", "Empty rules still perform baseline attacks")
+	loadouts[0] = Tactics.basics()
+	assert(try_active(units[0], [2, 3]))
+	assert(units[0].active_skill == "点射" and units[0].phase == "瞄准", "Editable basic attack performs ordinary shots")
 	setup_loadouts()
 	var results: Array = []
 	for swapped in [false, true]:
@@ -1836,8 +1904,14 @@ func run_content_tests() -> void:
 	for tick in range(3602):
 		if finished: break
 		simulate(STEP)
-	assert(finished and shots > 0 and hits > 0, "Empty strategies must search and fight unaided")
-	print("BASELINE: empty slots completed a match, shots=", shots)
+	assert(finished and shots == 0 and hits == 0, "No hidden attacks or movement after all rules are removed")
+	reset_round()
+	for i in range(4): loadouts[i] = Tactics.basics()
+	for tick in range(3602):
+		if finished: break
+		simulate(STEP)
+	assert(finished and shots > 0 and hits > 0, "Editable basic rules search, engage and fight")
+	print("BASIC RULES: editable rules completed a match, shots=", shots)
 
 	# Only observed last position feeds searching, never an invisible live enemy position.
 	reset_round()
@@ -1854,7 +1928,7 @@ func run_content_tests() -> void:
 	units[3].hp = 0
 	units[2].phase = "瞄准"
 	units[2].target = 1
-	loadouts[0].reaction[0] = ["掩护队友", "无", "无"]
+	loadouts[0].reaction.append(["掩护队友", "无", "无"])
 	simulate(STEP)
 	assert(units[1].shield == 10 and units[0].skill_cds.has("掩护队友"))
 	units[0].skill_cds.clear()
@@ -1976,7 +2050,7 @@ func run_magic_tests() -> void:
 	units[1].p = Vector2(100, 380)
 	units[1].hp = 2
 	units[1].hurt_recent = 0.8
-	loadouts[0].reaction[0] = ["回春", "优先低血量", "无"]
+	loadouts[0].reaction.append(["回春", "优先低血量", "无"])
 	simulate(STEP)
 	assert(units[1].hp == 14 and units[1].heal_flash > 0)
 	units[0].skill_cds.clear()
@@ -2031,7 +2105,7 @@ func run_readability_tests() -> void:
 		units[0].angle = PI
 		units[2].phase = "收招"
 		units[2].timer = 10
-		if evade: loadouts[0].reaction[0] = ["侧闪", "无", "无"]
+		if evade: loadouts[0].reaction.append(["侧闪", "无", "无"])
 		bullets.append({"p": Vector2(320, 320), "v": Vector2(-280, 0), "life": 1.0, "team": 1, "source": 2, "damage": 1.0})
 		if evade:
 			simulate(STEP)
@@ -2280,21 +2354,18 @@ func prepare_tactical_escape(u: Dictionary, visible: Array) -> bool:
 	for d in dangers:
 		if (d.kind == "area" or d.get("walk_evade", false)) and danger_contains(d, u.p): threatened = true; break
 	if not threatened:
-		u.trace_base_pp = "没有长预警威胁"
 		if u.intent == "规避预警": u.action_left = 0; u.phase = "移动"
 		return false
 	var choice := escape_destination(u, dangers, MOVE_SPEED * (0.6 if u.slow > 0 else 1.0))
 	if choice.is_empty():
-		u.trace_base_pp = "无安全步行路径"
 		return false
-	u.trace_base_pp = "已选中（上次检查）"
 	if u.intent != "规避预警":
 		var key := "%d:规避预警" % u.uid
 		reaction_counts[key] = int(reaction_counts.get(key, 0)) + 1
 	u.action_goal = choice.point
 	u.action_left = 0.0
 	u.intent = "规避预警"
-	u.rule_kind = "base_pp"
+	u.rule_kind = ""
 	u.rule_slot = 0
 	u.rule_flash = 0
 	u.phase = u.intent
@@ -2327,8 +2398,9 @@ func counter_after_escape(u: Dictionary, visible: Array) -> bool:
 	return true
 
 func run_evasion_tests() -> void:
-	# No PP slots: baseline must leave the locked beam and punish its recovery.
+	# Explicit walking PP must leave a locked beam, without injecting counterattacks.
 	pattern_fixture()
+	loadouts[0] = {"active": [], "reaction": [["步行避险", "无", "无"]]}
 	units[0].angle = 0
 	units[2].angle = PI
 	units[0].cooldown = 0.25
@@ -2342,15 +2414,17 @@ func run_evasion_tests() -> void:
 		countered = countered or units[0].intent == "收招反打"
 		landed_in_recovery = landed_in_recovery or (units[2].hp < MAX_HP and units[2].phase == "收招")
 	print("duel ", escaped, " ", countered, " ", landed_in_recovery, " hp ", units[0].hp, " enemy ", units[2].hp, " phase ", units[0].phase)
-	assert(escaped and not countered and units[0].hp == MAX_HP, "Baseline dodges without injecting automatic counter rules")
+	assert(escaped and not countered and units[0].hp == MAX_HP, "Configured walking PP dodges without injecting counter rules")
 	# Already outside the beam should not move merely because it was targeted.
 	pattern_fixture()
+	loadouts[0] = {"active": [], "reaction": [["步行避险", "无", "无"]]}
 	begin_shot(units[2], 0, "蓄能贯穿")
 	units[2].timer = 0.8
 	units[0].p.y += 90
 	assert(not prepare_tactical_escape(units[0], [2]))
 	# Two simultaneous landing zones: isolate walking from attack recoil into a zone.
 	pattern_fixture()
+	loadouts[0] = {"active": [], "reaction": [["步行避险", "无", "无"]]}
 	units[0].cooldown = 2.0
 	units[2].phase = "收招"
 	units[2].timer = 10
@@ -2360,9 +2434,10 @@ func run_evasion_tests() -> void:
 	assert(not choice.is_empty())
 	for d in perceived_dangers(units[0], [2]): assert(not danger_contains(d, choice.point))
 	for tick in range(85): simulate(STEP)
-	assert(units[0].hp == MAX_HP, "Walking baseline must escape overlapping telegraphs")
+	assert(units[0].hp == MAX_HP, "Configured walking PP escapes overlapping telegraphs")
 	# An attack already in recovery cannot cancel for a free evade.
 	pattern_fixture()
+	loadouts[0] = {"active": [], "reaction": [["步行避险", "无", "无"]]}
 	units[0].phase = "收招"
 	units[0].timer = 1
 	units[2].phase = "收招"
@@ -2370,7 +2445,7 @@ func run_evasion_tests() -> void:
 	hazards.append({"kind": "area", "p": units[0].p, "radius": 40.0, "team": 1, "source": 2, "left": 0.1, "damage": 1.0})
 	for tick in range(10): simulate(STEP)
 	assert(units[0].hp == (MAX_HP - 1) and units[0].phase == "收招")
-	print("EVASION PASSED: baseline dodge, no automatic counter priority, no false alarm, overlapping zones, action commitment")
+	print("EVASION PASSED: configured walking PP, no automatic counter priority, no false alarm, overlapping zones, action commitment")
 
 func run_blast_tests() -> void:
 	# Screenshot-like case: impact center inside the upper wall, body outside its corner.
@@ -2431,11 +2506,12 @@ func run_arena_tests() -> void:
 	var before: Vector2 = units[0].p
 	simulate(STEP)
 	assert(units[0].active_skill == "焰返" and units[0].p == before)
-	# Empty PP still performs basic continuous walking, not tile hops.
+	# Configured walking PP moves continuously, with no hidden fallback.
 	pattern_fixture()
 	begin_shot(units[2], 0, "蓄能贯穿")
 	units[2].timer = 0.8
 	units[0].cooldown = 0.25
+	loadouts[0] = {"active": [], "reaction": [["步行避险", "无", "无"]]}
 	before = units[0].p
 	simulate(STEP)
 	assert(units[0].intent == "规避预警" and units[0].p.distance_to(before) > 0 and units[0].p.distance_to(before) < 3)
@@ -2470,6 +2546,7 @@ func run_tempo_tests() -> void:
 	units[2].phase = "收招"
 	units[2].timer = 100.0
 	units[0].cooldown = 0.55
+	loadouts[0] = Tactics.basics()
 	var origin: Vector2 = units[0].p
 	for tick in range(15): simulate(STEP)
 	assert(units[0].intent == "战斗走位")
@@ -3031,14 +3108,14 @@ func run_ultimate_tests() -> void:
 func energy_cost(skill: String) -> float:
 	if skill in ["天穹贯穿", "星火轰炸"]: return 70.0
 	if skill in ["蓄能贯穿", "抛射轰击", "烈焰爆破", "裂地冲击"]: return 45.0
-	if skill in ["绕侧", "后撤", "留空"]: return 0.0
+	if skill in ["绕侧", "后撤", "留空", "调整站位", "接敌", "搜寻", "步行避险"]: return 0.0
 	if skill in ["短冲刺", "侧闪"]: return 20.0
 	if skill == "架枪防御": return 10.0
-	if skill == "点射": return 15.0
+	if skill in ["点射", "普通攻击"]: return 15.0
 	return 25.0
 
 func uses_public_cd(skill: String) -> bool:
-	return skill not in ["绕侧", "后撤", "短冲刺", "侧闪", "架枪防御", "留空"]
+	return skill not in ["绕侧", "后撤", "短冲刺", "侧闪", "架枪防御", "留空", "调整站位", "接敌", "搜寻", "步行避险"]
 
 func can_use_skill(u: Dictionary, skill: String) -> bool:
 	return (energy_cost(skill) == 0 or u.energy + 0.00001 >= energy_cost(skill)) and float(u.skill_cds.get(skill, 0)) <= 0 and (not uses_public_cd(skill) or u.cooldown <= 0)
@@ -3147,42 +3224,97 @@ func run_strategy_view_tests() -> void:
 	assert(try_active(units[0], [2]))
 	assert(units[0].trace_ap[0] == "技能CD中" and units[0].trace_ap[2] == "未检查（上方优先）")
 	units[0].rule_flash = 0
-	assert(rule_is_executing(units[0], "active", 1), "Execution highlight must outlive the old flash timer")
 	units[0].phase = "收招"
 	assert(rule_is_executing(units[0], "active", 1))
-	pattern_fixture()
-	units[0].cooldown = 2
-	baseline_action(units[0], [2])
-	assert(rule_is_executing(units[0], "base_ap", 1))
-	assert(units[0].trace_base[0] == "公共CD中")
-	units[0].memory = 0
-	baseline_action(units[0], [])
-	assert(rule_is_executing(units[0], "base_ap", 3))
-	units[0].cooldown = 0
-	baseline_action(units[0], [2])
-	assert(rule_is_executing(units[0], "base_ap", 0))
-	units[0].phase = "侧闪"
-	record_rule(units[0], "反应", 0, "侧闪")
-	units[0].rule_flash = 0
-	assert(rule_is_executing(units[0], "reaction", 0) and not rule_is_executing(units[0], "base_ap", 0))
-	units[0].hp = 0
-	assert(not rule_is_executing(units[0], "reaction", 0))
-	assert(editor_rows.size() == 8 and baseline_rows.size() == 5)
-	var original: Dictionary = loadouts[0].duplicate(true)
+	assert(editor_rows.size() == 12)
+	# Change AP to PP through the actual menu callback: conditions travel with it.
 	choose_editor_unit(0)
+	edit_rule_cell(0, 1, "自己HP≤50")
+	var skill_menu: OptionButton = editor_rows[0].menus[0]
+	skill_menu.item_selected.emit(Tactics.all_skills().find("架枪防御"))
+	assert(loadouts[0].active.size() == 1 and loadouts[0].reaction.size() == 1)
+	assert(loadouts[0].active[0][0] == "火矢" and loadouts[0].reaction[0] == ["架枪防御", "自己HP≤50", "无"])
+	assert(editor_rows[0].kind == "active" and editor_rows[1].kind == "reaction")
+	# Empty slot accepts either type, with no AP/PP quota, capped at twelve total.
+	edit_rule_cell(2, 0, "普通攻击")
+	assert(loadouts[0].active[1][0] == "普通攻击" and editor_rows[2].kind == "reaction")
+	edit_rule_cell(2, 0, "火矢")
+	assert(loadouts[0].reaction.is_empty() and loadouts[0].active.size() == 3)
+	while editor_entries().size() < 12: edit_rule_cell(editor_entries().size(), 0, "火矢")
+	assert(editor_entries().size() == 12 and loadouts[0].active.size() == 12)
+	edit_rule_cell(12, 0, "火矢")
+	assert(editor_entries().size() == 12)
+	for row in editor_rows: assert(row.kind == "active")
+	# All twelve slots may also be PP, and can switch type in place at capacity.
+	for i in range(12): edit_rule_cell(0, 0, "架枪防御")
+	assert(loadouts[0].active.is_empty() and loadouts[0].reaction.size() == 12)
+	edit_rule_cell(11, 0, "普通攻击")
+	assert(editor_rows[0].kind == "active" and editor_entries().size() == 12)
+	edit_rule_cell(0, 0, "留空")
+	assert(editor_entries().size() == 11 and editor_rows[11].slot == -1)
+	# Reordering changes actual priority and preserves the other category.
+	loadouts[0] = Tactics.basics()
+	rebuild_editor()
+	var original: Dictionary = loadouts[0].duplicate(true)
 	move_rule("active", 0, 1)
-	assert(loadouts[0].active[0] == original.active[1] and loadouts[0].active[1] == original.active[0])
-	assert(loadouts[0].reaction == original.reaction)
+	assert(loadouts[0].active[0] == original.active[1] and loadouts[0].reaction == original.reaction)
 	move_rule("active", 1, -1)
 	assert(loadouts[0] == original)
 	move_rule("active", 0, -1)
 	assert(loadouts[0] == original)
+	# Basic actions obey the exact same priority/conditions as other AP.
+	pattern_fixture()
+	loadouts[0] = Tactics.basics()
+	units[0].cooldown = 2
+	assert(try_active(units[0], [2]) and rule_is_executing(units[0], "active", 1))
+	assert(units[0].trace_ap[0] == "公共CD中")
+	units[0].cooldown = 0
+	assert(try_active(units[0], [2]) and rule_is_executing(units[0], "active", 0))
+	units[0].cooldown = 0
+	units[0].skill_cds.clear()
+	loadouts[0].active[0][1] = "自己HP≤50"
+	assert(try_active(units[0], [2]) and units[0].rule_slot == 1)
+	loadouts[0] = {"active": [["搜寻", "自己精力≤30", "无"]], "reaction": []}
+	units[0].memory = 0
+	assert(not try_active(units[0], []))
+	units[0].energy = 10
+	assert(try_active(units[0], []) and units[0].phase == "搜索")
+	loadouts[0].active[0][1] = "敌人距离≤2米"
+	assert(not try_active(units[0], []), "Target conditions cannot pass when searching without a target")
+	pattern_fixture()
+	loadouts[0] = {"active": [], "reaction": []}
+	for i in range(11): loadouts[0].active.append(["火矢", "自己HP≤50", "无"])
+	loadouts[0].active.append(["普通攻击", "无", "无"])
+	assert(try_active(units[0], [2]) and units[0].rule_slot == 11)
+	pattern_fixture()
+	loadouts[0] = {"active": [], "reaction": []}
+	for i in range(11): loadouts[0].reaction.append(["架枪防御", "自己HP≤50", "无"])
+	loadouts[0].reaction.append(["架枪防御", "无", "无"])
+	units[2].target = 0
+	units[2].phase = "瞄准"
+	assert(try_reaction(units[0], [2]) and units[0].rule_slot == 11)
+	# Clearing everything truly disables autonomous voluntary actions.
+	reset_round()
+	for uid in range(4): loadouts[uid] = {"active": [], "reaction": []}
+	var positions: Array = []
+	for u in units: positions.append(u.p)
+	for tick in range(120): simulate(STEP)
+	assert(shots == 0)
+	for uid in range(4): assert(units[uid].p == positions[uid] and units[uid].phase == "待命")
+	# PP walking evasion must be configured and must satisfy both conditions.
+	pattern_fixture()
+	var bot: Dictionary = units[2]
+	hazards.append({"kind": "area", "p": bot.p, "radius": 64.0, "team": 0, "source": 0, "left": 1.5, "origin": units[0].p, "damage": 18.0, "skill": "抛射轰击"})
+	loadouts[2] = {"active": [], "reaction": []}
+	assert(not try_reaction(bot, [0]))
+	loadouts[2].reaction = [["步行避险", "自己HP≤50", "无"]]
+	assert(not try_reaction(bot, [0]))
+	bot.hp = 40
+	assert(try_reaction(bot, [0]) and rule_is_executing(bot, "reaction", 0))
 	choose_editor_unit(3)
-	assert(editor_unit == 3 and selected == 3 and unit_menu.selected == 3)
 	refresh_ui()
-	assert(roster_buttons.size() == 4 and "红方" in roster_buttons[3].text)
-	print("STRATEGY VIEW PASSED: actual priority traces, skipped lower slots, persistent execution/recovery highlight, basic movement/search/attack, PP ownership, death, 8 editable + 5 locked rows")
-
+	assert(editor_unit == 3 and selected == 3 and roster_buttons.size() == 4)
+	print("STRATEGY VIEW PASSED: 12 shared slots, automatic AP/PP grouping, type changes at capacity, conditions preserved, real priority swaps, editable basic AP/PP, no hidden fallback, persistent highlight and roster")
 
 func run_ultimate_debt_tests() -> void:
 	for starting_energy in [30.0, 0.0, -20.0]:
