@@ -96,6 +96,10 @@ func _ready() -> void:
 	setup_loadouts()
 	setup_ui()
 	reset_round()
+	if "--position-test" in OS.get_cmdline_user_args():
+		run_position_tests()
+		get_tree().quit()
+		return
 	if "--impact-test" in OS.get_cmdline_user_args():
 		run_impact_tests()
 		get_tree().quit()
@@ -168,6 +172,10 @@ func _ready() -> void:
 	if "--preview" in OS.get_cmdline_user_args() or "--demo" in OS.get_cmdline_user_args():
 		running = true
 		started = true
+	if "--position-preview" in OS.get_cmdline_user_args():
+		for tick in range(360): simulate(STEP)
+		running = false
+		capture_preview.call_deferred()
 
 func setup_navigation() -> void:
 	nav.region = Rect2i(0, 0, 32, 32)
@@ -526,9 +534,11 @@ func simulate(dt: float) -> void:
 			update_attack(u, dt)
 			continue
 		# Baseline footwork yields every tick to player AP and to a ready weapon.
-		if u.intent == "战斗走位" and u.action_left > 0:
+		if u.intent in ["战斗走位", "战术换位"] and u.action_left > 0:
+			var movement_reason: String = u.reason
 			if try_active(u, visible[u.team]): continue
-			if u.cooldown <= 0: u.action_left = 0.0
+			u.reason = movement_reason
+			if u.cooldown <= 0 and u.intent == "战斗走位": u.action_left = 0.0
 		if u.action_left > 0:
 			u.action_left = maxf(0, u.action_left - dt)
 			if u.intent not in ["架枪防御", "掩护队友", "回春", "灵木护佑"]:
@@ -640,8 +650,8 @@ func choose_goal(u: Dictionary, visible: Array) -> Vector2:
 			for y in range(32):
 				if nav.is_point_solid(Vector2i(x, y)): continue
 				var point := Vector2(x * 20 + 10, y * 20 + 10)
-				if point.distance_to(enemy) > SHOT_RANGE - 20 or blocked(point, enemy): continue
-				var d: float = point.distance_squared_to(u.p)
+				if point.distance_to(enemy) > SHOT_RANGE - 20 or blocked(point, enemy) or not movement_is_free(u, point): continue
+				var d: float = position_score(u, target, point)
 				for ally in units:
 					if ally.uid != u.uid and ally.hp > 0 and point.distance_to(ally.p) < RADIUS * 2 + 12: d += 10000
 				if d < score: score = d; best = point
@@ -657,7 +667,7 @@ func choose_goal(u: Dictionary, visible: Array) -> Vector2:
 	return destination
 
 func unit_move_speed(u: Dictionary) -> float:
-	var base_speed := ENGAGE_SPEED if u.intent in ["基础接敌", "搜索"] else MOVE_SPEED
+	var base_speed := ENGAGE_SPEED if u.intent in ["基础接敌", "搜索", "战术换位"] else MOVE_SPEED
 	var skill_multiplier := 2.4 if u.intent == "短冲刺" else (1.2 if u.intent in ["绕侧", "后撤"] else 1.0)
 	return base_speed * (0.6 if u.slow > 0 else 1.0) * skill_multiplier
 
@@ -673,17 +683,55 @@ func baseline_action(u: Dictionary, visible: Array) -> void:
 			u.rule = "基础点射"
 			u.reason += "；执行普通点射"
 		else:
-			if not prepare_combat_step(u, target):
+			if not prepare_reposition(u, target, visible) and not prepare_combat_step(u, target):
 				u.phase = "保持射位"
 				u.intent = "基础作战"
 				u.reason = "保持射线；附近没有安全的小幅走位空间"
 		return
 	u.action_goal = choose_goal(u, visible)
-	u.action_left = 0.35
+	u.action_left = 2.0 if not visible.is_empty() else 0.8
 	u.repath = 0.0
-	u.intent = "基础接敌" if not visible.is_empty() else "搜索"
+	u.target = rule_target(u, visible, ["", "优先最近敌人", "无"], false)
+	u.intent = "战术换位" if not visible.is_empty() else "搜索"
 	u.phase = u.intent
 	u.reason = "目标被遮挡或超出射程，寻找射位" if not visible.is_empty() else ("前往最后发现敌人的位置" if u.memory > 0 else "巡查交战区域，寻找敌人")
+
+# First configured offensive skill defines a stable distance preference, independent of CD.
+func preferred_range(u: Dictionary) -> float:
+	for rule in loadouts[u.uid].active:
+		var skill: String = rule[0]
+		if skill == "霰弹": return 125.0
+		if skill in ["抛射轰击", "烈焰爆破", "蓄能贯穿"]: return 240.0
+		if skill in Tactics.MAGIC or skill in ["标记弹", "强力射击", "压制射击"]: return 190.0
+	return 190.0
+
+func position_score(u: Dictionary, target: int, point: Vector2) -> float:
+	var enemy: Vector2 = units[target].p
+	var score: float = absf(point.distance_to(enemy) - preferred_range(u)) * 2.4 + point.distance_to(u.p) * 0.28
+	var ally := ally_index(u)
+	if ally >= 0:
+		var separation: float = point.distance_to(units[ally].p)
+		score += maxf(0, 110.0 - separation) * 1.8
+		# One anchor and one flanker avoids both endlessly chasing each other's angle.
+		if u.member == 1 and (units[ally].target == target or units[ally].p.distance_to(enemy) < SHOT_RANGE):
+			var angle_gap: float = absf((point - enemy).angle_to(units[ally].p - enemy))
+			score += maxf(0, deg_to_rad(55) - angle_gap) * 160.0
+	return score
+
+func prepare_reposition(u: Dictionary, target: int, visible: Array) -> bool:
+	var goal := choose_goal(u, visible)
+	if goal.distance_to(u.p) < 45 or position_score(u, target, u.p) - position_score(u, target, goal) < 32: return false
+	var old_distance: float = u.p.distance_to(units[target].p)
+	u.target = target
+	u.action_goal = goal
+	u.action_left = clampf(u.p.distance_to(goal) / ENGAGE_SPEED + 0.5, 0.8, 2.4)
+	u.repath = 0.0
+	u.avoid_left = 0.0
+	u.intent = "战术换位"
+	u.phase = u.intent
+	u.reason = "贴近压迫" if old_distance > preferred_range(u) + 35 else ("拉开射击距离" if old_distance < preferred_range(u) - 35 else "与队友错开角度，争取侧面射位")
+	u.reason += "；理想距离 %.1f米，持续前往绿色目标点" % (preferred_range(u) / 80)
+	return true
 
 # Small deterministic lateral steps, preserving line of sight and firing distance.
 # This is low-priority footwork, not a dodge or an uninterruptible movement skill.
@@ -781,7 +829,8 @@ func move_unit(u: Dictionary, goal: Vector2, dt: float) -> void:
 	if movement_is_free(u, next) and movement_is_free(u, u.p + direction * 12):
 		u.p = next
 		u.phase = u.intent
-		u.angle = rotate_toward(u.angle, direction.angle(), dt * 5)
+		var facing: float = (units[u.target].p - u.p).angle() if u.intent == "战术换位" and u.target >= 0 and not blocked(u.p, units[u.target].p) else direction.angle()
+		u.angle = rotate_toward(u.angle, facing, dt * 5)
 		return
 	for angle in [PI / 2, -PI / 2, PI / 3, -PI / 3, PI * 2 / 3, -PI * 2 / 3]:
 		var detour: Vector2 = direction.rotated(angle)
@@ -2220,6 +2269,7 @@ func run_tempo_tests() -> void:
 	assert(is_equal_approx(unit_move_speed(units[0]), MOVE_SPEED))
 	assert(ENGAGE_SPEED > MOVE_SPEED and MOVE_SPEED > COMBAT_STEP_SPEED)
 	pattern_fixture()
+	units[2].p = Vector2(290, 320) # Already at ideal range: test small footwork, not relocation.
 	units[2].phase = "收招"
 	units[2].timer = 100.0
 	units[0].cooldown = 0.55
@@ -2392,3 +2442,37 @@ func run_impact_tests() -> void:
 			assert(valid_arena_position(units[0].p))
 			assert(units[0].p.distance_to(units[2].p) >= RADIUS * 2)
 	print("IMPACT PASSED: physical recoil without action cancel; laser forward+nearest-side push, exit then decay, single damage; walls/borders/bodies")
+
+func run_position_tests() -> void:
+	pattern_fixture()
+	units[0].p = Vector2(100, 320)
+	units[2].p = Vector2(300, 320)
+	loadouts[0] = Tactics.build([["霰弹", "无", "无"]], [])
+	var close_goal := choose_goal(units[0], [2])
+	loadouts[0] = Tactics.build([["抛射轰击", "无", "无"]], [])
+	var far_goal := choose_goal(units[0], [2])
+	assert(close_goal.distance_to(units[2].p) < 150)
+	assert(far_goal.distance_to(units[2].p) > 210)
+	assert(close_goal.distance_to(far_goal) > 60)
+	# The second teammate deliberately opens a different attack angle.
+	units[0].p = Vector2(100, 320)
+	units[0].target = 2
+	units[1].hp = MAX_HP
+	units[1].p = Vector2(100, 380)
+	var flank := choose_goal(units[1], [2])
+	var before_angle: float = absf((units[1].p - units[2].p).angle_to(units[0].p - units[2].p))
+	var after_angle: float = absf((flank - units[2].p).angle_to(units[0].p - units[2].p))
+	assert(after_angle > before_angle + 0.2)
+	assert(flank.distance_to(units[1].p) > 45)
+	# Destination persists across normal updates; player AP can still take over.
+	assert(prepare_reposition(units[1], 2, [2]))
+	var goal: Vector2 = units[1].action_goal
+	units[0].phase = "收招"; units[0].timer = 10
+	units[2].phase = "收招"; units[2].timer = 10
+	units[1].cooldown = 1.0
+	for tick in range(12): simulate(STEP)
+	assert(units[1].action_goal == goal and units[1].intent == "战术换位")
+	loadouts[1] = Tactics.build([["后撤", "无", "无"]], [])
+	simulate(STEP)
+	assert(units[1].intent == "后撤")
+	print("POSITION PASSED: close vs ranged goals, teammate opens angle, persistent destination, player AP preemption")

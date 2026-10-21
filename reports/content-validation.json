@@ -14,157 +14,157 @@
 			"blue": "标记集火",
 			"blue_left": true,
 			"red": "标记集火",
-			"seconds": 14.4833333333325,
-			"shots": 22,
+			"seconds": 18.299999999999,
+			"shots": 30,
 			"winner": 0
 		},
 		{
 			"blue": "标记集火",
 			"blue_left": false,
 			"red": "标记集火",
-			"seconds": 15.3666666666658,
-			"shots": 21,
+			"seconds": 18.299999999999,
+			"shots": 30,
 			"winner": 1
 		},
 		{
 			"blue": "标记集火",
 			"blue_left": true,
 			"red": "游击牵制",
-			"seconds": 12.3499999999993,
-			"shots": 18,
+			"seconds": 20.5499999999988,
+			"shots": 31,
 			"winner": 0
 		},
 		{
 			"blue": "标记集火",
 			"blue_left": false,
 			"red": "游击牵制",
-			"seconds": 10.3999999999994,
-			"shots": 17,
+			"seconds": 20.5499999999988,
+			"shots": 36,
 			"winner": 0
 		},
 		{
 			"blue": "标记集火",
 			"blue_left": true,
 			"red": "掩护反击",
-			"seconds": 10.4999999999994,
-			"shots": 18,
-			"winner": 0
+			"seconds": 29.5499999999983,
+			"shots": 49,
+			"winner": 1
 		},
 		{
 			"blue": "标记集火",
 			"blue_left": false,
 			"red": "掩护反击",
-			"seconds": 15.3499999999991,
-			"shots": 25,
-			"winner": 1
+			"seconds": 25.2333333333319,
+			"shots": 48,
+			"winner": 0
 		},
 		{
 			"blue": "游击牵制",
 			"blue_left": true,
 			"red": "标记集火",
-			"seconds": 8.66666666666617,
-			"shots": 16,
+			"seconds": 20.1333333333322,
+			"shots": 36,
 			"winner": 1
 		},
 		{
 			"blue": "游击牵制",
 			"blue_left": false,
 			"red": "标记集火",
-			"seconds": 8.7999999999995,
-			"shots": 14,
+			"seconds": 20.5499999999988,
+			"shots": 31,
 			"winner": 1
 		},
 		{
 			"blue": "游击牵制",
 			"blue_left": true,
 			"red": "游击牵制",
-			"seconds": 17.4833333333323,
-			"shots": 25,
-			"winner": 0
+			"seconds": 32.4166666666648,
+			"shots": 51,
+			"winner": 1
 		},
 		{
 			"blue": "游击牵制",
 			"blue_left": false,
 			"red": "游击牵制",
-			"seconds": 21.5499999999988,
-			"shots": 28,
-			"winner": 1
+			"seconds": 32.4166666666648,
+			"shots": 51,
+			"winner": 0
 		},
 		{
 			"blue": "游击牵制",
 			"blue_left": true,
 			"red": "掩护反击",
-			"seconds": 13.3666666666659,
-			"shots": 24,
-			"winner": 1
+			"seconds": 39.9833333333311,
+			"shots": 61,
+			"winner": 0
 		},
 		{
 			"blue": "游击牵制",
 			"blue_left": false,
 			"red": "掩护反击",
-			"seconds": 15.5833333333324,
-			"shots": 27,
+			"seconds": 25.6833333333319,
+			"shots": 47,
 			"winner": 1
 		},
 		{
 			"blue": "掩护反击",
 			"blue_left": true,
 			"red": "标记集火",
-			"seconds": 15.3499999999991,
-			"shots": 25,
-			"winner": 0
+			"seconds": 25.2333333333319,
+			"shots": 48,
+			"winner": 1
 		},
 		{
 			"blue": "掩护反击",
 			"blue_left": false,
 			"red": "标记集火",
-			"seconds": 10.4999999999994,
-			"shots": 18,
+			"seconds": 33.7833333333314,
+			"shots": 50,
+			"winner": 0
+		},
+		{
+			"blue": "掩护反击",
+			"blue_left": true,
+			"red": "游击牵制",
+			"seconds": 25.6833333333319,
+			"shots": 47,
+			"winner": 0
+		},
+		{
+			"blue": "掩护反击",
+			"blue_left": false,
+			"red": "游击牵制",
+			"seconds": 31.8999999999982,
+			"shots": 53,
 			"winner": 1
 		},
 		{
 			"blue": "掩护反击",
 			"blue_left": true,
-			"red": "游击牵制",
-			"seconds": 15.5833333333324,
-			"shots": 27,
-			"winner": 0
-		},
-		{
-			"blue": "掩护反击",
-			"blue_left": false,
-			"red": "游击牵制",
-			"seconds": 13.3666666666659,
-			"shots": 24,
-			"winner": 0
-		},
-		{
-			"blue": "掩护反击",
-			"blue_left": true,
 			"red": "掩护反击",
-			"seconds": 13.2999999999992,
-			"shots": 27,
+			"seconds": 33.3833333333314,
+			"shots": 60,
 			"winner": 0
 		},
 		{
 			"blue": "掩护反击",
 			"blue_left": false,
 			"red": "掩护反击",
-			"seconds": 13.2999999999992,
-			"shots": 27,
+			"seconds": 33.3833333333314,
+			"shots": 60,
 			"winner": 1
 		}
 	],
 	"skill_activations": {
-		"侧闪": 14,
-		"协同追击": 29,
-		"压制射击": 48,
-		"后撤": 1,
-		"强力射击": 57,
-		"掩护队友": 30,
-		"架枪防御": 24,
-		"标记弹": 22,
-		"短冲刺": 41,
-		"绕侧": 39
+		"侧闪": 5,
+		"协同追击": 58,
+		"压制射击": 109,
+		"后撤": 44,
+		"强力射击": 100,
+		"掩护队友": 40,
+		"架枪防御": 50,
+		"标记弹": 42,
+		"短冲刺": 62,
+		"绕侧": 72
 	}
 }
