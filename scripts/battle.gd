@@ -109,6 +109,10 @@ func _ready() -> void:
 	setup_loadouts()
 	setup_ui()
 	reset_round()
+	if "--postmatch-test" in OS.get_cmdline_user_args():
+		run_postmatch_tests()
+		get_tree().quit()
+		return
 	if "--resource-test" in OS.get_cmdline_user_args():
 		run_resource_tests()
 		get_tree().quit()
@@ -431,8 +435,6 @@ func reset_round() -> void:
 	queue_redraw()
 
 func toggle_running() -> void:
-	if finished:
-		reset_round()
 	started = true
 	running = not running
 	refresh_ui()
@@ -490,12 +492,11 @@ func advance_playback(delta: float) -> void:
 		simulate(STEP)
 
 func step_forward() -> void:
-	if finished: return
 	running = false
 	started = true
 	accumulator = 0.0
 	for tick in range(12):
-		if not finished: simulate(STEP)
+		simulate(STEP)
 	refresh_ui()
 	queue_redraw()
 
@@ -1148,11 +1149,11 @@ func update_bullets(dt: float) -> void:
 	apply_wall_damage()
 
 func end_round(winner: int, reason: String) -> void:
+	if finished: return # Record the result once; simulation keeps running.
 	ultimate_aim = -1
 	winner_team = winner
 	win_reason = reason
 	finished = true
-	running = false
 	result = ("平局" if winner < 0 else ("蓝方获胜" if winner == 0 else "红方获胜")) + "\n" + reason
 	log_event(reason)
 
@@ -1162,7 +1163,7 @@ func log_event(message: String) -> void:
 
 func refresh_ui() -> void:
 	status_label.text = "对称歼灭  ·  %04.1f 秒    |    固定场地 · 不缩圈" % maxf(clock, 0)
-	start_button.text = "暂停  [空格]" if running else ("重新开始  [空格]" if finished else ("继续  [空格]" if started else "开始交战  [空格]"))
+	start_button.text = "暂停  [空格]" if running else ("继续  [空格]" if started else "开始交战  [空格]")
 	result_label.text = result
 	log_label.text = "\n".join(logs)
 	subtitle.text = "蓝：%s    vs    红：%s  ·  基础作战 + 技能策略" % [Tactics.NAMES[team_presets[0]], Tactics.NAMES[team_presets[1]]]
@@ -2903,3 +2904,31 @@ func run_resource_tests() -> void:
 	units[0].energy = 70
 	assert(heal_target(units[0], ["回春", "自己精力≥80", "无"]) == -1)
 	print("RESOURCE PASSED: one cost per burst, GCD after final emission, AP/PP gate, recovery movement, regeneration, speed floor, long cast, reset")
+
+
+func run_postmatch_tests() -> void:
+	reset_round()
+	started = true
+	running = true
+	units[2].hp = 0
+	units[3].hp = 0
+	units[0].energy = 0
+	units[0].cooldown = 2
+	effects.append({"p": units[0].p, "life": 0.5, "color": GOLD})
+	simulate(STEP)
+	assert(finished and running and winner_team == 0)
+	var saved_result := result
+	for tick in range(60): simulate(STEP)
+	assert(effects.is_empty() and units[0].energy > 0 and units[0].cooldown < 1.1)
+	assert(result == saved_result)
+	toggle_running()
+	assert(not running and finished)
+	toggle_running()
+	assert(running and finished and result == saved_result)
+	step_forward()
+	assert(not running and finished)
+	end_round(1, "late damage must not replace the result")
+	assert(winner_team == 0 and result == saved_result)
+	reset_round()
+	assert(not finished and units[2].hp == MAX_HP)
+	print("POSTMATCH PASSED: result recorded once, simulation/effects/resource recovery continue, pause/resume/step work, R reset remains separate")
