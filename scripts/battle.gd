@@ -91,6 +91,10 @@ var body_impacts: Array = []
 var body_pairs: Dictionary = {}
 var links: Array = []
 var skill_help: Label
+var ultimate_aim := -1
+var ultimate_cursor := Vector2.ZERO
+const ULTIMATE_CHARGE_SECONDS := 12.0
+const ULTIMATE_SLOW := 0.15
 var drag_offset := Vector2.ZERO
 var arena_view = preload("res://scripts/arena_view.gd").new()
 
@@ -105,6 +109,29 @@ func _ready() -> void:
 	setup_loadouts()
 	setup_ui()
 	reset_round()
+	if "--ultimate-test" in OS.get_cmdline_user_args():
+		run_ultimate_tests()
+		get_tree().quit()
+		return
+	if "--ultimate-barrage-preview" in OS.get_cmdline_user_args():
+		started = true
+		units[1].ult_charge = 100.0
+		begin_ultimate_aim(1)
+		ultimate_cursor = units[2].p
+		set_physics_process(false)
+		refresh_ui()
+		capture_preview.call_deferred()
+		return
+	if "--ultimate-preview" in OS.get_cmdline_user_args():
+		started = true
+		units[0].ult_charge = 100.0
+		units[1].ult_charge = 65.0
+		begin_ultimate_aim(0)
+		ultimate_cursor = units[2].p
+		set_physics_process(false)
+		refresh_ui()
+		capture_preview.call_deferred()
+		return
 	if "--wall-test" in OS.get_cmdline_user_args():
 		run_wall_tests()
 		get_tree().quit()
@@ -252,6 +279,13 @@ func setup_ui() -> void:
 	subtitle.position = Vector2(36, 68)
 	status_label = text_label(self, "", 17)
 	status_label.position = Vector2(35, 101)
+	for uid in range(2):
+		var portrait = preload("res://scripts/ultimate_portrait.gd").new()
+		portrait.game = self
+		portrait.uid = uid
+		portrait.position = Vector2(690 + uid * 112, 25)
+		portrait.size = Vector2(100, 105)
+		add_child(portrait)
 	var panel := VBoxContainer.new()
 	panel.position = Vector2(940, 22)
 	panel.size = Vector2(660, 790)
@@ -349,6 +383,7 @@ func add_button(parent: Node, title: String, callback: Callable) -> Button:
 	return b
 
 func reset_round() -> void:
+	ultimate_aim = -1
 	reset_walls()
 	running = false
 	started = false
@@ -381,7 +416,7 @@ func reset_round() -> void:
 		var attack: bool = (team == 0) == blue_attacks
 		for member in range(2):
 			var p: Vector2 = Vector2(120, 200 + member * 240) if attack else Vector2(520, 200 + member * 240)
-			units.append({"uid": team * 2 + member, "team": team, "member": member, "attack": attack, "p": p,
+			units.append({"ult_charge": 0.0, "ult_angle": 0.0, "uid": team * 2 + member, "team": team, "member": member, "attack": attack, "p": p,
 				"blast_impulse": Vector2.ZERO, "blast_lock": 0.0, "impulse": Vector2.ZERO, "evade_source": -1, "counter_left": 0.0, "thorns": 0.0, "thorn_tick": 0.0, "hurt_recent": 0.0, "hit_flash": 0.0, "heal_flash": 0.0, "reason": "基础作战就绪", "rule_kind": "", "rule_slot": -1, "slow": 0.0, "shield": 0.0, "shield_time": 0.0, "patrol": 0, "dash_recovery": false, "avoid_left": 0.0, "avoid_dir": Vector2.ZERO, "active_skill": "点射", "rule": "待机", "rule_flash": 0.0, "fire_flash": 0.0, "marked": 0.0, "guard": 0.0, "skill_cds": {}, "action_left": 0.0, "action_goal": p,
 				"intent": "待机", "retreat": 0.0, "retreat_cd": 0.0, "hp": MAX_HP, "phase": "移动", "timer": 0.0, "cooldown": 0.0,
 				"angle": 0.0 if attack else PI, "target": -1, "path": PackedVector2Array(),
@@ -399,6 +434,14 @@ func toggle_running() -> void:
 	refresh_ui()
 
 func _unhandled_input(event: InputEvent) -> void:
+	if ultimate_aim >= 0:
+		if (event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE) or (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT):
+			ultimate_aim = -1
+			queue_redraw()
+			return
+		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			confirm_ultimate(arena_view.unproject(get_global_mouse_position()))
+			return
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_SPACE: toggle_running()
 		if event.keycode == KEY_R: reset_round()
@@ -425,6 +468,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	queue_redraw()
 
 func _physics_process(delta: float) -> void:
+	if ultimate_aim >= 0:
+		if finished or units[ultimate_aim].hp <= 0: ultimate_aim = -1
+		else: ultimate_cursor = arena_view.unproject(get_global_mouse_position())
 	if "--preview" in OS.get_cmdline_user_args():
 		preview_frames += 1
 		if preview_frames == 720 or ("--effects-preview" in OS.get_cmdline_user_args() and not blasts.is_empty()) or ("--pattern-preview" in OS.get_cmdline_user_args() and not hazards.is_empty()):
@@ -434,7 +480,7 @@ func _physics_process(delta: float) -> void:
 	queue_redraw()
 
 func advance_playback(delta: float) -> void:
-	accumulator += delta * speed
+	accumulator += delta * speed * (ULTIMATE_SLOW if ultimate_aim >= 0 else 1.0)
 	while accumulator + 0.00000001 >= STEP and running:
 		accumulator -= STEP
 		simulate(STEP)
@@ -529,6 +575,7 @@ func simulate(dt: float) -> void:
 	for i in range(units.size()):
 		var u: Dictionary = next_units[i]
 		if u.hp <= 0: continue
+		u.ult_charge = minf(100, u.ult_charge + dt * 100.0 / ULTIMATE_CHARGE_SECONDS)
 		for key in u.skill_cds.keys(): u.skill_cds[key] = maxf(0, u.skill_cds[key] - dt)
 		u.counter_left = maxf(0, u.counter_left - dt)
 		u.cooldown = maxf(0, u.cooldown - dt)
@@ -549,6 +596,10 @@ func simulate(dt: float) -> void:
 		u.rule_flash = maxf(0, u.rule_flash - dt)
 		u.fire_flash = maxf(0, u.fire_flash - dt)
 		u.repath -= dt
+		if u.phase == "大招蓄力":
+			u.timer -= dt
+			if u.timer <= 0: release_ultimate(u)
+			continue
 		if u.dodge > 0:
 			u.dodge = maxf(0, u.dodge - dt)
 			u.phase = "侧闪"
@@ -1087,6 +1138,7 @@ func update_bullets(dt: float) -> void:
 	apply_wall_damage()
 
 func end_round(winner: int, reason: String) -> void:
+	ultimate_aim = -1
 	winner_team = winner
 	win_reason = reason
 	finished = true
@@ -1809,6 +1861,7 @@ func pattern_radius(skill: String) -> float:
 	return 7.0 if skill == "蓄能贯穿" else BLAST_RADIUS
 
 func area_total_time(skill: String) -> float:
+	if skill == "星火轰炸": return 0.95
 	return float(Tactics.MAGIC[skill].cast) + BLAST_FLIGHT
 
 func release_pattern(u: Dictionary) -> void:
@@ -2599,3 +2652,145 @@ func run_wall_tests() -> void:
 	update_bullets(0.1)
 	assert(units[2].hp == MAX_HP - 7 and wall_states[0].hp == 300, "A body before the wall intercepts the bullet first")
 	print("WALL PASSED: 300/200/100/0 stages, projectile blocking and break shot, beam once, area damage, collision/navigation opening, reset")
+
+
+func ultimate_name(uid: int) -> String:
+	return "天穹贯穿" if uid % 2 == 0 else "星火轰炸"
+
+func begin_ultimate_aim(uid: int) -> void:
+	if uid < 0 or uid >= 2 or not started or finished: return
+	var u: Dictionary = units[uid]
+	if u.hp <= 0 or u.ult_charge < 100 or u.phase == "大招蓄力": return
+	ultimate_aim = -1 if ultimate_aim == uid else uid
+	ultimate_cursor = u.p + Vector2.from_angle(u.angle) * 250
+	queue_redraw()
+
+func ultimate_geometry(u: Dictionary, angle: float) -> Dictionary:
+	var direction := Vector2.from_angle(angle)
+	if u.member == 0:
+		var end: Vector2 = u.p + direction * 500
+		# Clip the long beam to arena bounds and the nearest intact wall.
+		for distance in range(1, 501):
+			var point: Vector2 = u.p + direction * distance
+			if not Rect2(Vector2.ZERO, Vector2(SIZE, SIZE)).has_point(point):
+				end = u.p + direction * (distance - 1)
+				break
+		var hit := first_wall_hit(u.p, end)
+		if not hit.is_empty(): end = hit.p - direction * 0.1
+		return {"end": end, "radius": 18.0}
+	var points: Array[Vector2] = []
+	for distance in [120.0, 220.0, 320.0]:
+		var point: Vector2 = (u.p + direction * distance).clamp(Vector2.ONE * 60, Vector2.ONE * (SIZE - 60))
+		# At the edge, don't stack multiple shells onto the same clamped spot.
+		if points.is_empty() or points[-1].distance_to(point) >= 55: points.append(point)
+	return {"points": points, "radius": 60.0}
+
+func confirm_ultimate(point: Vector2) -> bool:
+	if ultimate_aim < 0: return false
+	var u: Dictionary = units[ultimate_aim]
+	if finished or u.hp <= 0 or u.ult_charge < 100:
+		ultimate_aim = -1
+		return false
+	if not Rect2(Vector2.ZERO, Vector2(SIZE, SIZE)).has_point(point) or point.distance_to(u.p) < 12: return false
+	u.ult_charge = 0.0
+	u.ult_angle = (point - u.p).angle()
+	u.angle = u.ult_angle
+	u.phase = "大招蓄力"
+	u.timer = 0.3
+	u.active_skill = ultimate_name(u.uid)
+	u.action_left = 0.0
+	u.dodge = 0.0
+	u.avoid_left = 0.0
+	u.path = PackedVector2Array()
+	u.intent = u.active_skill
+	u.reason = "指挥官手动释放：" + u.active_skill
+	u.rule = "手动大招"
+	u.rule_flash = 1.2
+	u.rule_kind = "ultimate"
+	u.rule_slot = -1
+	ultimate_aim = -1
+	log_event("蓝%d · 大招 %s" % [u.member + 1, u.active_skill])
+	return true
+
+func release_ultimate(u: Dictionary) -> void:
+	var shape := ultimate_geometry(u, u.ult_angle)
+	if u.member == 0:
+		hazards.append({"kind": "beam", "skill": "天穹贯穿", "p": u.p, "end": shape.end, "radius": shape.radius, "damage": 45.0, "true_damage": true, "left": 0.0, "team": u.team, "source": u.uid})
+		add_impulse(u, -Vector2.from_angle(u.ult_angle) * 160)
+	else:
+		for point in shape.points:
+			hazards.append({"kind": "area", "skill": "星火轰炸", "p": point, "origin": u.p, "radius": shape.radius, "damage": 22.0, "true_damage": false, "left": BLAST_FLIGHT, "team": u.team, "source": u.uid})
+		add_impulse(u, -Vector2.from_angle(u.ult_angle) * 110)
+	u.fire_flash = 0.18
+	u.phase = "收招"
+	u.timer = 0.8
+	shots += 1
+
+func run_ultimate_tests() -> void:
+	reset_round()
+	started = true
+	begin_ultimate_aim(0)
+	assert(ultimate_aim == -1)
+	units[0].ult_charge = 100.0
+	begin_ultimate_aim(0)
+	assert(ultimate_aim == 0)
+	assert(not confirm_ultimate(Vector2(-10, -10)) and units[0].ult_charge == 100)
+	begin_ultimate_aim(0)
+	assert(ultimate_aim == -1 and units[0].ult_charge == 100)
+	units[0].p = Vector2(100, 320)
+	units[2].p = Vector2(300, 320)
+	units[1].hp = 0
+	units[3].hp = 0
+	begin_ultimate_aim(0)
+	assert(confirm_ultimate(Vector2(500, 320)))
+	assert(ultimate_aim == -1 and units[0].ult_charge == 0 and units[0].phase == "大招蓄力")
+	for tick in range(19): simulate(STEP)
+	assert(units[2].hp == MAX_HP - 45)
+	assert(units[0].phase == "收招")
+	reset_round()
+	started = true
+	running = true
+	speed = 2.0
+	units[0].ult_charge = 100
+	begin_ultimate_aim(0)
+	var before := clock
+	advance_playback(0.5)
+	assert(absf(before - clock - 0.15) < 0.001 and speed == 2.0)
+	ultimate_aim = -1
+	before = clock
+	advance_playback(0.5)
+	assert(absf(before - clock - 1.0) < 0.001)
+	reset_round()
+	started = true
+	units[1].ult_charge = 100
+	units[1].p = Vector2(100, 320)
+	begin_ultimate_aim(1)
+	assert(confirm_ultimate(Vector2(600, 320)))
+	release_ultimate(units[1])
+	assert(hazards.size() == 3 and hazards[0].damage == 22)
+	units[1].hp = 0
+	units[1].ult_charge = 100
+	begin_ultimate_aim(1)
+	assert(ultimate_aim == -1)
+	reset_round()
+	assert(ultimate_aim == -1 and units[0].ult_charge == 0)
+	for u in units:
+		u.phase = "收招"
+		u.timer = 100.0
+	for tick in range(720): simulate(STEP)
+	assert(units[0].ult_charge >= 99.99 and units[1].ult_charge >= 99.99)
+	reset_round()
+	units[0].p = Vector2(220, 160)
+	units[0].ult_angle = 0.0
+	units[2].p = Vector2(350, 160)
+	release_ultimate(units[0])
+	update_bullets(STEP)
+	assert(wall_states[0].hp == 255 and units[2].hp == MAX_HP)
+	reset_round()
+	units[1].p = Vector2(100, 320)
+	units[1].ult_angle = 0.0
+	units[2].p = Vector2(220, 320)
+	release_ultimate(units[1])
+	update_bullets(BLAST_FLIGHT + 0.01)
+	assert(units[2].hp == MAX_HP - 22)
+	print("ULTIMATE PASSED: charge gate, cancel, invalid click, manual direction, cast and beam damage, slow motion and speed restore, barrage, death/reset")

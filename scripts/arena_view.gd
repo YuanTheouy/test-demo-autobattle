@@ -50,7 +50,7 @@ func box(p: Vector2, size: Vector2, height: float, color: Color, alpha := 1.0) -
 func render(game) -> void:
 	g = game
 	g.draw_rect(Rect2(20, 145, 890, 645), Color("0b1522"))
-	g.draw_string(g.font, Vector2(44, 177), "TACTICAL ARENA  /  02", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("688198"))
+	if g.ultimate_aim < 0: g.draw_string(g.font, Vector2(44, 177), "TACTICAL ARENA  /  02", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("688198"))
 	# Floating arena plinth, with a true projected surface, not a square board.
 	var corners: Array = [Vector2.ZERO, Vector2(640, 0), Vector2(640, 640), Vector2(0, 640)]
 	polygon(corners, Color(0, 0, 0, 0.4), -27)
@@ -71,6 +71,7 @@ func render(game) -> void:
 	for w in g.walls:
 		polygon([w.position, w.position + Vector2(w.size.x, 0), w.end + Vector2(28, 32), w.position + Vector2(28, w.size.y + 32)], Color(0, 0, 0, 0.22))
 	ground_effects()
+	ultimate_preview()
 	var actors: Array = []
 	for w in g.wall_states:
 		actors.append({"depth": w.rect.get_center().x + w.rect.get_center().y, "wall": w.rect, "state": w})
@@ -196,8 +197,8 @@ func robot(u: Dictionary) -> void:
 		for i in range(5):
 			var leaf := project(p + Vector2.from_angle(i * TAU / 5 + g.clock) * 26, 8 + (1 - u.heal_flash / 0.5) * 35)
 			g.draw_line(leaf - Vector2(3, 3), leaf + Vector2(3, 3), Color("8affbb"), 3, true)
-	if u.phase == "吟唱":
-		var progress: float = 1 - clampf(u.timer / float(g.Tactics.MAGIC.get(u.active_skill, {}).get("cast", 0.6)), 0, 1)
+	if u.phase in ["吟唱", "大招蓄力"]:
+		var progress: float = 1 - clampf(u.timer / (0.3 if u.phase == "大招蓄力" else float(g.Tactics.MAGIC.get(u.active_skill, {}).get("cast", 0.6))), 0, 1)
 		ring(p, 32, Color(color, 0.3), 1.5)
 		ring(p, 32, color.lightened(0.4), 3, progress)
 		for i in range(4):
@@ -210,7 +211,7 @@ func label(u: Dictionary) -> void:
 	g.draw_rect(Rect2(p + Vector2(-31, -8), Vector2(62, 7)), Color("0b1520"))
 	g.draw_rect(Rect2(p + Vector2(-30, -7), Vector2(60 * u.hp / g.MAX_HP, 5)), color)
 	g.draw_string(g.font, p + Vector2(-30, -14), "%s%d   %d" % ["蓝" if u.team == 0 else "红", u.member + 1, u.hp], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.WHITE)
-	var text: String = u.active_skill if u.phase in ["吟唱", "点射", "锁定", "瞄准"] else u.intent
+	var text: String = u.active_skill if u.phase in ["吟唱", "大招蓄力", "点射", "锁定", "瞄准"] else u.intent
 	if u.phase == "收招": text = "收招"
 	var w: float = g.font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
 	var below := project(u.p) + Vector2(-w / 2, 28)
@@ -270,7 +271,7 @@ func air_effects() -> void:
 				var p: Vector2 = fx.p + dir * fx.radius * age * 0.9
 				var z := sin(age * PI) * (32 + i % 3 * 13)
 				g.draw_line(project(p - dir * 9, z - 7), project(p, z), color, 3, true)
-			if fx.get("skill", "") == "烈焰爆破":
+			if fx.get("skill", "") in ["烈焰爆破", "星火轰炸"]:
 				for i in range(6):
 					var p: Vector2 = fx.p + Vector2.from_angle(i * TAU / 6) * fx.radius * 0.3 * age
 					var tip := project(p, 65 * age)
@@ -314,3 +315,32 @@ func draw_wall(state: Dictionary, alpha: float) -> void:
 	g.draw_rect(Rect2(p + Vector2(-26, -5), Vector2(52, 5)), Color("16232d"))
 	g.draw_rect(Rect2(p + Vector2(-25, -4), Vector2(50 * state.hp / g.WALL_HP, 3)), Color("e6b76b") if state.hp <= 100 else Color("89acbe"))
 	g.draw_string(g.font, p + Vector2(-27, -10), "掩体 %d" % state.hp, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("c9d7e1"))
+
+
+func ultimate_preview() -> void:
+	for u in g.units:
+		if u.hp <= 0: continue
+		var aiming: bool = g.ultimate_aim == u.uid
+		if not aiming and u.phase != "大招蓄力": continue
+		var angle: float = (g.ultimate_cursor - u.p).angle() if aiming else u.ult_angle
+		var shape: Dictionary = g.ultimate_geometry(u, angle)
+		var color: Color = g.ATTACK_BLUE
+		ring(u.p, 35, Color("ffe7a0"), 2)
+		if u.member == 0:
+			strip(u.p, shape.end, shape.radius, Color(color, 0.23))
+			var side: Vector2 = Vector2.from_angle(angle).orthogonal() * shape.radius
+			line(u.p + side, shape.end + side, color, 2)
+			line(u.p - side, shape.end - side, color, 2)
+			line(u.p, shape.end, Color("e2deff"), 1.5)
+			ring(shape.end, 9, color, 2)
+		else:
+			for point in shape.points:
+				if aiming:
+					disc(point, shape.radius, Color(color, 0.12))
+					ring(point, shape.radius, color, 2)
+					line(point - Vector2(7, 0), point + Vector2(7, 0), color)
+					line(point - Vector2(0, 7), point + Vector2(0, 7), color)
+				else: landing(point, shape.radius, color, (0.3 - u.timer) / 0.95, 0.95)
+		if aiming:
+			g.draw_rect(Rect2(185, 155, 560, 34), Color(0.04, 0.08, 0.13, 0.95))
+			g.draw_string(g.font, Vector2(199, 177), "%s · 慢放瞄准 · 左键释放 / 右键或 Esc 取消" % g.ultimate_name(u.uid), HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("ffe7a0"))
