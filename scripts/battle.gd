@@ -4,7 +4,7 @@ extends Node2D
 const ORIGIN := Vector2(35, 130)
 const SIZE := 640.0
 const RADIUS := 24.0
-const MAX_HP := 50.0
+const MAX_HP := 100.0
 const MOVE_SPEED := 87.0
 const ENGAGE_SPEED := 126.0
 const COMBAT_STEP_SPEED := 48.0
@@ -284,7 +284,7 @@ func rebuild_editor() -> void:
 		for column in range(3):
 			var menu: OptionButton = row.menus[column]
 			if column > 0:
-				var allowed: Array = ["无", "优先低血量", "自己HP≤25", "队友HP≤25"] if loadouts[editor_unit][row.kind][row.slot][0] in ["回春", "灵木护佑"] else CONDITIONS
+				var allowed: Array = ["无", "优先低血量", "自己HP≤50", "队友HP≤50"] if loadouts[editor_unit][row.kind][row.slot][0] in ["回春", "灵木护佑"] else CONDITIONS
 				menu.clear()
 				for condition in allowed: menu.add_item(condition)
 				if loadouts[editor_unit][row.kind][row.slot][column] not in allowed:
@@ -1221,8 +1221,8 @@ func passes_condition(u: Dictionary, target: int, condition: String) -> bool:
 			var ally := ally_index(u)
 			return ally >= 0 and incoming_pressure(units[ally], contacts(u.team)) > 0
 		"自己被两人瞄准": return incoming_pressure(u, contacts(u.team)) >= 2
-		"自己HP≤25": return u.hp <= MAX_HP * 0.5
-		"队友HP≤25":
+		"自己HP≤50": return u.hp <= MAX_HP * 0.5
+		"队友HP≤50":
 			var ally := ally_index(u)
 			return ally >= 0 and units[ally].hp <= MAX_HP * 0.5
 		"仅已标记敌人": return target >= 0 and units[target].marked > 0
@@ -1620,7 +1620,7 @@ func run_content_tests() -> void:
 
 func heal_target(u: Dictionary, rule: Array) -> int:
 	for condition in [rule[1], rule[2]]:
-		if condition not in ["无", "优先低血量", "自己HP≤25", "队友HP≤25"]: return -1
+		if condition not in ["无", "优先低血量", "自己HP≤50", "队友HP≤50"]: return -1
 		if not passes_condition(u, -1, condition): return -1
 	var best := -1
 	for index in range(units.size()):
@@ -2324,7 +2324,7 @@ func run_expansion_tests() -> void:
 		update_attack(units[0], Tactics.MAGIC[skill].cast + 0.01)
 		assert(hazards.size() == 1 and hazards[0].radius == pattern_radius(skill))
 		update_bullets(BLAST_FLIGHT + 0.01)
-		assert(units[2].hp == 32)
+		assert(units[2].hp == MAX_HP - 18)
 	# Forest support heals and shields the wounded ally, respects scope and cooldown.
 	pattern_fixture()
 	units[1].hp = 20
@@ -2343,7 +2343,7 @@ func run_expansion_tests() -> void:
 		units[2].shield = 8
 		bullets.append({"p": units[2].p - Vector2(5, 0), "v": Vector2(100, 0), "life": 1.0, "team": 0, "source": 0, "damage": 18.0, "true_damage": true_damage})
 		update_bullets(STEP)
-		assert(units[2].hp == (40 if true_damage else 46))
+		assert(units[2].hp == (MAX_HP - 10 if true_damage else MAX_HP - 4))
 	# A basic attack cannot repeat faster than recovery + weapon pause.
 	pattern_fixture()
 	begin_shot(units[0], 2, "点射")
@@ -2351,7 +2351,7 @@ func run_expansion_tests() -> void:
 	assert(units[0].timer == 0.45)
 	update_attack(units[0], 0.46)
 	assert(is_equal_approx(units[0].cooldown, 1.35))
-	print("EXPANSION PASSED: all 13 attacks emitted intended damage, new patterns/guard, heal+shield, true damage, basic cadence, 50HP")
+	print("EXPANSION PASSED: all 13 attacks emitted intended damage, new patterns/guard, heal+shield, true damage, basic cadence, 100HP")
 
 func run_impact_tests() -> void:
 	pattern_fixture()
