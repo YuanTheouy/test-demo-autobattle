@@ -94,7 +94,7 @@ func render(game) -> void:
 		var age: float = 0.65 - fx.life
 		var color := Color("8affbb" if fx.get("healing", false) else "fff2cc", minf(1, fx.life * 4))
 		g.draw_string(g.font, project(fx.p, 70 + age * 45) + Vector2(21, 0), ("+%d" if fx.get("healing", false) else "−%d") % fx.amount, HORIZONTAL_ALIGNMENT_LEFT, -1, 23 if fx.amount >= 16 else 17, color)
-	g.draw_string(g.font, Vector2(46, 763), "连续移动  /  立体演出 · 平面判定       蓝紫 / 蓝方攻击     橙红 / 红方攻击", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("96adbe"))
+	g.draw_string(g.font, Vector2(46, 723), "连续移动  /  立体演出 · 平面判定       蓝紫 / 蓝方攻击     橙红 / 红方攻击", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("96adbe"))
 
 func landing(p: Vector2, radius: float, color: Color, progress: float, total: float) -> void:
 	disc(p, radius, Color(color, 0.1))

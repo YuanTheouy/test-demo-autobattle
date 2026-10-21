@@ -78,6 +78,8 @@ var editor_unit := 0
 var editor_rows: Array = []
 var baseline_rows: Array = []
 var unit_menu: OptionButton
+var roster_buttons: Array = []
+var character_label: Label
 var reaction_counts := {}
 const STEP := 1.0 / 60.0
 var accumulator := 0.0
@@ -289,13 +291,54 @@ func apply_preset(team: int, index: int) -> void:
 	rebuild_editor()
 	reset_round()
 
+func ui_theme() -> Theme:
+	var theme := Theme.new()
+	theme.default_font = font
+	theme.default_font_size = 14
+	for type in ["Button", "OptionButton"]:
+		for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+			var box := make_box(Color("202b3b") if state == "normal" else Color("334357"), Color("46516a") if state == "normal" else GOLD)
+			box.content_margin_left = 10
+			box.content_margin_right = 20 if type == "OptionButton" else 10
+			box.content_margin_top = 4
+			box.content_margin_bottom = 4
+			theme.set_stylebox(state, type, box)
+		theme.set_color("font_color", type, Color("e7e1d5"))
+		theme.set_color("font_hover_color", type, Color("fff1ce"))
+	theme.set_stylebox("panel", "PopupMenu", make_box(Color("182332"), Color("a58d61")))
+	theme.set_stylebox("hover", "PopupMenu", make_box(Color("3d4651"), GOLD))
+	theme.set_color("font_color", "PopupMenu", Color("eee7d9"))
+	theme.set_font_size("font_size", "PopupMenu", 15)
+	return theme
+
+func choose_editor_unit(uid: int) -> void:
+	editor_unit = uid
+	selected = uid
+	unit_menu.select(uid)
+	rebuild_editor()
+
+func move_rule(kind: String, slot: int, direction: int) -> void:
+	var other := slot + direction
+	if other < 0 or other >= 4: return
+	var rules: Array = loadouts[editor_unit][kind]
+	var saved: Array = rules[slot]
+	rules[slot] = rules[other]
+	rules[other] = saved
+	rebuild_editor()
+	reset_round()
+
+func show_rule_help(kind: String, slot: int) -> void:
+	var skill: String = loadouts[editor_unit][kind][slot][0]
+	skill_help.text = "%s  ·  精力 %d\n%s" % [skill, energy_cost(skill), Tactics.DESCRIPTIONS.get(skill, "")]
+
 func setup_ui() -> void:
-	var title := text_label(self, "AUTOBATTLE  /  立体小队竞技场", 27)
-	title.position = Vector2(35, 25)
-	subtitle = text_label(self, "", 15)
+	var title := text_label(self, "AUTOBATTLE", 28)
+	title.position = Vector2(35, 24)
+	title.modulate = Color("e7d7b2")
+	subtitle = text_label(self, "", 14)
 	subtitle.position = Vector2(36, 68)
-	status_label = text_label(self, "", 17)
-	status_label.position = Vector2(35, 101)
+	status_label = text_label(self, "", 16)
+	status_label.position = Vector2(35, 100)
 	for uid in range(2):
 		var portrait = preload("res://scripts/ultimate_portrait.gd").new()
 		portrait.game = self
@@ -303,99 +346,173 @@ func setup_ui() -> void:
 		portrait.position = Vector2(690 + uid * 112, 25)
 		portrait.size = Vector2(100, 105)
 		add_child(portrait)
-	var scroll := ScrollContainer.new()
-	scroll.position = Vector2(930, 16)
-	scroll.size = Vector2(700, 800)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	add_child(scroll)
-	var panel := VBoxContainer.new()
-	panel.custom_minimum_size.x = 680
-	panel.add_theme_constant_override("separation", 5)
-	scroll.add_child(panel)
-	text_label(panel, "小队策略 · 四主动 / 四反应", 23)
+	var root := Control.new()
+	root.theme = ui_theme()
+	add_child(root)
 	var controls := HBoxContainer.new()
-	panel.add_child(controls)
+	controls.position = Vector2(36, 738)
+	controls.add_theme_constant_override("separation", 8)
+	root.add_child(controls)
 	start_button = add_button(controls, "开始交战 [空格]", toggle_running)
-	add_button(controls, "同配置重开 [R]", reset_round)
-	add_button(controls, "当前角色清空策略", func(): loadouts[editor_unit] = Tactics.build([], []); rebuild_editor(); reset_round())
-	var playback := HBoxContainer.new()
-	panel.add_child(playback)
-	add_button(playback, "步进0.2秒 [N]", step_forward)
-	add_button(playback, "交换出生侧", func(): blue_attacks = not blue_attacks; reset_round())
-	var speed_button := add_button(playback, "速度：%s×" % speed, func(): pass)
-	speed_button.pressed.connect(func(): speed = 2.0 if speed == 1.0 else (0.5 if speed == 2.0 else 1.0); speed_button.text = "速度：%s×" % speed)
+	add_button(controls, "重开 [R]", reset_round)
+	add_button(controls, "步进 [N]", step_forward)
+	add_button(controls, "交换出生侧", func(): blue_attacks = not blue_attacks; reset_round())
+	var speed_button := add_button(controls, "速度 %s×" % speed, func(): pass)
+	speed_button.pressed.connect(func(): speed = 2.0 if speed == 1.0 else (0.5 if speed == 2.0 else 1.0); speed_button.text = "速度 %s×" % speed)
 	var check := CheckButton.new()
-	check.text = "技能范围"
+	check.text = "范围预告"
 	check.button_pressed = true
-	check.add_theme_font_override("font", font)
 	check.toggled.connect(func(value: bool): show_aim = value)
-	playback.add_child(check)
+	controls.add_child(check)
+	var backdrop := Panel.new()
+	backdrop.position = Vector2(928, 16)
+	backdrop.size = Vector2(696, 798)
+	backdrop.add_theme_stylebox_override("panel", make_box(Color("141e2d"), Color("8b7958")))
+	root.add_child(backdrop)
+	var scroll := ScrollContainer.new()
+	scroll.position = Vector2(942, 26)
+	scroll.size = Vector2(670, 778)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	root.add_child(scroll)
+	var panel := VBoxContainer.new()
+	panel.custom_minimum_size.x = 650
+	panel.add_theme_constant_override("separation", 4)
+	scroll.add_child(panel)
+	var heading := HBoxContainer.new()
+	panel.add_child(heading)
+	var caption := text_label(heading, "作 战 配 置", 23)
+	caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	caption.modulate = GOLD
+	add_button(heading, "清空本角色", func(): loadouts[editor_unit] = Tactics.build([], []); rebuild_editor(); reset_round())
 	var presets := HBoxContainer.new()
 	panel.add_child(presets)
 	for team in range(2):
-		text_label(presets, "蓝队" if team == 0 else "红队", 14)
+		var team_label := text_label(presets, "蓝队" if team == 0 else "红队", 13)
+		team_label.modulate = BLUE if team == 0 else RED
 		var picker := OptionButton.new()
-		picker.add_theme_font_override("font", font)
-		picker.custom_minimum_size.x = 235
+		picker.custom_minimum_size = Vector2(278, 30)
 		for name in Tactics.NAMES: picker.add_item(name)
 		picker.select(team_presets[team])
 		picker.item_selected.connect(func(index: int): apply_preset(team, index))
 		presets.add_child(picker)
 		preset_menus.append(picker)
+	var roster := HBoxContainer.new()
+	roster.add_theme_constant_override("separation", 6)
+	panel.add_child(roster)
+	for uid in range(4):
+		var card := Button.new()
+		card.custom_minimum_size = Vector2(158, 44)
+		card.pressed.connect(func(): choose_editor_unit(uid))
+		roster.add_child(card)
+		roster_buttons.append(card)
+	# Hidden selector preserves the same selection path for battlefield clicks.
 	unit_menu = OptionButton.new()
-	unit_menu.add_theme_font_override("font", font)
 	for name in ["蓝1", "蓝2", "红1", "红2"]: unit_menu.add_item(name)
-	unit_menu.item_selected.connect(func(i: int): editor_unit = i; selected = i; rebuild_editor())
+	unit_menu.item_selected.connect(choose_editor_unit)
+	unit_menu.hide()
 	panel.add_child(unit_menu)
-	text_label(panel, "技能                  条件一                   条件二                  执行 / 上次检查", 14)
-	text_label(panel, "优先级从上向下 ↓  命中即停止；金色=正在执行，灰字=上次检查。", 14)
+	character_label = text_label(panel, "", 13)
 	for kind in ["active", "reaction"]:
-		text_label(panel, "AP ↓ 玩家规则优先；动作完成后重新检查" if kind == "active" else "PP ↓ 反应条件触发；动作允许时接管", 16)
+		var accent := Color("e39989") if kind == "active" else Color("85bfe5")
+		var band := HBoxContainer.new()
+		panel.add_child(band)
+		var category := text_label(band, "◆ AP  主动策略" if kind == "active" else "◆ PP  反应策略", 17)
+		category.modulate = accent
+		category.custom_minimum_size.x = 190
+		text_label(band, "行动循环 · 从上向下检查" if kind == "active" else "反应触发 · 满足时接管", 12).modulate = Color("94a4b8")
+		var columns := HBoxContainer.new()
+		panel.add_child(columns)
+		for spec in [["顺序", 45], ["技能", 147], ["条件一", 167], ["条件二", 167], ["检查 / 执行", 105]]:
+			var label := text_label(columns, spec[0], 11)
+			label.custom_minimum_size.x = spec[1]
+			label.modulate = Color("8696a9")
 		for slot in range(4):
 			var frame := PanelContainer.new()
-			frame.add_theme_stylebox_override("panel", make_box(Color("111b27"), Color("253343")))
+			frame.add_theme_stylebox_override("panel", make_box(Color("1d2939"), Color("344358")))
 			panel.add_child(frame)
 			var row := HBoxContainer.new()
+			row.add_theme_constant_override("separation", 3)
 			frame.add_child(row)
-			text_label(row, str(slot + 1), 15)
+			var rank := HBoxContainer.new()
+			rank.add_theme_constant_override("separation", 0)
+			row.add_child(rank)
+			var number := text_label(rank, "%02d" % (slot + 1), 13)
+			number.custom_minimum_size.x = 20
+			number.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			number.modulate = accent
+			var arrows := VBoxContainer.new()
+			arrows.add_theme_constant_override("separation", 0)
+			rank.add_child(arrows)
+			for direction in [-1, 1]:
+				var arrow := Button.new()
+				arrow.text = "↑" if direction == -1 else "↓"
+				arrow.add_theme_font_size_override("font_size", 10)
+				var tiny := StyleBoxEmpty.new()
+				arrow.add_theme_stylebox_override("normal", tiny)
+				arrow.add_theme_stylebox_override("hover", tiny)
+				arrow.add_theme_stylebox_override("pressed", tiny)
+				arrow.add_theme_stylebox_override("disabled", tiny)
+				arrow.add_theme_color_override("font_disabled_color", Color("45546a"))
+				arrow.custom_minimum_size.x = 20
+				arrow.disabled = slot + direction < 0 or slot + direction >= 4
+				arrow.tooltip_text = "调整优先级；修改后重开"
+				arrow.pressed.connect(func(): move_rule(kind, slot, direction))
+				arrows.add_child(arrow)
 			var picks: Array = []
 			for column in range(3):
 				var menu := OptionButton.new()
-				menu.add_theme_font_override("font", font)
-				menu.add_theme_font_size_override("font_size", 14)
-				menu.custom_minimum_size = Vector2(130 if column == 0 else 155, 28)
+				menu.custom_minimum_size = Vector2(145 if column == 0 else 165, 36)
+				menu.fit_to_longest_item = false
+				menu.clip_text = true
+				if column == 0: menu.add_theme_color_override("font_color", accent)
 				var options: Array = (ACTIVE_SKILLS if kind == "active" else REACTION_SKILLS) if column == 0 else CONDITIONS
 				for option in options:
 					menu.add_item(option)
 					if column == 0: menu.get_popup().set_item_tooltip(menu.item_count - 1, Tactics.DESCRIPTIONS[option])
-				menu.item_selected.connect(func(index: int): loadouts[editor_unit][kind][slot][column] = menu.get_item_text(index); rebuild_editor(); reset_round())
+				menu.item_selected.connect(func(index: int): loadouts[editor_unit][kind][slot][column] = menu.get_item_text(index); rebuild_editor(); reset_round(); show_rule_help(kind, slot))
+				menu.mouse_entered.connect(func(): show_rule_help(kind, slot))
+				menu.focus_entered.connect(func(): show_rule_help(kind, slot))
 				row.add_child(menu)
 				picks.append(menu)
 			var state := text_label(row, "未检查", 11)
-			state.custom_minimum_size.x = 160
+			state.custom_minimum_size.x = 105
 			state.clip_text = true
 			editor_rows.append({"kind": kind, "slot": slot, "menus": picks, "row": row, "frame": frame, "state": state})
-		text_label(panel, "↓ 基础规则 · 锁定（仅在上方没有接管时执行）", 12)
-		var names: Array = ["普通攻击  |  合法射位、精力/CD就绪", "调整站位  |  周旋、调整距离或保持射位", "接敌  |  已知敌人位置，寻找可用射位", "搜寻  |  无已知目标，巡查交战区域"] if kind == "active" else ["步行避险  |  长蓄力/落点威胁，存在安全路径"]
+		var names: Array = ["普通攻击", "调整站位", "接敌", "搜寻"] if kind == "active" else ["步行避险"]
 		for slot in range(names.size()):
 			var frame := PanelContainer.new()
-			frame.add_theme_stylebox_override("panel", make_box(Color("0d151e"), Color("253343")))
+			frame.add_theme_stylebox_override("panel", make_box(Color("111a26"), Color("28364a")))
 			panel.add_child(frame)
 			var row := HBoxContainer.new()
 			frame.add_child(row)
-			var name_label := text_label(row, "🔒 %d  %s" % [slot + 5, names[slot]], 12)
-			name_label.custom_minimum_size = Vector2(490, 24)
+			var name_label := text_label(row, "  ·  %02d    %s" % [slot + 5, names[slot]], 12)
+			name_label.custom_minimum_size = Vector2(220, 21)
+			name_label.modulate = Color("9daabd")
+			var lock := text_label(row, "基础规则 · 锁定 · 玩家规则优先", 11)
+			lock.custom_minimum_size.x = 300
+			lock.modulate = Color("697c92")
 			var state := text_label(row, "待命", 11)
-			state.custom_minimum_size.x = 160
+			state.custom_minimum_size.x = 105
 			baseline_rows.append({"kind": "base_ap" if kind == "active" else "base_pp", "slot": slot, "frame": frame, "state": state})
-	skill_help = text_label(panel, "蓝紫：蓝方攻击 · 橙红：红方攻击 · 绿线：移动\n落点锁定 → 外环补满 → 爆炸；按实际圆形范围命中", 13)
-	info_label = text_label(panel, "", 14)
-	info_label.custom_minimum_size = Vector2(650, 70)
+	text_label(panel, "─────────────────────────────────────────────", 12).modulate = Color("817052")
+	skill_help = text_label(panel, "技能说明\n指向技能或条件，查看该行技能说明。↑↓ 调整优先级。", 12)
+	skill_help.custom_minimum_size = Vector2(640, 42)
+	skill_help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	skill_help.modulate = Color("c8b997")
+	info_label = text_label(panel, "", 12)
+	info_label.custom_minimum_size.x = 640
 	info_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	result_label = text_label(panel, "", 18)
-	log_label = text_label(panel, "", 13)
-	var foot := text_label(self, "消灭对方获胜 · 60秒超时平局 · 点击机甲编辑 · 开战前可拖动蓝方部署", 14)
-	foot.position = Vector2(35, 789)
+	result_label = text_label(panel, "", 17)
+	result_label.modulate = GOLD
+	var detail := VBoxContainer.new()
+	panel.add_child(detail)
+	var disclosure := add_button(panel, "展开战斗记录", func(): detail.visible = not detail.visible)
+	panel.move_child(disclosure, detail.get_index())
+	log_label = text_label(detail, "", 12)
+	detail.hide()
+	var foot := text_label(self, "点击机甲或角色卡编辑策略 · 金色行：正在执行 · 修改策略后重开", 13)
+	foot.position = Vector2(36, 790)
+	foot.modulate = Color("8e9eae")
 	rebuild_editor()
 
 func rebuild_editor() -> void:
@@ -411,6 +528,7 @@ func rebuild_editor() -> void:
 			var value: String = loadouts[editor_unit][row.kind][row.slot][column]
 			for index in range(menu.item_count):
 				if menu.get_item_text(index) == value: menu.select(index)
+			menu.tooltip_text = value
 			if column == 0: menu.tooltip_text = Tactics.DESCRIPTIONS.get(value, "") + "\n精力消耗：%d；%s" % [energy_cost(value), "受公共施法CD限制" if uses_public_cd(value) else "不受公共施法CD限制"]
 
 func add_button(parent: Node, title: String, callback: Callable) -> Button:
@@ -1208,6 +1326,14 @@ func refresh_ui() -> void:
 	log_label.text = "\n".join(logs)
 	subtitle.text = "蓝：%s    vs    红：%s  ·  基础作战 + 技能策略" % [Tactics.NAMES[team_presets[0]], Tactics.NAMES[team_presets[1]]]
 	var u: Dictionary = units[editor_unit]
+	character_label.text = "%s %d   /   HP %d · 精力 %d · %s" % ["蓝方" if u.team == 0 else "红方", u.member + 1, u.hp, u.energy, u.phase if u.hp > 0 else "已倒下"]
+	for uid in range(roster_buttons.size()):
+		var bot: Dictionary = units[uid]
+		var card: Button = roster_buttons[uid]
+		var color := BLUE if uid < 2 else RED
+		card.text = "%s %d   ·   %s\nHP %d   /   EN %d" % ["蓝方" if uid < 2 else "红方", uid % 2 + 1, bot.phase if bot.hp > 0 else "倒下", bot.hp, bot.energy]
+		card.add_theme_color_override("font_color", color)
+		card.add_theme_stylebox_override("normal", make_box(Color("304052") if uid == editor_unit else Color("1a2534"), GOLD if uid == editor_unit else Color("39465a")))
 	info_label.text = "%s%d · HP %d · %s\n%s\n标记 %.1fs / 减速 %.1fs / 荆棘 %.1fs / 护盾 %d" % ["蓝" if u.team == 0 else "红", u.member + 1, u.hp, u.phase if u.hp > 0 else "已倒下", u.reason, u.marked, u.slow, u.thorns, u.shield]
 	info_label.text += "\n精力 %d/100 · 公共施法CD %.1fs · 移速 %d%%" % [u.energy, u.cooldown, energy_speed(u) * 100]
 	for rule in loadouts[editor_unit].reaction:
@@ -1220,7 +1346,7 @@ func refresh_ui() -> void:
 		var trace: Array = u.trace_ap if row.kind == "active" else u.trace_pp
 		row.state.text = ("▶ " + u.phase) if active else trace[row.slot]
 		row.state.tooltip_text = u.reason if active else "上次实际检查：" + trace[row.slot]
-		row.frame.add_theme_stylebox_override("panel", make_box(Color("3b3220") if active else Color("111b27"), GOLD if active else Color("253343")))
+		row.frame.add_theme_stylebox_override("panel", make_box(Color("453b29") if active else Color("1d2939"), GOLD if active else Color("253343")))
 		row.state.modulate = GOLD if active else Color("91a1b0")
 	for row in baseline_rows:
 		var active: bool = rule_is_executing(u, row.kind, row.slot)
@@ -3042,6 +3168,19 @@ func run_strategy_view_tests() -> void:
 	units[0].hp = 0
 	assert(not rule_is_executing(units[0], "reaction", 0))
 	assert(editor_rows.size() == 8 and baseline_rows.size() == 5)
+	var original: Dictionary = loadouts[0].duplicate(true)
+	choose_editor_unit(0)
+	move_rule("active", 0, 1)
+	assert(loadouts[0].active[0] == original.active[1] and loadouts[0].active[1] == original.active[0])
+	assert(loadouts[0].reaction == original.reaction)
+	move_rule("active", 1, -1)
+	assert(loadouts[0] == original)
+	move_rule("active", 0, -1)
+	assert(loadouts[0] == original)
+	choose_editor_unit(3)
+	assert(editor_unit == 3 and selected == 3 and unit_menu.selected == 3)
+	refresh_ui()
+	assert(roster_buttons.size() == 4 and "红方" in roster_buttons[3].text)
 	print("STRATEGY VIEW PASSED: actual priority traces, skipped lower slots, persistent execution/recovery highlight, basic movement/search/attack, PP ownership, death, 8 editable + 5 locked rows")
 
 
