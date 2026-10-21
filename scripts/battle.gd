@@ -20,8 +20,8 @@ const MOVE_HINT := Color("69e3b3")
 const ATTACK_BLUE := Color("9599ff")
 const ATTACK_RED := Color("ff825e")
 const BLAST_RADIUS := 64.0
-const BLAST_CAST := 0.55
-const BLAST_FLIGHT := 0.95
+const BLAST_CAST := 0.25
+const BLAST_FLIGHT := 0.65
 var walls: Array[Rect2] = [Rect2(240, 80, 80, 160), Rect2(320, 400, 80, 160)]
 var tactics := [0, 1]
 var team_focus := [-1, -1]
@@ -41,7 +41,7 @@ var started := false
 var finished := false
 var blue_attacks := false # Demonstration starts blue on right; button swaps physical sides.
 var clock := ROUND_TIME
-var speed := 0.5
+var speed := 1.0
 var show_aim := true
 var selected := -1
 var logs: Array[String] = []
@@ -88,6 +88,10 @@ func _ready() -> void:
 	setup_loadouts()
 	setup_ui()
 	reset_round()
+	if "--tempo-test" in OS.get_cmdline_user_args():
+		run_tempo_tests()
+		get_tree().quit()
+		return
 	if "--arena-test" in OS.get_cmdline_user_args():
 		run_arena_tests()
 		get_tree().quit()
@@ -499,6 +503,10 @@ func simulate(dt: float) -> void:
 		if u.phase in ["吟唱", "瞄准", "点射", "收招"]:
 			update_attack(u, dt)
 			continue
+		# Baseline footwork yields every tick to player AP and to a ready weapon.
+		if u.intent == "战斗走位" and u.action_left > 0:
+			if try_active(u, visible[u.team]): continue
+			if u.cooldown <= 0: u.action_left = 0.0
 		if u.action_left > 0:
 			u.action_left = maxf(0, u.action_left - dt)
 			if u.intent not in ["架枪防御", "掩护队友", "回春"]:
@@ -636,9 +644,10 @@ func baseline_action(u: Dictionary, visible: Array) -> void:
 			u.rule = "基础点射"
 			u.reason += "；执行普通点射"
 		else:
-			u.phase = "保持射位"
-			u.intent = "基础作战"
-			u.reason = "已有射击位置，武器恢复 %.1f秒" % u.cooldown
+			if not prepare_combat_step(u, target):
+				u.phase = "保持射位"
+				u.intent = "基础作战"
+				u.reason = "保持射线；附近没有安全的小幅走位空间"
 		return
 	u.action_goal = choose_goal(u, visible)
 	u.action_left = 0.35
@@ -646,6 +655,40 @@ func baseline_action(u: Dictionary, visible: Array) -> void:
 	u.intent = "基础接敌" if not visible.is_empty() else "搜索"
 	u.phase = u.intent
 	u.reason = "目标被遮挡或超出射程，寻找射位" if not visible.is_empty() else ("前往最后发现敌人的位置" if u.memory > 0 else "巡查交战区域，寻找敌人")
+
+# Small deterministic lateral steps, preserving line of sight and firing distance.
+# This is low-priority footwork, not a dodge or an uninterruptible movement skill.
+func prepare_combat_step(u: Dictionary, target: int) -> bool:
+	var enemy: Vector2 = units[target].p
+	var toward: Vector2 = (enemy - u.p).normalized()
+	var side: Vector2 = toward.orthogonal() * (1 if u.member == 0 else -1)
+	for sign_value in [1.0, -1.0]:
+		var direction: Vector2 = side * sign_value
+		if u.p.distance_to(enemy) > SHOT_RANGE - 30: direction = (direction + toward * 0.5).normalized()
+		if u.p.distance_to(enemy) < 130: direction = (direction - toward * 0.5).normalized()
+		var goal: Vector2 = u.p + direction * 32
+		if not movement_is_free(u, goal) or blocked(u.p, goal): continue
+		if blocked(goal, enemy) or goal.distance_to(enemy) > SHOT_RANGE: continue
+		var clear := true
+		for fraction in [0.25, 0.5, 0.75]:
+			if not movement_is_free(u, u.p.lerp(goal, fraction)): clear = false
+		if not clear: continue
+		u.target = target
+		u.action_goal = goal
+		u.action_left = minf(u.cooldown, 0.65)
+		u.path = PackedVector2Array()
+		u.avoid_left = 0.0
+		u.intent = "战斗走位"
+		u.phase = u.intent
+		u.reason = "武器恢复中，侧移保持射线；玩家技能可立即接管"
+		return true
+	return false
+
+func recovery_duration(skill: String) -> float:
+	if skill == "蓄能贯穿": return 0.8
+	if skill in ["强力射击", "落岩", "震山"]: return 0.6
+	if skill == "短冲刺": return 0.45
+	return 0.3
 
 func begin_shot(u: Dictionary, target: int, skill: String) -> void:
 	u.target = target
@@ -662,6 +705,13 @@ func begin_shot(u: Dictionary, target: int, skill: String) -> void:
 		u.lock_point = units[target].p
 
 func move_unit(u: Dictionary, goal: Vector2, dt: float) -> void:
+	if u.intent == "战斗走位":
+		var step_to: Vector2 = u.p.move_toward(goal, 48.0 * (0.6 if u.slow > 0 else 1.0) * dt)
+		if movement_is_free(u, step_to) and not blocked(u.p, step_to): u.p = step_to
+		else: u.action_left = 0.0
+		if u.target >= 0:
+			u.angle = rotate_toward(u.angle, (units[u.target].p - u.p).angle(), dt * 6)
+		return
 	if u.avoid_left > 0:
 		u.avoid_left = maxf(0, u.avoid_left - dt)
 		var candidate: Vector2 = u.p + u.avoid_dir * unit_move_speed(u) * dt
@@ -729,7 +779,7 @@ func update_attack(u: Dictionary, dt: float) -> void:
 		if u.timer > 0: return
 		release_pattern(u)
 		u.phase = "收招"
-		u.timer = 0.8
+		u.timer = recovery_duration(u.active_skill)
 		return
 	if u.phase == "吟唱":
 		if u.target < 0 or units[u.target].hp <= 0:
@@ -761,10 +811,10 @@ func update_attack(u: Dictionary, dt: float) -> void:
 		u.timer = float(Tactics.MAGIC.get(u.active_skill, {}).get("interval", 0.24))
 		if u.shot_count >= int(Tactics.MAGIC.get(u.active_skill, {}).get("hits", 1)):
 			u.phase = "收招"
-			u.timer = 1.0 if u.active_skill in ["强力射击", "落岩", "震山"] else 0.65
+			u.timer = recovery_duration(u.active_skill)
 	elif u.phase == "收招" and u.timer <= 0:
 		u.phase = "移动"
-		u.cooldown = 1.0
+		u.cooldown = 0.55
 
 func update_bullets(dt: float) -> void:
 	var damage := [0.0, 0.0, 0.0, 0.0]
@@ -907,7 +957,7 @@ func _draw() -> void:
 		if u.fire_flash > 0:
 			draw_circle(p + direction * (RADIUS + 12), (8 if u.active_skill == "强力射击" else 5) * u.fire_flash / 0.18, GOLD)
 		if u.phase == "收招":
-			var duration: float = 1.0 if u.active_skill in ["强力射击", "落岩", "震山"] else 0.65
+			var duration := recovery_duration(u.active_skill)
 			draw_arc(p, RADIUS + 3, -PI / 2, -PI / 2 + TAU * clampf(u.timer / duration, 0, 1), 32, Color(color, 0.65), 2)
 		draw_move_path(u)
 		for pip in range(int(MAX_HP)):
@@ -1702,7 +1752,7 @@ func draw_patterns() -> void:
 			draw_landing(h.p, color, blast_progress(h.left))
 	for h in hazards:
 		if h.kind != "area": continue
-		var t: float = clampf(1.0 - h.left / 0.95, 0, 1)
+		var t: float = clampf(1.0 - h.left / BLAST_FLIGHT, 0, 1)
 		var shell: Vector2 = h.origin.lerp(h.p, t) + Vector2(0, -80 * sin(t * PI))
 		draw_circle(ORIGIN + shell, 5, ATTACK_BLUE if h.team == 0 else ATTACK_RED)
 	for fx in blasts:
@@ -1747,12 +1797,12 @@ func run_pattern_tests() -> void:
 	pattern_fixture()
 	begin_shot(units[0], 2, "抛射轰击")
 	var points := mortar_points(units[0].lock_point)
-	update_attack(units[0], 0.56)
+	update_attack(units[0], BLAST_CAST + 0.01)
 	assert(hazards.size() == 1)
 	units[2].p = points[0]
-	update_bullets(0.5)
+	update_bullets(BLAST_FLIGHT - 0.01)
 	assert(units[2].hp == 4)
-	update_bullets(0.46)
+	update_bullets(0.02)
 	assert(units[2].hp == 3 and hazards.is_empty())
 	var results: Array = []
 	for blue in [5, 6]:
@@ -2029,3 +2079,50 @@ func draw_move_path(u: Dictionary) -> void:
 	var arrow := end - direction * 16
 	draw_line(arrow, arrow - direction.rotated(0.55) * 9, MOVE_HINT, 2)
 	draw_line(arrow, arrow - direction.rotated(-0.55) * 9, MOVE_HINT, 2)
+
+func run_tempo_tests() -> void:
+	pattern_fixture()
+	units[2].phase = "收招"
+	units[2].timer = 100.0
+	units[0].cooldown = 0.55
+	var origin: Vector2 = units[0].p
+	for tick in range(15): simulate(STEP)
+	assert(units[0].intent == "战斗走位")
+	assert(units[0].p.distance_to(origin) > 5 and units[0].p.distance_to(origin) < 16)
+	assert(not blocked(units[0].p, units[2].p))
+	assert(absf(angle_difference(units[0].angle, (units[2].p - units[0].p).angle())) < 0.1)
+	units[0].cooldown = 0.0
+	simulate(STEP)
+	assert(units[0].active_skill == "点射" and units[0].phase == "瞄准", "Ready weapon must not wait for footwork to finish")
+	# Player movement AP can also take over the low-priority baseline step immediately.
+	pattern_fixture()
+	units[0].cooldown = 0.5
+	assert(prepare_combat_step(units[0], 2))
+	units[2].phase = "收招"
+	units[2].timer = 100.0
+	loadouts[0] = Tactics.build([["后撤", "无", "无"]], [])
+	simulate(STEP)
+	assert(units[0].intent == "后撤" and units[0].rule_slot == 0)
+	# Near cover, every accepted step remains legal along the entire segment.
+	for position in [Vector2(210, 270), Vector2(290, 320), Vector2(100, 300)]:
+		pattern_fixture()
+		units[0].p = position
+		units[0].cooldown = 0.55
+		if prepare_combat_step(units[0], 2):
+			for tick in range(30):
+				move_unit(units[0], units[0].action_goal, STEP)
+				assert(valid_arena_position(units[0].p))
+	# Charged laser retains commitment; ordinary shotgun releases substantially sooner.
+	pattern_fixture()
+	begin_shot(units[0], 2, "蓄能贯穿")
+	update_attack(units[0], 0.5)
+	assert(units[0].phase == "吟唱" and shots == 0)
+	pattern_fixture()
+	begin_shot(units[0], 2, "霰弹")
+	update_attack(units[0], 0.24)
+	assert(shots == 0)
+	update_attack(units[0], 0.02)
+	assert(bullets.size() == 5 and units[0].phase == "收招")
+	update_attack(units[0], 0.31)
+	assert(units[0].phase == "移动" and is_equal_approx(units[0].cooldown, 0.55))
+	print("TEMPO PASSED: continuous aimed footwork, ready attack and player AP preempt, cover safety, fast shotgun, committed laser")
