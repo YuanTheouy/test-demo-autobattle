@@ -325,7 +325,7 @@ func ultimate_preview() -> void:
 	for u in g.units:
 		if u.hp <= 0: continue
 		var aiming: bool = g.ultimate_aim == u.uid
-		if not aiming and u.phase != "大招蓄力": continue
+		if not aiming and not u.ult_pending and u.phase != "大招蓄力": continue
 		var angle: float = (g.ultimate_cursor - u.p).angle() if aiming else u.ult_angle
 		var shape: Dictionary = g.ultimate_geometry(u, angle)
 		var color: Color = g.ATTACK_BLUE
@@ -339,7 +339,7 @@ func ultimate_preview() -> void:
 			ring(shape.end, 9, color, 2)
 		else:
 			for point in shape.points:
-				if aiming:
+				if aiming or u.ult_pending:
 					disc(point, shape.radius, Color(color, 0.12))
 					ring(point, shape.radius, color, 2)
 					line(point - Vector2(7, 0), point + Vector2(7, 0), color)
@@ -347,4 +347,4 @@ func ultimate_preview() -> void:
 				else: landing(point, shape.radius, color, (0.3 - u.timer) / 0.95, 0.95)
 		if aiming:
 			g.draw_rect(Rect2(185, 155, 560, 34), Color(0.04, 0.08, 0.13, 0.95))
-			g.draw_string(g.font, Vector2(199, 177), "%s · %s · 右键/Esc取消" % [g.ultimate_name(u.uid), ("精力不足70" if u.energy < 70 else ("公共CD %.1fs" % u.cooldown if u.cooldown > 0 else ("等待收招" if u.phase in ["吟唱", "瞄准", "点射", "收招", "大招蓄力"] else "左键释放")))], HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("ffe7a0"))
+			g.draw_string(g.font, Vector2(199, 177), "%s · %s · 右键/Esc取消" % [g.ultimate_name(u.uid), ("左键排队（恢复精力）" if u.energy < 70 else ("左键排队（CD %.1fs）" % u.cooldown if u.cooldown > 0 else ("左键排队（等收招）" if u.phase in ["吟唱", "瞄准", "点射", "收招", "大招蓄力"] else "左键释放")))], HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("ffe7a0"))
