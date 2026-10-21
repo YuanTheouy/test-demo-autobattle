@@ -1,0 +1,127 @@
+{
+	"arena": "open floor; positions/angles rotated 180 degrees about arena center",
+	"checks": [
+		"exact 5-frame windup / 2-frame release / 3-frame recovery",
+		"last-windup-frame refund, immediate single dodge step, independent bots, fresh AP after dodge",
+		"release lock, recovery bonus, preserved attack cooldown and projectile",
+		"low-energy refund eligibility and rejected dodge leaves action intact",
+		"same perception frame for earlier/later actor indices"
+	],
+	"fps": 60,
+	"symmetry": [
+		{
+			"bots_per_team": 1,
+			"dodges": [
+				0,
+				0,
+				0,
+				0
+			],
+			"final_hp": [
+				0.0,
+				0,
+				0.0,
+				0
+			],
+			"frames": 1563,
+			"max_hp_difference": 0.0,
+			"result": "双方同时全灭",
+			"skill": "普通攻击"
+		},
+		{
+			"bots_per_team": 2,
+			"dodges": [
+				0,
+				0,
+				0,
+				0
+			],
+			"final_hp": [
+				0.0,
+				0.0,
+				0.0,
+				0.0
+			],
+			"frames": 1566,
+			"max_hp_difference": 0.0,
+			"result": "双方同时全灭",
+			"skill": "普通攻击"
+		},
+		{
+			"bots_per_team": 1,
+			"dodges": [
+				4,
+				0,
+				4,
+				0
+			],
+			"final_hp": [
+				0.0,
+				0,
+				0.0,
+				0
+			],
+			"frames": 2025,
+			"max_hp_difference": 0.0,
+			"result": "双方同时全灭",
+			"skill": "落岩"
+		},
+		{
+			"bots_per_team": 2,
+			"dodges": [
+				4,
+				4,
+				4,
+				4
+			],
+			"final_hp": [
+				0.0,
+				0.0,
+				0.0,
+				0.0
+			],
+			"frames": 2017,
+			"max_hp_difference": 0.0,
+			"result": "双方同时全灭",
+			"skill": "落岩"
+		},
+		{
+			"bots_per_team": 1,
+			"dodges": [
+				0,
+				0,
+				0,
+				0
+			],
+			"final_hp": [
+				0.0,
+				0,
+				0.0,
+				0
+			],
+			"frames": 1407,
+			"max_hp_difference": 0.0,
+			"result": "双方同时全灭",
+			"skill": "风刃"
+		},
+		{
+			"bots_per_team": 2,
+			"dodges": [
+				0,
+				0,
+				0,
+				0
+			],
+			"final_hp": [
+				0.0,
+				0.0,
+				0.0,
+				0.0
+			],
+			"frames": 1518,
+			"max_hp_difference": 0.0,
+			"result": "双方同时全灭",
+			"skill": "风刃"
+		}
+	]
+}

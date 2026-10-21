@@ -1,0 +1,544 @@
+{
+	"balance": {
+		"attack_results": [
+			{
+				"hits": 1,
+				"remaining_hp": 4,
+				"skill": "点射",
+				"total_damage": 1
+			},
+			{
+				"hits": 1,
+				"remaining_hp": 4,
+				"skill": "普通攻击",
+				"total_damage": 1
+			},
+			{
+				"hits": 1,
+				"remaining_hp": 4,
+				"skill": "标记弹",
+				"total_damage": 1
+			},
+			{
+				"hits": 1,
+				"remaining_hp": 3,
+				"skill": "强力射击",
+				"total_damage": 2
+			},
+			{
+				"hits": 1,
+				"remaining_hp": 4,
+				"skill": "压制射击",
+				"total_damage": 1
+			},
+			{
+				"hits": 1,
+				"remaining_hp": 4,
+				"skill": "协同追击",
+				"total_damage": 1
+			},
+			{
+				"hits": 2,
+				"remaining_hp": 3,
+				"skill": "风刃",
+				"total_damage": 2
+			},
+			{
+				"hits": 2,
+				"remaining_hp": 3,
+				"skill": "追风",
+				"total_damage": 2
+			},
+			{
+				"hits": 1,
+				"remaining_hp": 4,
+				"skill": "火矢",
+				"total_damage": 1
+			},
+			{
+				"hits": 1,
+				"remaining_hp": 4,
+				"skill": "焰返",
+				"total_damage": 1
+			},
+			{
+				"hits": 1,
+				"remaining_hp": 3,
+				"skill": "落岩",
+				"total_damage": 2
+			},
+			{
+				"hits": 1,
+				"remaining_hp": 3,
+				"skill": "震山",
+				"total_damage": 2
+			},
+			{
+				"hits": 1,
+				"remaining_hp": 3,
+				"skill": "荆棘",
+				"total_damage": 2
+			},
+			{
+				"hits": 1,
+				"remaining_hp": 3,
+				"skill": "蓄能贯穿",
+				"total_damage": 2
+			},
+			{
+				"hits": 1,
+				"remaining_hp": 4,
+				"skill": "霰弹",
+				"total_damage": 1
+			},
+			{
+				"hits": 1,
+				"remaining_hp": 3,
+				"skill": "抛射轰击",
+				"total_damage": 2
+			},
+			{
+				"hits": 3,
+				"remaining_hp": 2,
+				"skill": "疾风连刃",
+				"total_damage": 3
+			},
+			{
+				"hits": 1,
+				"remaining_hp": 3,
+				"skill": "烈焰爆破",
+				"total_damage": 2
+			},
+			{
+				"hits": 1,
+				"remaining_hp": 3,
+				"skill": "裂地冲击",
+				"total_damage": 2
+			},
+			{
+				"hits": 1,
+				"remaining_hp": 2,
+				"skill": "天穹贯穿",
+				"total_damage": 3
+			},
+			{
+				"hits": 1,
+				"remaining_hp": 3,
+				"skill": "星火轰炸",
+				"total_damage": 2
+			}
+		],
+		"checks": [
+			"every attack uses real phases; integer HP/shields; burst totals and two thorn ticks",
+			"exactly five ordinary hits kill a full-health bot",
+			"guard subtracts one per physical hit; true damage bypasses guard; shield absorbs both; mark adds one",
+			"healing caps at five; wood grants one shield; ally cover replaces one shield with two and absorbs a heavy hit",
+			"low-health threshold is two; presets, editor persistence and menus use the new condition"
+		],
+		"max_hp": 5,
+		"skill_damage": {
+			"协同追击": 1,
+			"压制射击": 1,
+			"天穹贯穿": 3,
+			"强力射击": 2,
+			"抛射轰击": 2,
+			"星火轰炸": 2,
+			"普通攻击": 1,
+			"标记弹": 1,
+			"火矢": 1,
+			"点射": 1,
+			"烈焰爆破": 2,
+			"焰返": 1,
+			"疾风连刃": 1,
+			"荆棘": 0,
+			"落岩": 2,
+			"蓄能贯穿": 2,
+			"裂地冲击": 2,
+			"追风": 1,
+			"震山": 2,
+			"霰弹": 1,
+			"风刃": 1
+		}
+	},
+	"beat_seconds": 0.25,
+	"checks": [
+		"continuous presentation: movement/settling/collision/dodge, exact endpoints, no snapshot mutation, pause/step, frame-rate independence",
+		"T0 standing / T1 prepare / T2 adjacent cell / T3 standing",
+		"one-beat momentum crossing; turning needs preparation; one selection per beat",
+		"high skills require standing; standing cannot cast on the same beat",
+		"low skill allowed while mobile; locked-cell impact; no AP on recovery completion beat",
+		"windup dodge refunds; release lock prevents dodge; recovery cancellation keeps cooldown and cost",
+		"simultaneous hostile collision once for 1HP, shared collision cell, next-beat forced return, reserved origins",
+		"head-on exchange cannot cross bodies; friendly collision has no damage",
+		"three-way collision is one 1HP event per bot, not pairwise multiplied damage",
+		"same-beat status/damage independent of projectile iteration order",
+		"commander ultimate starts on a beat and refunds charge/energy on windup dodge",
+		"80 beats identical with reversed actor update order",
+		"nine presets complete; speed independence; single beat stepping; deployment/edit persistence"
+	],
+	"default_real_beat_seconds": 0.5,
+	"matches": [
+		{
+			"beats": 240,
+			"final_hp": [
+				2,
+				0,
+				0,
+				3
+			],
+			"opponent": 0,
+			"shots": 56,
+			"winner": -1
+		},
+		{
+			"beats": 240,
+			"final_hp": [
+				3,
+				5,
+				3,
+				1
+			],
+			"opponent": 1,
+			"shots": 89,
+			"winner": -1
+		},
+		{
+			"beats": 240,
+			"final_hp": [
+				4,
+				1,
+				3,
+				1
+			],
+			"opponent": 2,
+			"shots": 100,
+			"winner": -1
+		},
+		{
+			"beats": 104,
+			"final_hp": [
+				4,
+				3,
+				0,
+				0
+			],
+			"opponent": 3,
+			"shots": 44,
+			"winner": 0
+		},
+		{
+			"beats": 147,
+			"final_hp": [
+				4,
+				3,
+				0,
+				0
+			],
+			"opponent": 4,
+			"shots": 54,
+			"winner": 0
+		},
+		{
+			"beats": 226,
+			"final_hp": [
+				1,
+				1,
+				0,
+				0
+			],
+			"opponent": 5,
+			"shots": 102,
+			"winner": 0
+		},
+		{
+			"beats": 198,
+			"final_hp": [
+				4,
+				4,
+				0,
+				0
+			],
+			"opponent": 6,
+			"shots": 77,
+			"winner": 0
+		},
+		{
+			"beats": 76,
+			"final_hp": [
+				0,
+				0,
+				2,
+				1
+			],
+			"opponent": 7,
+			"shots": 35,
+			"winner": 1
+		},
+		{
+			"beats": 169,
+			"final_hp": [
+				0,
+				0,
+				2,
+				3
+			],
+			"opponent": 8,
+			"shots": 64,
+			"winner": 1
+		}
+	],
+	"motion": [
+		"position and velocity continuous at beat boundaries",
+		"same-direction crossings keep 320 px/s without per-cell braking",
+		"standing brakes within its own cell and ends at rest",
+		"movement guides show actual committed destinations",
+		"30/60/144 FPS and 0.5/1/2x agree on logic, position, velocity and beat phase"
+	],
+	"occupancy": [
+		"markers follow logical cells at preparation and crossing beats, independent of body interpolation",
+		"standing/mobile pose is explicit, including attacking in mobile pose",
+		"shared cells keep separate stable bot labels; dead bots release markers"
+	],
+	"playback_baseline": [
+		"new default 1x equals previous 0.5x",
+		"0.5x/1x/2x use 1.0/0.5/0.25 real seconds per beat",
+		"single-step animation follows the same new baseline"
+	],
+	"symmetry": [
+		{
+			"beats": 88,
+			"final": [
+				{
+					"cell": "(5, 3)",
+					"hp": 0,
+					"mode": "",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				},
+				{
+					"cell": "(1, 5)",
+					"hp": 0,
+					"mode": "",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				},
+				{
+					"cell": "(2, 4)",
+					"hp": 0,
+					"mode": "",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				},
+				{
+					"cell": "(6, 2)",
+					"hp": 0,
+					"mode": "",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				}
+			],
+			"max_hp_difference": 0.0,
+			"result": "双方同时全灭",
+			"shots": 20,
+			"skill": "普通攻击",
+			"team_size": 1
+		},
+		{
+			"beats": 123,
+			"final": [
+				{
+					"cell": "(4, 3)",
+					"hp": 0,
+					"mode": "",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				},
+				{
+					"cell": "(5, 4)",
+					"hp": 0,
+					"mode": "",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				},
+				{
+					"cell": "(3, 4)",
+					"hp": 0,
+					"mode": "",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				},
+				{
+					"cell": "(2, 3)",
+					"hp": 0,
+					"mode": "",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				}
+			],
+			"max_hp_difference": 0.0,
+			"result": "双方同时全灭",
+			"shots": 40,
+			"skill": "普通攻击",
+			"team_size": 2
+		},
+		{
+			"beats": 46,
+			"final": [
+				{
+					"cell": "(5, 3)",
+					"hp": 0,
+					"mode": "后摇",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				},
+				{
+					"cell": "(1, 5)",
+					"hp": 0,
+					"mode": "",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				},
+				{
+					"cell": "(2, 4)",
+					"hp": 0,
+					"mode": "后摇",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				},
+				{
+					"cell": "(6, 2)",
+					"hp": 0,
+					"mode": "",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				}
+			],
+			"max_hp_difference": 0.0,
+			"result": "双方同时全灭",
+			"shots": 8,
+			"skill": "落岩",
+			"team_size": 1
+		},
+		{
+			"beats": 75,
+			"final": [
+				{
+					"cell": "(4, 3)",
+					"hp": 0,
+					"mode": "后摇",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				},
+				{
+					"cell": "(5, 4)",
+					"hp": 0,
+					"mode": "后摇",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				},
+				{
+					"cell": "(3, 4)",
+					"hp": 0,
+					"mode": "后摇",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				},
+				{
+					"cell": "(2, 3)",
+					"hp": 0,
+					"mode": "后摇",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				}
+			],
+			"max_hp_difference": 0.0,
+			"result": "双方同时全灭",
+			"shots": 22,
+			"skill": "落岩",
+			"team_size": 2
+		},
+		{
+			"beats": 50,
+			"final": [
+				{
+					"cell": "(5, 3)",
+					"hp": 0,
+					"mode": "",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				},
+				{
+					"cell": "(1, 5)",
+					"hp": 0,
+					"mode": "",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				},
+				{
+					"cell": "(2, 4)",
+					"hp": 0,
+					"mode": "",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				},
+				{
+					"cell": "(6, 2)",
+					"hp": 0,
+					"mode": "",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				}
+			],
+			"max_hp_difference": 0.0,
+			"result": "双方同时全灭",
+			"shots": 10,
+			"skill": "烈焰爆破",
+			"team_size": 1
+		},
+		{
+			"beats": 88,
+			"final": [
+				{
+					"cell": "(3, 3)",
+					"hp": 0,
+					"mode": "",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				},
+				{
+					"cell": "(5, 4)",
+					"hp": 0,
+					"mode": "",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				},
+				{
+					"cell": "(4, 4)",
+					"hp": 0,
+					"mode": "",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				},
+				{
+					"cell": "(2, 3)",
+					"hp": 0,
+					"mode": "",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				}
+			],
+			"max_hp_difference": 0.0,
+			"result": "双方同时全灭",
+			"shots": 28,
+			"skill": "烈焰爆破",
+			"team_size": 2
+		}
+	],
+	"telegraphs": [
+		"1/2/3/4/5 beats use 0/1/2/3/4 cuts; each segment is one beat; divisions remain fixed through countdown and impact",
+		"basic/beam/mortar/bursts: exact impact deadlines; no restart between windup and flight; continuous fractional progress; every burst hit forecast",
+		"windup cancellation removes warning; recovery cancellation preserves launched attacks",
+		"one-beat warnings fill the whole edge; full bright frame only on the impact beat; dead casters keep launched shots but no future casts",
+		"overlaps show nearest strike per team; both teams remain visible; paused display is stable; single-step never prematurely completes"
+	]
+}

@@ -70,6 +70,7 @@ var hits := 0
 var shots := 0
 var preview_frames := 0
 const Tactics = preload("res://scripts/tactics.gd")
+const ActionTimeline = preload("res://scripts/action_timeline.gd")
 const ACTIVE_SKILLS = Tactics.ACTIVE
 const REACTION_SKILLS = Tactics.REACTIONS
 const CONDITIONS = Tactics.CONDITIONS
@@ -81,7 +82,7 @@ var unit_menu: OptionButton
 var roster_buttons: Array = []
 var character_label: Label
 var reaction_counts := {}
-const STEP := 1.0 / 60.0
+const STEP := 1.0 / ActionTimeline.FPS
 var accumulator := 0.0
 var team_presets := [7, 8]
 var preset_menus: Array = []
@@ -99,7 +100,17 @@ var ultimate_cursor := Vector2.ZERO
 const ULTIMATE_CHARGE_SECONDS := 12.0
 const ULTIMATE_SLOW := 0.15
 var drag_offset := Vector2.ZERO
+const DEPLOY_GRID := 8
+const DEPLOY_CELL_SIZE := SIZE / DEPLOY_GRID
+const DEFAULT_DEPLOYMENT := [Vector2i(6, 2), Vector2i(6, 5), Vector2i(1, 2), Vector2i(1, 5)]
+var deployment_cells: Array = DEFAULT_DEPLOYMENT.duplicate()
+var deployment_drag := -1
+var deployment_cursor := Vector2(-1, -1)
 var arena_view = preload("res://scripts/arena_view.gd").new()
+var logic_frame := 0
+var deciding_frame := false
+var perceived_bullets: Array = []
+var perceived_hazards: Array = []
 
 
 
@@ -112,6 +123,34 @@ func _ready() -> void:
 	setup_loadouts()
 	setup_ui()
 	reset_round()
+	if "--lifecycle-test" in OS.get_cmdline_user_args():
+		run_lifecycle_tests()
+		get_tree().quit()
+		return
+	if "--lifecycle-preview" in OS.get_cmdline_user_args():
+		started = true
+		for tick in range(600):
+			simulate(STEP)
+			var reacting := -1
+			for u in units:
+				if u.dodge > 0 and u.get("last_cancel", "").contains("取消"): reacting = u.uid
+			if reacting >= 0:
+				choose_editor_unit(reacting)
+				break
+		set_physics_process(false)
+		refresh_ui()
+		capture_lifecycle_preview.call_deferred()
+		return
+	if "--deployment-test" in OS.get_cmdline_user_args():
+		run_deployment_tests()
+		get_tree().quit()
+		return
+	if "--deployment-preview" in OS.get_cmdline_user_args():
+		choose_editor_unit(0)
+		deployment_cursor = deployment_center(Vector2i(5, 3))
+		set_physics_process(false)
+		capture_deployment_preview.call_deferred()
+		return
 	if "--ultimate-debt-test" in OS.get_cmdline_user_args():
 		run_ultimate_debt_tests()
 		get_tree().quit()
@@ -393,7 +432,8 @@ func setup_ui() -> void:
 	root.add_child(controls)
 	start_button = add_button(controls, "开始交战 [空格]", toggle_running)
 	add_button(controls, "重开 [R]", reset_round)
-	add_button(controls, "步进 [N]", step_forward)
+	var step_button := add_button(controls, "单帧 [N]", step_forward)
+	step_button.tooltip_text = "N：前进1逻辑帧（1/60秒）；Shift+N：前进12帧。"
 	add_button(controls, "交换出生侧", func(): blue_attacks = not blue_attacks; reset_round())
 	var speed_button := add_button(controls, "速度 %s×" % speed, func(): pass)
 	speed_button.pressed.connect(func(): speed = 2.0 if speed == 1.0 else (0.5 if speed == 2.0 else 1.0); speed_button.text = "速度 %s×" % speed)
@@ -421,6 +461,7 @@ func setup_ui() -> void:
 	var caption := text_label(heading, "作 战 配 置", 23)
 	caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	caption.modulate = GOLD
+	add_button(heading, "重置站位", func(): deployment_cells = DEFAULT_DEPLOYMENT.duplicate(); reset_round())
 	add_button(heading, "仅基础", func(): loadouts[editor_unit] = Tactics.basics(); rebuild_editor(); reset_round())
 	add_button(heading, "清空", func(): loadouts[editor_unit] = Tactics.build([], []); rebuild_editor(); reset_round())
 	var presets := HBoxContainer.new()
@@ -572,11 +613,18 @@ func add_button(parent: Node, title: String, callback: Callable) -> Button:
 
 func reset_round() -> void:
 	ultimate_aim = -1
+	deployment_drag = -1
+	deployment_cursor = Vector2(-1, -1)
 	reset_walls()
+	validate_deployment()
 	running = false
 	started = false
 	finished = false
 	clock = ROUND_TIME
+	logic_frame = 0
+	deciding_frame = false
+	perceived_bullets.clear()
+	perceived_hazards.clear()
 	accumulator = 0.0
 	hit_events.clear()
 	shields_pending.clear()
@@ -603,21 +651,97 @@ func reset_round() -> void:
 	for team in range(2):
 		var attack: bool = (team == 0) == blue_attacks
 		for member in range(2):
-			var p: Vector2 = Vector2(120, 200 + member * 240) if attack else Vector2(520, 200 + member * 240)
+			var p: Vector2 = deployment_position(team * 2 + member)
 			units.append({"trace_ap": new_rule_trace("未检查"), "trace_pp": new_rule_trace("未检查"), "energy": 100.0, "ult_charge": 0.0, "ult_angle": 0.0, "uid": team * 2 + member, "team": team, "member": member, "attack": attack, "p": p,
 				"blast_impulse": Vector2.ZERO, "blast_lock": 0.0, "impulse": Vector2.ZERO, "evade_source": -1, "counter_left": 0.0, "thorns": 0.0, "thorn_tick": 0.0, "hurt_recent": 0.0, "hit_flash": 0.0, "heal_flash": 0.0, "reason": "基础作战就绪", "rule_kind": "", "rule_slot": -1, "slow": 0.0, "shield": 0.0, "shield_time": 0.0, "patrol": 0, "dash_recovery": false, "avoid_left": 0.0, "avoid_dir": Vector2.ZERO, "active_skill": "点射", "rule": "待机", "rule_flash": 0.0, "fire_flash": 0.0, "marked": 0.0, "guard": 0.0, "skill_cds": {}, "action_left": 0.0, "action_goal": p,
 				"intent": "待机", "retreat": 0.0, "retreat_cd": 0.0, "hp": MAX_HP, "phase": "移动", "timer": 0.0, "cooldown": 0.0,
 				"angle": 0.0 if attack else PI, "target": -1, "path": PackedVector2Array(),
 				"repath": 0.0, "goal": p, "dodge": 0.0, "dodge_dir": Vector2.ZERO, "shot_count": 0, "last_seen": Vector2(-1, -1), "memory": 0.0})
 	reaction_counts.clear()
+	for u in units:
+		ActionTimeline.clear(u)
+		u.dodge_frames = 0
+		u.frame_triggers = 0
+		u.frame_branch = "等待决策"
 	log_event("蓝：%s / 红：%s" % [Tactics.NAMES[team_presets[0]], Tactics.NAMES[team_presets[1]]])
 	refresh_ui()
 	queue_redraw()
 
 func toggle_running() -> void:
+	deployment_drag = -1
 	started = true
 	running = not running
 	refresh_ui()
+
+func deployment_cell(point: Vector2) -> Vector2i:
+	return Vector2i(floori(point.x / DEPLOY_CELL_SIZE), floori(point.y / DEPLOY_CELL_SIZE))
+
+func deployment_center(cell: Vector2i) -> Vector2:
+	return (Vector2(cell) + Vector2(0.5, 0.5)) * DEPLOY_CELL_SIZE
+
+func deployment_position(uid: int) -> Vector2:
+	var cell: Vector2i = deployment_cells[uid]
+	if blue_attacks: cell.x = DEPLOY_GRID - 1 - cell.x
+	return deployment_center(cell)
+
+func validate_deployment() -> void:
+	# The asymmetric walls can obstruct a previously valid cell after a side swap.
+	var cells: Array[Vector2i] = []
+	for uid in range(4): cells.append(deployment_cell(deployment_position(uid)))
+	for uid in range(cells.size()):
+		if valid_position(deployment_center(cells[uid])): continue
+		var nearest := cells[uid]
+		var distance := INF
+		for x in range(DEPLOY_GRID):
+			for y in range(DEPLOY_GRID):
+				var candidate := Vector2i(x, y)
+				if candidate in cells or not valid_position(deployment_center(candidate)): continue
+				var d := Vector2(candidate).distance_squared_to(Vector2(cells[uid]))
+				if d < distance:
+					distance = d
+					nearest = candidate
+		cells[uid] = nearest
+		if blue_attacks: nearest.x = DEPLOY_GRID - 1 - nearest.x
+		deployment_cells[uid] = nearest
+
+func can_deploy(uid: int, cell: Vector2i) -> bool:
+	if started or uid < 0 or uid >= units.size(): return false
+	if cell.x < 0 or cell.y < 0 or cell.x >= DEPLOY_GRID or cell.y >= DEPLOY_GRID: return false
+	var point := deployment_center(cell)
+	if not valid_position(point): return false
+	for other in units:
+		if other.uid != uid and point.distance_to(other.p) < RADIUS * 2 + 2: return false
+	return true
+
+func place_unit(uid: int, cell: Vector2i) -> bool:
+	if not can_deploy(uid, cell): return false
+	var point := deployment_center(cell)
+	var saved_cell := cell
+	if blue_attacks: saved_cell.x = DEPLOY_GRID - 1 - saved_cell.x
+	deployment_cells[uid] = saved_cell
+	units[uid].p = point
+	units[uid].goal = point
+	units[uid].action_goal = point
+	units[uid].path = PackedVector2Array()
+	return true
+
+func _input(event: InputEvent) -> void:
+	# Finish a drag even when the pointer is released over a UI control.
+	if deployment_drag < 0: return
+	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		deployment_drag = -1
+		deployment_cursor = Vector2(-1, -1)
+		queue_redraw()
+		return
+	if event is InputEventMouseMotion:
+		deployment_cursor = arena_view.unproject(event.position) + drag_offset
+		queue_redraw()
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
+		deployment_cursor = arena_view.unproject(event.position) + drag_offset
+		place_unit(deployment_drag, deployment_cell(deployment_cursor))
+		deployment_drag = -1
+		refresh_ui()
+		queue_redraw()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if ultimate_aim >= 0:
@@ -631,25 +755,24 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_SPACE: toggle_running()
 		if event.keycode == KEY_R: reset_round()
-		if event.keycode == KEY_N: step_forward()
+		if event.keycode == KEY_N: step_forward(12 if event.shift_pressed else 1)
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
-			selected = -1
+			var clicked_unit := -1
 			for i in range(units.size()):
-				if arena_view.project(units[i].p, 25).distance_to(get_global_mouse_position()) < 28:
-					selected = i
-					drag_offset = units[i].p - arena_view.unproject(get_global_mouse_position())
-					editor_unit = units[i].uid
-					unit_menu.select(editor_unit)
-					rebuild_editor()
-	if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
-		if not started and selected >= 0 and units[selected].team == 0:
-			var p: Vector2 = arena_view.unproject(get_global_mouse_position()) + drag_offset
-			var correct_zone: bool = p.x < 125 if units[selected].attack else p.x > 515
-			var free := true
-			for i in range(units.size()):
-				if i != selected and p.distance_to(units[i].p) < RADIUS * 2 + 2: free = false
-			if correct_zone and free and valid_position(p): units[selected].p = p
+				if arena_view.project(arena_view.display_position(units[i]), 25).distance_to(event.position) < 28:
+					clicked_unit = i
+					break
+			if clicked_unit >= 0:
+				choose_editor_unit(clicked_unit)
+				if not started:
+					deployment_drag = clicked_unit
+					drag_offset = units[clicked_unit].p - arena_view.unproject(event.position)
+					deployment_cursor = units[clicked_unit].p
+			elif not started and selected >= 0:
+				place_unit(selected, deployment_cell(arena_view.unproject(event.position)))
+	if event is InputEventMouseMotion and not started and deployment_drag < 0:
+		deployment_cursor = arena_view.unproject(event.position)
 	refresh_ui()
 	queue_redraw()
 
@@ -671,11 +794,12 @@ func advance_playback(delta: float) -> void:
 		accumulator -= STEP
 		simulate(STEP)
 
-func step_forward() -> void:
+func step_forward(frame_count := 1) -> void:
 	running = false
 	started = true
+	deployment_drag = -1
 	accumulator = 0.0
-	for tick in range(12):
+	for tick in range(frame_count):
 		simulate(STEP)
 	refresh_ui()
 	queue_redraw()
@@ -742,6 +866,7 @@ func contacts(team: int) -> Array[int]:
 	return found
 
 func simulate(dt: float) -> void:
+	logic_frame += 1
 	clock -= dt
 	shields_pending.clear()
 	heals_pending.clear()
@@ -755,16 +880,22 @@ func simulate(dt: float) -> void:
 	focus_timer -= dt
 	update_team_focus(visible)
 	# All decisions read the same immutable start-of-step world.
+	# New projectiles/telegraphs become perceptible to EVERY actor next frame.
+	perceived_bullets = bullets.duplicate(true)
+	perceived_hazards = hazards.duplicate(true)
+	deciding_frame = true
 	var next_units: Array[Dictionary] = []
 	for old in units: next_units.append(old.duplicate(true))
 	for i in range(units.size()):
 		var u: Dictionary = next_units[i]
+		u.frame_triggers = 0
+		u.frame_branch = "死亡" if u.hp <= 0 else "等待决策"
 		if u.hp <= 0: continue
 		u.ult_charge = minf(100, u.ult_charge + dt * 100.0 / ULTIMATE_CHARGE_SECONDS)
 		for key in u.skill_cds.keys(): u.skill_cds[key] = maxf(0, u.skill_cds[key] - dt)
 		u.counter_left = maxf(0, u.counter_left - dt)
 		u.cooldown = maxf(0, u.cooldown - dt)
-		if u.phase not in ["吟唱", "瞄准", "点射", "收招", "大招蓄力", "回春", "灵木护佑", "掩护队友"]:
+		if not ActionTimeline.busy(u) and u.phase not in ["吟唱", "瞄准", "点射", "收招", "大招蓄力", "回春", "灵木护佑", "掩护队友"]:
 			u.energy = minf(100, u.energy + 12.0 * dt)
 		u.blast_lock = maxf(0, u.blast_lock - dt)
 		u.marked = maxf(0, u.marked - dt)
@@ -783,36 +914,35 @@ func simulate(dt: float) -> void:
 		u.rule_flash = maxf(0, u.rule_flash - dt)
 		u.fire_flash = maxf(0, u.fire_flash - dt)
 		u.repath -= dt
-		if u.phase == "大招蓄力":
-			u.timer -= dt
-			if u.timer <= 0: release_ultimate(u)
-			continue
 		if u.dodge > 0:
-			u.dodge = maxf(0, u.dodge - dt)
-			u.phase = "侧闪"
-			var next: Vector2 = u.p + u.dodge_dir * DODGE_SPEED * dt
-			if movement_is_free(u, next) and not blocked(u.p, next): u.p = next
-			if u.dodge <= 0:
-				u.phase = "移动"
-				u.action_left = 0.0
-				u.repath = 0.0
+			u.frame_branch = "PP：侧闪"
+			advance_dodge(u, dt)
+			continue
+		if ActionTimeline.busy(u) or u.phase in ["吟唱", "瞄准", "点射", "收招", "大招蓄力"]:
+			# Only dodge can cancel a committed action; other PP wait for decision time.
+			if try_reaction(u, visible[u.team], false, true):
+				u.frame_branch = "PP：侧闪"
+				advance_dodge(u, dt)
+				continue
+			u.frame_branch = ("PP：" if u.rule_kind == "reaction" else "AP：") + u.get("action_stage", u.phase)
+			update_attack(u, dt)
 			continue
 		var can_evade: bool = u.phase not in ["吟唱", "点射", "收招", "架枪防御", "回春", "灵木护佑", "掩护队友"] and not (u.phase == "瞄准" and u.shot_count > 0)
 		if can_evade:
 			if try_reaction(u, visible[u.team]):
+				u.frame_branch = "PP：" + u.intent
+				if u.dodge > 0: advance_dodge(u, dt)
 				var step_to: Vector2 = u.p.move_toward(u.action_goal, unit_move_speed(u) * dt)
 				if u.phase == "规避预警" and movement_is_free(u, step_to): u.p = step_to
 				continue
 
-		if u.phase in ["吟唱", "瞄准", "点射", "收招"]:
-			update_attack(u, dt)
-			continue
 		# Configured movement yields only to higher-priority AP rules.
 		if u.intent in ["战斗走位", "战术换位"] and u.action_left > 0:
 			var movement_reason: String = u.reason
 			if try_active(u, visible[u.team], u.rule_slot if u.rule_kind == "active" else -1): continue
 			u.reason = movement_reason
 		if u.action_left > 0:
+			u.frame_branch = ("PP：" if u.rule_kind == "reaction" else "AP：") + u.intent
 			u.action_left = maxf(0, u.action_left - dt)
 			if u.intent not in ["架枪防御", "掩护队友", "回春", "灵木护佑"]:
 				move_unit(u, u.action_goal, dt)
@@ -823,6 +953,7 @@ func simulate(dt: float) -> void:
 				u.dash_recovery = false
 				u.phase = "收招"
 				u.timer = 0.45
+				ActionTimeline.enter(u, ActionTimeline.RECOVERY, ActionTimeline.frames(0.45))
 			continue
 		if not try_active(u, visible[u.team]):
 			u.phase = "待命"
@@ -831,6 +962,8 @@ func simulate(dt: float) -> void:
 			u.rule_slot = -1
 			u.target = -1
 			u.reason = "没有满足条件的AP规则；等待恢复或反应事件"
+	deciding_frame = false
+	for actor in next_units: assert(actor.frame_triggers <= 1, "One bot may select at most one AP/PP per logic frame")
 	body_impacts.clear()
 	body_pairs.clear()
 	for actor in next_units:
@@ -895,7 +1028,7 @@ func incoming_pressure(u: Dictionary, visible: Array) -> int:
 	var count := 0
 	for j in visible:
 		var enemy: Dictionary = units[j]
-		if enemy.phase in ["吟唱", "瞄准", "点射"] and enemy.target >= 0 and units[enemy.target].uid == u.uid and not blocked(enemy.p, u.p): count += 1
+		if enemy.phase in ["吟唱", "瞄准", "点射", "释放硬直"] and enemy.target >= 0 and units[enemy.target].uid == u.uid and not blocked(enemy.p, u.p): count += 1
 	return count
 
 func update_team_focus(visible: Array) -> void:
@@ -926,7 +1059,7 @@ func choose_target(u: Dictionary, visible: Array) -> int:
 		if blocked(u.p, enemy.p) or u.p.distance_to(enemy.p) > SHOT_RANGE: continue
 		var candidate: float = u.p.distance_to(enemy.p)
 		if j == team_focus[u.team]: candidate -= 110
-		if ally >= 0 and units[ally].target == j and units[ally].phase in ["吟唱", "瞄准", "点射"]: candidate -= 35
+		if ally >= 0 and units[ally].target == j and units[ally].phase in ["吟唱", "瞄准", "点射", "释放硬直"]: candidate -= 35
 		if tactics[u.team] != 0 and ally >= 0 and enemy.target == ally and (units[ally].hp < MAX_HP * 0.5 or units[ally].retreat > 0): candidate -= 160
 		if candidate < score or (is_equal_approx(candidate, score) and (best < 0 or enemy.uid < units[best].uid)):
 			score = candidate
@@ -939,15 +1072,17 @@ func choose_goal(u: Dictionary, visible: Array) -> Vector2:
 		var enemy: Vector2 = units[target].p
 		var best: Vector2 = u.p
 		var score := INF
-		for x in range(32):
-			for y in range(32):
+		for local_x in range(32):
+			var x: int = local_x if u.attack else 31 - local_x
+			for local_y in range(32):
+				var y: int = local_y if u.attack else 31 - local_y
 				if nav.is_point_solid(Vector2i(x, y)): continue
 				var point := Vector2(x * 20 + 10, y * 20 + 10)
 				if point.distance_to(enemy) > SHOT_RANGE - 20 or blocked(point, enemy) or not movement_is_free(u, point): continue
 				var d: float = position_score(u, target, point)
 				for ally in units:
 					if ally.uid != u.uid and ally.hp > 0 and point.distance_to(ally.p) < RADIUS * 2 + 12: d += 10000
-				if d < score: score = d; best = point
+				if d < score - 0.001: score = d; best = point
 		if score < INF: return best
 	if u.memory > 0 and u.p.distance_to(u.last_seen) > 35:
 		return nearest_legal_goal(u.last_seen)
@@ -1077,7 +1212,9 @@ func recovery_duration(skill: String) -> float:
 func begin_shot(u: Dictionary, target: int, skill: String) -> void:
 	if not can_use_skill(u, skill): return
 	u.energy -= energy_cost(skill)
-	if skill == "点射": u.skill_cds[skill] = 1.5
+	ActionTimeline.begin(u, float(Tactics.MAGIC.get(skill, {}).get("cast", 0.0)), energy_cost(skill), attack_cooldown(skill))
+	u.release_lock_frames = int(Tactics.MAGIC.get(skill, {}).get("release_frames", ActionTimeline.RELEASE_LOCK_FRAMES))
+	u.recovery_frames = ActionTimeline.frames(recovery_duration(skill))
 	u.target = target
 	u.active_skill = skill
 	u.action_left = 0.0
@@ -1090,6 +1227,50 @@ func begin_shot(u: Dictionary, target: int, skill: String) -> void:
 		u.angle = (units[target].p - u.p).angle()
 		u.lock_angle = u.angle
 		u.lock_point = units[target].p
+	u.timer = u.stage_frames * STEP
+
+func attack_cooldown(skill: String) -> float:
+	if skill in Tactics.MAGIC: return float(Tactics.MAGIC[skill].cd)
+	return float({"点射": 1.5, "标记弹": 5.0, "强力射击": 6.0, "压制射击": 6.0, "协同追击": 5.0}.get(skill, 0.0))
+
+func advance_dodge(u: Dictionary, dt: float) -> void:
+	if u.dodge_frames <= 0: u.dodge_frames = ActionTimeline.frames(u.dodge)
+	u.phase = "侧闪"
+	var next: Vector2 = u.p + u.dodge_dir * DODGE_SPEED * dt
+	if movement_is_free(u, next) and not blocked(u.p, next): u.p = next
+	u.dodge_frames = maxi(0, u.dodge_frames - 1)
+	u.dodge = u.dodge_frames * STEP
+	if u.dodge_frames == 0:
+		u.phase = "移动"
+		u.intent = "重新决策"
+		u.action_left = 0.0
+		u.repath = 0.0
+		u.rule_kind = ""
+		u.rule_slot = -1
+
+func cancel_for_dodge(u: Dictionary) -> void:
+	var refund := ActionTimeline.refundable(u)
+	var cancelled: String = u.active_skill
+	var previous: String = u.get("action_stage", "")
+	if u.rule_slot >= 0 and not previous.is_empty():
+		var trace: Array = u.trace_ap if u.rule_kind == "active" else u.trace_pp
+		trace[u.rule_slot] = "前摇取消·退%d" % refund if previous == ActionTimeline.WINDUP else "后摇已取消"
+	if previous.is_empty(): previous = u.phase
+	if refund > 0:
+		u.energy = minf(100.0, u.energy + refund)
+		if cancelled in ["天穹贯穿", "星火轰炸"]: u.ult_charge = 100.0
+	ActionTimeline.clear(u)
+	u.timer = 0.0
+	u.shot_count = 0
+	u.action_left = 0.0
+	u.dash_recovery = false
+	u.avoid_left = 0.0
+	u.path = PackedVector2Array()
+	u.goal = u.p
+	u.action_goal = u.p
+	u.last_cancel = "%s · %s取消 · 退还%d精力" % [cancelled, previous, refund]
+	u.last_cancel_frame = logic_frame
+	if not previous.is_empty(): log_event("%s%d · 侧闪：%s" % ["蓝" if u.team == 0 else "红", u.member + 1, u.last_cancel])
 
 func move_unit(u: Dictionary, goal: Vector2, dt: float) -> void:
 	if u.intent == "战斗走位":
@@ -1117,7 +1298,9 @@ func move_unit(u: Dictionary, goal: Vector2, dt: float) -> void:
 		if nav.is_point_solid(start):
 			var entry := nearest_legal_goal(u.p)
 			start = Vector2i(int(entry.x / 20), int(entry.y / 20))
-		if not nav.is_point_solid(start) and not nav.is_point_solid(end):
+		if direct_path_free(u, goal):
+			u.path = PackedVector2Array([goal])
+		elif not nav.is_point_solid(start) and not nav.is_point_solid(end):
 			u.path = nav.get_point_path(start, end)
 		else: u.path = PackedVector2Array()
 	var path: PackedVector2Array = u.path
@@ -1154,6 +1337,14 @@ func move_unit(u: Dictionary, goal: Vector2, dt: float) -> void:
 		u.angle = rotate_toward(u.angle, detour.angle(), dt * 5)
 		return
 	u.phase = "让行"
+
+func direct_path_free(u: Dictionary, goal: Vector2) -> bool:
+	# Do not detour through an arbitrary nav-cell center on an unobstructed floor.
+	# Besides smoother movement, this avoids opposite rounding at mirrored cell edges.
+	var samples := maxi(1, ceili(u.p.distance_to(goal) / 8.0))
+	for sample in range(1, samples + 1):
+		if not movement_is_free(u, u.p.lerp(goal, sample / float(samples))): return false
+	return true
 
 func add_impulse(u: Dictionary, velocity: Vector2) -> void:
 	u.impulse = (u.impulse + velocity).limit_length(260.0)
@@ -1225,50 +1416,81 @@ func movement_is_free(u: Dictionary, next: Vector2) -> bool:
 	return true
 
 func update_attack(u: Dictionary, dt: float) -> void:
-	u.timer -= dt
-	if u.phase == "吟唱" and u.active_skill in Tactics.PATTERNS:
-		if u.timer > 0: return
-		release_pattern(u)
-		u.phase = "收招"
-		u.timer = recovery_duration(u.active_skill)
+	# Coarse calls are only used by diagnostics; live simulation always passes STEP.
+	for tick in range(ActionTimeline.frames(dt)):
+		if not ActionTimeline.busy(u):
+			# Compatibility for fixtures that explicitly put a unit in recovery.
+			if u.phase == "收招": ActionTimeline.enter(u, ActionTimeline.RECOVERY, ActionTimeline.frames(u.timer))
+			else: return
+		advance_attack_frame(u)
+
+func enter_attack_recovery(u: Dictionary, seconds: float) -> void:
+	ActionTimeline.enter(u, ActionTimeline.RECOVERY, ActionTimeline.frames(seconds))
+	u.phase = "收招"
+
+func attack_aligned(u: Dictionary) -> bool:
+	if u.active_skill in Tactics.PATTERNS or u.active_skill in ["天穹贯穿", "星火轰炸"]: return true
+	if u.target < 0 or units[u.target].hp <= 0: return false
+	var target: Dictionary = units[u.target]
+	if blocked(u.p, target.p) or u.p.distance_to(target.p) > SHOT_RANGE: return false
+	var desired: float = (target.p - u.p).angle()
+	u.angle = rotate_toward(u.angle, desired, STEP * 6)
+	return absf(angle_difference(u.angle, desired)) <= 0.01
+
+func advance_attack_frame(u: Dictionary) -> void:
+	if u.action_stage == ActionTimeline.WINDUP:
+		if u.active_skill not in Tactics.PATTERNS and u.active_skill not in ["天穹贯穿", "星火轰炸"] and (u.target < 0 or units[u.target].hp <= 0 or blocked(u.p, units[u.target].p) or u.p.distance_to(units[u.target].p) > SHOT_RANGE):
+			enter_attack_recovery(u, 0.15)
+			return
+		var aligned := attack_aligned(u)
+		if ActionTimeline.tick(u) and aligned:
+			var burst: int = int(Tactics.MAGIC.get(u.active_skill, {}).get("hits", 1))
+			var interval := ActionTimeline.frames(float(Tactics.MAGIC.get(u.active_skill, {}).get("interval", 0.24)))
+			ActionTimeline.enter(u, ActionTimeline.RELEASE, u.release_lock_frames + (burst - 1) * interval)
+			u.phase = "释放硬直"
 		return
-	if u.phase == "吟唱":
-		if u.target < 0 or units[u.target].hp <= 0:
-			u.phase = "收招"
-			u.timer = 0.15
-			return
-		u.angle = rotate_toward(u.angle, (units[u.target].p - u.p).angle(), dt * 6)
-		if u.timer > 0: return
-		u.phase = "瞄准"
-	if u.phase == "瞄准" or u.phase == "点射":
-		var target: Dictionary = units[u.target]
-		if target.hp <= 0 or blocked(u.p, target.p) or u.p.distance_to(target.p) > SHOT_RANGE:
-			u.phase = "收招"
-			u.timer = 0.15
-			return
-		var desired: float = (target.p - u.p).angle()
-		u.angle = rotate_toward(u.angle, desired, dt * 6)
-		# Alignment, not a countdown, authorizes every bullet, including burst follow-ups.
-		if absf(angle_difference(u.angle, desired)) > 0.01:
-			u.phase = "瞄准"
-			return
-		if u.timer > 0: return
-		var direction := Vector2.from_angle(u.angle)
-		var projectile_speed := ROCK_SPEED if u.active_skill in ["落岩", "震山"] else (BASIC_BULLET_SPEED if u.active_skill == "点射" else BULLET_SPEED)
-		bullets.append({"p": u.p + direction * (RADIUS + 4), "v": direction * projectile_speed, "team": u.team, "life": SHOT_RANGE / projectile_speed, "true_damage": magic_element(u.active_skill) == "火", "element": magic_element(u.active_skill), "thorns": u.active_skill == "荆棘", "damage": shot_damage(u.active_skill), "source": u.uid, "skill": u.active_skill, "mark": u.active_skill == "标记弹", "heavy": u.active_skill == "强力射击", "slow": u.active_skill == "压制射击"})
-		add_impulse(u, -direction * (105.0 if u.active_skill in ["落岩", "震山", "强力射击"] else 55.0))
-		shots += 1
-		u.shot_count += 1
-		u.fire_flash = 0.18
-		u.phase = "点射"
-		u.timer = float(Tactics.MAGIC.get(u.active_skill, {}).get("interval", 0.24))
-		if u.shot_count >= int(Tactics.MAGIC.get(u.active_skill, {}).get("hits", 1)):
-			u.phase = "收招"
-			u.timer = recovery_duration(u.active_skill)
-			finish_spell(u, u.active_skill)
-	elif u.phase == "收招" and u.timer <= 0:
-		u.phase = "移动"
-		# Public CD started at the last emission, and overlaps recovery.
+	if u.action_stage == ActionTimeline.RELEASE:
+		var burst: int = int(Tactics.MAGIC.get(u.active_skill, {}).get("hits", 1))
+		var interval := ActionTimeline.frames(float(Tactics.MAGIC.get(u.active_skill, {}).get("interval", 0.24)))
+		if u.shot_count < burst and u.release_elapsed >= u.shot_count * interval:
+			if not attack_aligned(u):
+				if u.target < 0 or units[u.target].hp <= 0 or blocked(u.p, units[u.target].p) or u.p.distance_to(units[u.target].p) > SHOT_RANGE:
+					if u.action_committed: finish_spell(u, u.active_skill)
+					enter_attack_recovery(u, 0.15)
+				return
+			if not u.action_committed:
+				u.action_committed = true
+				if u.action_cd > 0: u.skill_cds[u.active_skill] = u.action_cd
+			emit_attack(u)
+			u.phase = "释放硬直"
+		u.release_elapsed += 1
+		if ActionTimeline.tick(u): enter_attack_recovery(u, u.recovery_frames * STEP)
+		return
+	if u.action_stage == ActionTimeline.RECOVERY:
+		if ActionTimeline.tick(u):
+			ActionTimeline.clear(u)
+			u.phase = "移动"
+			u.intent = "重新决策"
+			u.rule_kind = ""
+			u.rule_slot = -1
+
+func emit_attack(u: Dictionary) -> void:
+	if u.active_skill in ["天穹贯穿", "星火轰炸"]:
+		emit_ultimate_effects(u)
+		u.shot_count = 1
+		return
+	if u.active_skill in Tactics.PATTERNS:
+		release_pattern(u)
+		u.shot_count = 1
+		return
+	var direction := Vector2.from_angle(u.angle)
+	var projectile_speed := ROCK_SPEED if u.active_skill in ["落岩", "震山"] else (BASIC_BULLET_SPEED if u.active_skill == "点射" else BULLET_SPEED)
+	bullets.append({"p": u.p + direction * (RADIUS + 4), "v": direction * projectile_speed, "team": u.team, "life": SHOT_RANGE / projectile_speed, "true_damage": magic_element(u.active_skill) == "火", "element": magic_element(u.active_skill), "thorns": u.active_skill == "荆棘", "damage": shot_damage(u.active_skill), "source": u.uid, "skill": u.active_skill, "mark": u.active_skill == "标记弹", "heavy": u.active_skill == "强力射击", "slow": u.active_skill == "压制射击"})
+	add_impulse(u, -direction * (105.0 if u.active_skill in ["落岩", "震山", "强力射击"] else 55.0))
+	shots += 1
+	u.shot_count += 1
+	u.fire_flash = 0.18
+	if u.shot_count >= int(Tactics.MAGIC.get(u.active_skill, {}).get("hits", 1)): finish_spell(u, u.active_skill)
 
 func update_bullets(dt: float) -> void:
 	wall_damage.clear()
@@ -1356,17 +1578,18 @@ func end_round(winner: int, reason: String) -> void:
 	log_event(reason)
 
 func log_event(message: String) -> void:
-	logs.push_front("%02d秒  %s" % [int(ROUND_TIME - clock), message])
+	logs.push_front("F%05d · %.1fs  %s" % [logic_frame, ROUND_TIME - clock, message])
 	if logs.size() > 3: logs.resize(3)
 
 func refresh_ui() -> void:
-	status_label.text = "对称歼灭  ·  %04.1f 秒    |    固定场地 · 不缩圈" % maxf(clock, 0)
+	status_label.text = "对称歼灭  ·  %04.1f 秒    |    帧 %d · 60Hz" % [maxf(clock, 0), logic_frame]
+	if not started: status_label.text = "开局布阵  ·  8×8 站位    |    双方可摆放 · 开战后连续移动"
 	start_button.text = "暂停  [空格]" if running else ("继续  [空格]" if started else "开始交战  [空格]")
 	result_label.text = result
 	log_label.text = "\n".join(logs)
 	subtitle.text = "蓝：%s    vs    红：%s  ·  基础作战 + 技能策略" % [Tactics.NAMES[team_presets[0]], Tactics.NAMES[team_presets[1]]]
 	var u: Dictionary = units[editor_unit]
-	character_label.text = "%s %d   /   HP %d · 精力 %d · %s" % ["蓝方" if u.team == 0 else "红方", u.member + 1, u.hp, u.energy, u.phase if u.hp > 0 else "已倒下"]
+	character_label.text = "%s %d   /   HP %d · 精力 %d · %s" % ["蓝方" if u.team == 0 else "红方", u.member + 1, u.hp, u.energy, action_state_label(u) if u.hp > 0 else "已倒下"]
 	for uid in range(roster_buttons.size()):
 		var bot: Dictionary = units[uid]
 		var card: Button = roster_buttons[uid]
@@ -1376,19 +1599,27 @@ func refresh_ui() -> void:
 		card.add_theme_stylebox_override("normal", make_box(Color("304052") if uid == editor_unit else Color("1a2534"), GOLD if uid == editor_unit else Color("39465a")))
 	info_label.text = "%s%d · HP %d · %s\n%s\n标记 %.1fs / 减速 %.1fs / 荆棘 %.1fs / 护盾 %d" % ["蓝" if u.team == 0 else "红", u.member + 1, u.hp, u.phase if u.hp > 0 else "已倒下", u.reason, u.marked, u.slow, u.thorns, u.shield]
 	info_label.text += "\n精力 %d/100 · 公共施法CD %.1fs · 移速 %d%%" % [u.energy, u.cooldown, energy_speed(u) * 100]
+	info_label.text += "\n逻辑帧 %d · 本帧 %s · 触发 %d 次" % [logic_frame, u.frame_branch, u.frame_triggers]
+	if u.has("last_cancel"): info_label.text += "\n上次取消（帧%d）：%s" % [u.last_cancel_frame, u.last_cancel]
 	for rule in loadouts[editor_unit].reaction:
 		if rule[0] == "侧闪":
 			var remaining := float(u.skill_cds.get("侧闪", 0.0))
-			info_label.text += "\n侧闪：" + ("冷却 %.1f秒" % remaining if remaining > 0 else "就绪（开火、吟唱与收招中不能发动）")
+			info_label.text += "\n侧闪：" + ("冷却 %.1f秒" % remaining if remaining > 0 else "就绪（前摇退款取消 / 后摇取消 / 释放硬直禁用）")
 			break
 	for row in editor_rows:
 		var occupied: bool = row.slot >= 0
 		var active: bool = occupied and rule_is_executing(u, row.kind, row.slot)
 		var trace: Array = u.trace_ap if row.kind == "active" else u.trace_pp
-		row.state.text = ("▶ " + u.phase) if active else (trace[row.slot] if occupied else "空槽")
+		row.state.text = ("▶ " + action_state_label(u)) if active else (trace[row.slot] if occupied else "空槽")
 		row.state.tooltip_text = u.reason if active else ("上次实际检查：" + trace[row.slot] if occupied else "添加技能后自动归入AP或PP")
 		row.frame.add_theme_stylebox_override("panel", make_box(Color("453b29") if active else Color("1d2939") if occupied else Color("111a26"), GOLD if active else Color("344358") if occupied else Color("28364a")))
 		row.state.modulate = GOLD if active else Color("91a1b0")
+
+func action_state_label(u: Dictionary) -> String:
+	if u.dodge > 0: return "侧闪 %df" % u.dodge_frames
+	if u.get("action_stage", "") == ActionTimeline.WINDUP and u.stage_frames == 0: return "前摇·转向"
+	if ActionTimeline.busy(u): return "%s %df" % [u.action_stage, u.stage_frames]
+	return u.phase
 
 func _draw() -> void:
 	arena_view.render(self)
@@ -1440,36 +1671,37 @@ func run_aim_tests() -> void:
 		reset_round()
 		var shooter: Dictionary = units[team * 2]
 		shooter.p = Vector2(50, 50)
-		shooter.target = (1 - team) * 2
-		units[shooter.target].p = Vector2(200, 50)
+		var target := (1 - team) * 2
+		units[target].p = Vector2(200, 50)
+		begin_shot(shooter, target, "点射")
 		shooter.angle = PI
-		shooter.phase = "瞄准"
-		shooter.timer = -100.0
 		for tick in range(25): update_attack(shooter, 1.0 / 60)
 		assert(shots == 0, "Timer expiry must never authorize an unaligned shot")
 		for tick in range(10): update_attack(shooter, 1.0 / 60)
 		assert(shots > 0, "Aligned gun must fire")
 		assert(absf(bullets[0].v.angle()) < 0.01)
-		# Follow-up burst bullets must also check direction and cover.
-		var before := shots
-		units[shooter.target].p = Vector2(50, 200)
-		shooter.timer = 0
-		update_attack(shooter, 1.0 / 60)
-		assert(shots == before, "Moving target must be reacquired")
-		shooter.p = Vector2(250, 170)
-		units[shooter.target].p = Vector2(380, 170)
-		shooter.phase = "瞄准"
-		shooter.angle = 0
-		update_attack(shooter, 1.0 / 60)
-		assert(shots == before, "Cover must prevent firing")
-		shooter.p = Vector2(50, 50)
-		units[shooter.target].p = Vector2(200, 50)
-		shooter.phase = "瞄准"
-		shooter.timer = 0
-		shooter.shot_count = 0
-		update_attack(shooter, 1.0 / 60)
-		assert(shots == before + 1, "Already aligned: fire without extra delay")
-	print("AIM TESTS PASSED: both teams, turning, immediate fire, burst tracking, cover")
+	pattern_fixture()
+	begin_shot(units[0], 2, "风刃")
+	update_attack(units[0], STEP * 2)
+	assert(shots == 1)
+	units[2].p = Vector2(100, 470)
+	update_attack(units[0], STEP * 14)
+	assert(shots == 1, "Burst follow-up must reacquire its moving target")
+	update_attack(units[0], STEP * 20)
+	assert(shots == 2)
+	pattern_fixture()
+	units[0].p = Vector2(250, 170)
+	units[2].p = Vector2(380, 170)
+	begin_shot(units[0], 2, "点射")
+	update_attack(units[0], STEP * 2)
+	assert(shots == 0 and units[0].phase == "收招", "Cover prevents emission and ends the invalid action")
+	pattern_fixture()
+	begin_shot(units[0], 2, "点射")
+	update_attack(units[0], STEP)
+	assert(shots == 0 and units[0].action_stage == ActionTimeline.RELEASE)
+	update_attack(units[0], STEP)
+	assert(shots == 1, "Aligned gun emits on the first release frame")
+	print("AIM TESTS PASSED: both teams, turning, explicit release frame, burst tracking, cover abort")
 
 func run_boundary_tests() -> void:
 	reset_round()
@@ -1527,7 +1759,7 @@ func passes_condition(u: Dictionary, target: int, condition: String) -> bool:
 		"敌人距离≥3米": return target >= 0 and u.p.distance_to(units[target].p) >= 240
 		"敌人正在攻击队友":
 			var ally := ally_index(u)
-			return target >= 0 and ally >= 0 and units[target].target == ally and units[target].phase in ["吟唱", "瞄准", "点射"]
+			return target >= 0 and ally >= 0 and units[target].target == ally and units[target].phase in ["吟唱", "瞄准", "点射", "释放硬直"]
 		"队友正在被瞄准":
 			var ally := ally_index(u)
 			return ally >= 0 and incoming_pressure(units[ally], contacts(u.team)) > 0
@@ -1552,7 +1784,7 @@ func rule_target(u: Dictionary, visible: Array, rule: Array, shooting: bool) -> 
 		if candidates.is_empty(): break
 		if condition == "优先队友目标":
 			var ally := ally_index(u)
-			if ally >= 0 and units[ally].target in candidates and units[ally].phase in ["吟唱", "瞄准", "点射", "收招"]:
+			if ally >= 0 and units[ally].target in candidates and units[ally].phase in ["吟唱", "瞄准", "点射", "释放硬直", "收招"]:
 				candidates = [units[ally].target]
 		elif condition == "优先最近敌人":
 			var nearest: float = INF
@@ -1570,6 +1802,9 @@ func rule_target(u: Dictionary, visible: Array, rule: Array, shooting: bool) -> 
 	return best
 
 func record_rule(u: Dictionary, kind: String, slot: int, skill: String) -> void:
+	if deciding_frame:
+		u.frame_triggers += 1
+		u.frame_branch = ("AP：" if kind == "主动" else "PP：") + skill
 	if kind == "主动":
 		u.trace_ap[slot] = "已选中（上次检查）"
 	else:
@@ -1653,7 +1888,6 @@ func try_active(u: Dictionary, visible: Array, before_slot := -1) -> bool:
 			continue
 		if shooting:
 			begin_shot(u, target, skill)
-			u.skill_cds[skill] = Tactics.MAGIC[skill].cd if skill in Tactics.MAGIC else {"标记弹": 5.0, "强力射击": 6.0, "压制射击": 6.0}[skill]
 		else:
 			var away: Vector2 = (u.p - units[target].p).normalized()
 			var goal: Vector2 = u.p
@@ -1683,17 +1917,17 @@ func threats_to(u: Dictionary, visible: Array) -> Array:
 	for index in visible:
 		var enemy: Dictionary = units[index]
 		if enemy.active_skill in Tactics.PATTERNS and enemy.phase == "吟唱": continue
-		if enemy.phase not in ["吟唱", "瞄准", "点射"] or enemy.target < 0: continue
+		if enemy.phase not in ["吟唱", "瞄准", "点射", "释放硬直"] or enemy.target < 0: continue
 		if units[enemy.target].uid != u.uid or blocked(enemy.p, u.p): continue
 		if enemy.p.distance_to(u.p) <= SHOT_RANGE: threats.append(index)
 	# A projectile remains a threat after its shooter has entered recovery.
-	for b in bullets:
+	for b in perceived_bullets if deciding_frame else bullets:
 		if b.team == u.team or b.life <= 0: continue
 		var near := Geometry2D.get_closest_point_to_segment(u.p, b.p, b.p + b.v * minf(0.55, b.life))
 		if near.distance_to(u.p) > RADIUS + 4 or blocked(b.p, u.p): continue
 		for index in visible:
 			if units[index].uid == b.get("source", -1) and index not in threats: threats.append(index)
-	for h in hazards:
+	for h in perceived_hazards if deciding_frame else hazards:
 		if h.team == u.team or h.kind != "area" or u.p.distance_to(h.p) > h.radius + RADIUS: continue
 		for index in visible:
 			if units[index].uid == h.source and index not in threats: threats.append(index)
@@ -1706,7 +1940,7 @@ func dodge_path_free(u: Dictionary, direction: Vector2) -> bool:
 		if not movement_is_free(u, u.p + direction * distance): return false
 	return true
 
-func try_reaction(u: Dictionary, visible: Array, defensive_only := false) -> bool:
+func try_reaction(u: Dictionary, visible: Array, defensive_only := false, dodge_only := false) -> bool:
 	var threats := threats_to(u, visible)
 	var ally := ally_index(u)
 	var rows: Array = loadouts[u.uid].reaction
@@ -1714,6 +1948,12 @@ func try_reaction(u: Dictionary, visible: Array, defensive_only := false) -> boo
 	for slot in range(rows.size()):
 		var rule: Array = rows[slot]
 		var skill: String = rule[0]
+		if dodge_only and skill != "侧闪":
+			u.trace_pp[slot] = "当前动作仅允许侧闪插入"
+			continue
+		if skill == "侧闪" and (not ActionTimeline.can_dodge(u) or u.dodge > 0):
+			u.trace_pp[slot] = "释放硬直中，不能侧闪" if u.dodge <= 0 else "正在侧闪"
+			continue
 		if skill == "留空":
 			u.trace_pp[slot] = "留空"
 			continue
@@ -1731,7 +1971,9 @@ func try_reaction(u: Dictionary, visible: Array, defensive_only := false) -> boo
 			record_rule(u, "反应", slot, skill)
 			u.intent = "规避预警"
 			return true
-		if not can_use_skill(u, skill):
+		var available_energy: float = u.energy + (ActionTimeline.refundable(u) if skill == "侧闪" else 0.0)
+		var usable: bool = available_energy >= energy_cost(skill) and (not uses_public_cd(skill) or u.cooldown <= 0)
+		if not usable:
 			u.trace_pp[slot] = "精力不足" if u.energy < energy_cost(skill) else "公共CD中"
 			continue
 		u.trace_pp[slot] = "事件/条件未满足"
@@ -1772,11 +2014,14 @@ func try_reaction(u: Dictionary, visible: Array, defensive_only := false) -> boo
 				u.trace_pp[slot] = "无可用闪避路径/窗口"
 				continue
 			var lateral: Vector2 = (choice.point - u.p).normalized()
+			cancel_for_dodge(u)
 			u.evade_source = choice.source
 			u.counter_left = 3.0
-			u.dodge = DODGE_DISTANCE / DODGE_SPEED
+			u.dodge_frames = ActionTimeline.frames(DODGE_DISTANCE / DODGE_SPEED)
+			u.dodge = u.dodge_frames * STEP
 			u.dodge_dir = lateral
 			u.phase = "侧闪"
+			u.active_skill = "侧闪"
 			u.skill_cds[skill] = 2.8
 		elif skill == "架枪防御":
 			u.guard = 0.8
@@ -1793,11 +2038,9 @@ func try_reaction(u: Dictionary, visible: Array, defensive_only := false) -> boo
 			u.skill_cds[skill] = 6.0
 		elif skill in ["协同追击", "追风"]:
 			begin_shot(u, target, skill)
-			u.skill_cds[skill] = 6.0 if skill == "追风" else 5.0
 			if ally >= 0: links.append({"a": units[ally].p, "b": u.p, "life": 0.65, "color": Color("76f0a9")})
 		elif skill in ["焰返", "震山"]:
 			begin_shot(u, target, skill)
-			u.skill_cds[skill] = Tactics.MAGIC[skill].cd
 		if skill in ["侧闪", "架枪防御", "掩护队友"]:
 			u.energy -= energy_cost(skill)
 			if skill == "掩护队友": finish_spell(u, skill)
@@ -1970,7 +2213,9 @@ func run_content_tests() -> void:
 	assert(snapshots[0] == snapshots[1] and snapshots[1] == snapshots[2], "Playback speed must not change combat")
 	reset_round()
 	step_forward()
-	assert(not running and is_equal_approx(clock, ROUND_TIME - 0.2))
+	assert(not running and logic_frame == 1 and is_equal_approx(clock, ROUND_TIME - STEP))
+	step_forward(12)
+	assert(logic_frame == 13 and is_equal_approx(clock, ROUND_TIME - STEP * 13))
 
 	var results: Array = []
 	var counts := {}
@@ -2290,7 +2535,7 @@ func perceived_dangers(u: Dictionary, visible: Array) -> Array:
 	var dangers: Array = []
 	for index in visible:
 		var enemy: Dictionary = units[index]
-		if enemy.hp <= 0 or enemy.phase != "吟唱": continue
+		if enemy.hp <= 0 or (enemy.phase != "吟唱" and not (enemy.get("action_stage", "") == ActionTimeline.RELEASE and not enemy.get("action_committed", false))): continue
 		var skill: String = enemy.active_skill
 		var cast: float = Tactics.MAGIC.get(skill, {}).get("cast", 0.0)
 		if cast - enemy.timer < 0.12: continue # Small, deterministic observation delay.
@@ -2302,10 +2547,10 @@ func perceived_dangers(u: Dictionary, visible: Array) -> Array:
 				dangers.append({"kind": "line", "p": enemy.p, "end": enemy.p + direction * 228, "radius": 0.0, "eta": enemy.timer + maxf(0, enemy.p.distance_to(u.p) - RADIUS) / SHOTGUN_SPEED, "source": index})
 		elif skill in Tactics.AREAS:
 			for point in mortar_points(enemy.lock_point): dangers.append({"kind": "area", "p": point, "radius": pattern_radius(skill), "eta": enemy.timer + BLAST_FLIGHT, "source": index})
-	for h in hazards:
+	for h in perceived_hazards if deciding_frame else hazards:
 		if h.kind == "area" and h.team != u.team:
 			dangers.append({"kind": "area", "p": h.p, "radius": h.radius, "eta": h.left, "source": h.source})
-	for b in bullets:
+	for b in perceived_bullets if deciding_frame else bullets:
 		if b.team == u.team or b.life <= 0 or blocked(b.p, u.p): continue
 		var direction: Vector2 = b.v.normalized()
 		if (u.p - b.p).dot(direction) < -RADIUS: continue
@@ -2326,7 +2571,8 @@ func escape_destination(u: Dictionary, dangers: Array, move_speed: float, fixed_
 	var distances: Array = [DODGE_DISTANCE] if fixed_distance else [40.0, 60.0, 80.0, 100.0, 120.0, 140.0]
 	for distance in distances:
 		for i in range(24):
-			var direction := Vector2.from_angle(i * TAU / 24)
+			# Rotate candidate order with the actor, so mirrored actors break ties alike.
+			var direction := Vector2.from_angle(u.angle + i * TAU / 24)
 			var point: Vector2 = u.p + direction * distance
 			var safe := true
 			for segment in range(1, int(distance / 8) + 1):
@@ -2343,7 +2589,7 @@ func escape_destination(u: Dictionary, dangers: Array, move_speed: float, fixed_
 				if blocked(point, units[source].p) or point.distance_to(units[source].p) > SHOT_RANGE: score += 30
 			# Prefer the existing side to avoid reversing course on adjacent frames.
 			if u.intent == "规避预警": score += point.distance_to(u.action_goal) * 0.2
-			if score < best_score:
+			if score < best_score - 0.000001:
 				best_score = score
 				best = {"point": point, "source": source}
 	return best
@@ -2596,7 +2842,7 @@ func run_defense_tests() -> void:
 			pattern_fixture()
 			units[2].p = Vector2(100 + distance, 320)
 			begin_shot(units[0], 2, "点射")
-			update_attack(units[0], STEP)
+			update_attack(units[0], STEP * 2)
 			assert(not prepare_tactical_escape(units[2], [0]))
 			for tick in range(24):
 				units[2].p.y += move_speed * STEP
@@ -2671,7 +2917,7 @@ func run_expansion_tests() -> void:
 	# A basic attack cannot repeat faster than recovery + weapon pause.
 	pattern_fixture()
 	begin_shot(units[0], 2, "点射")
-	update_attack(units[0], STEP)
+	update_attack(units[0], STEP * 3)
 	assert(units[0].timer == 0.45)
 	update_attack(units[0], 0.46)
 	assert(is_equal_approx(units[0].cooldown, 1.8))
@@ -2681,7 +2927,7 @@ func run_impact_tests() -> void:
 	pattern_fixture()
 	var start: Vector2 = units[0].p
 	begin_shot(units[0], 2, "点射")
-	update_attack(units[0], STEP)
+	update_attack(units[0], STEP * 3)
 	for tick in range(20): apply_forced_motion(units[0], STEP)
 	assert(units[0].p.x < start.x - 5 and units[0].p.x > start.x - 15)
 	assert(units[0].phase == "收招", "Recoil must not cancel the action")
@@ -2820,6 +3066,109 @@ func run_body_bounce_tests() -> void:
 	assert(head_on_bounced)
 	print("BODY BOUNCE PASSED: ally/enemy rebound, receiver displacement, head-on high speed, no overlap/crossing/extra damage")
 
+
+func capture_deployment_preview() -> void:
+	await RenderingServer.frame_post_draw
+	get_viewport().get_texture().get_image().save_png("res://reports/deployment-preview.png")
+	get_tree().quit()
+
+func capture_lifecycle_preview() -> void:
+	await RenderingServer.frame_post_draw
+	get_viewport().get_texture().get_image().save_png("res://reports/lifecycle-preview.png")
+	get_tree().quit()
+
+func run_lifecycle_tests() -> void:
+	preload("res://scripts/lifecycle_validation.gd").run(self)
+
+func run_deployment_tests() -> void:
+	blue_attacks = false
+	deployment_cells = DEFAULT_DEPLOYMENT.duplicate()
+	reset_round()
+	# All 64 centers survive the 2.5D projection/inverse projection.
+	for x in range(DEPLOY_GRID):
+		for y in range(DEPLOY_GRID):
+			var cell := Vector2i(x, y)
+			assert(deployment_cell(arena_view.unproject(arena_view.project(deployment_center(cell)))) == cell)
+	var original: Array = deployment_cells.duplicate()
+	assert(not place_unit(0, Vector2i(-1, 0)))
+	assert(not place_unit(0, Vector2i(8, 0)))
+	assert(not place_unit(0, Vector2i(0, 8)))
+	assert(not place_unit(0, Vector2i(3, 1)), "Wall/body overlap must reject placement")
+	assert(not place_unit(0, Vector2i(1, 2)), "Occupied cell must reject placement")
+	assert(deployment_cells == original)
+	# Both teams may be placed; rejected attempts never change the last valid position.
+	assert(place_unit(0, Vector2i(0, 0)))
+	assert(place_unit(2, Vector2i(7, 7)))
+	var placed: Vector2 = units[0].p
+	assert(not place_unit(0, Vector2i(7, 7)))
+	assert(units[0].p == placed)
+	reset_round()
+	assert(units[0].p == placed)
+	assert(units[2].p == deployment_center(Vector2i(7, 7)))
+	# The normal strategy-edit and preset flows reset the round but retain deployment.
+	choose_editor_unit(0)
+	edit_rule_cell(0, 1, "无")
+	assert(units[0].p == placed)
+	apply_preset(1, 0)
+	assert(units[0].p == placed)
+	blue_attacks = true
+	reset_round()
+	assert(units[0].p == Vector2(SIZE - placed.x, placed.y))
+	assert(place_unit(0, Vector2i(4, 3)))
+	reset_round()
+	assert(units[0].p == deployment_center(Vector2i(4, 3)))
+	blue_attacks = false
+	reset_round()
+	assert(units[0].p == deployment_center(Vector2i(3, 3)))
+	# Starting, and then pausing, must lock placement; simulation remains continuous.
+	toggle_running()
+	assert(not place_unit(0, Vector2i(0, 0)))
+	for tick in range(12): simulate(STEP)
+	var moved_off_grid := false
+	for u in units:
+		if u.p.distance_to(deployment_center(deployment_cell(u.p))) > 0.01: moved_off_grid = true
+	assert(moved_off_grid, "Combat movement must not snap to deployment cells")
+	toggle_running()
+	assert(not place_unit(0, Vector2i(0, 0)))
+	reset_round()
+	assert(place_unit(0, Vector2i(0, 0)))
+	deployment_cells = DEFAULT_DEPLOYMENT.duplicate()
+	reset_round()
+	assert(units[0].p == Vector2(520, 200))
+	# Exercise mouse event handlers at the raised model, not only placement helpers.
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	press.position = arena_view.project(units[0].p, 25)
+	_unhandled_input(press)
+	assert(deployment_drag == 0)
+	var motion := InputEventMouseMotion.new()
+	motion.position = arena_view.project(deployment_center(Vector2i(5, 3)), 25)
+	_input(motion)
+	assert(deployment_cell(deployment_cursor) == Vector2i(5, 3))
+	assert(units[0].p == Vector2(520, 200), "Drag preview must not commit early")
+	var release := InputEventMouseButton.new()
+	release.button_index = MOUSE_BUTTON_LEFT
+	release.position = motion.position
+	_input(release)
+	assert(deployment_drag == -1 and units[0].p == deployment_center(Vector2i(5, 3)))
+	press.position = arena_view.project(deployment_center(Vector2i(0, 0)))
+	_unhandled_input(press)
+	assert(units[0].p == deployment_center(Vector2i(0, 0)), "Click-to-place must use ground coordinates")
+	press.position = arena_view.project(units[0].p, 25)
+	_unhandled_input(press)
+	var cancel := InputEventKey.new()
+	cancel.pressed = true
+	cancel.keycode = KEY_ESCAPE
+	_input(cancel)
+	assert(deployment_drag == -1)
+	_input(release)
+	assert(units[0].p == deployment_center(Vector2i(0, 0)))
+	assert(place_unit(0, Vector2i(4, 1)))
+	blue_attacks = true
+	reset_round()
+	for u in units: assert(valid_position(u.p), "Mirrored placement must resolve wall obstruction")
+	print("DEPLOYMENT PASSED: 64 projected cells, bounds/walls/occupancy, both teams, restart/edit/preset persistence, mirrored sides, combat lock and continuous movement")
 
 func run_view_tests() -> void:
 	for x in range(0, 641, 40):
@@ -3003,13 +3352,18 @@ func confirm_ultimate(point: Vector2) -> bool:
 
 func start_ultimate(u: Dictionary) -> void:
 	u.energy -= energy_cost(ultimate_name(u.uid))
+	ActionTimeline.begin(u, 0.3, energy_cost(ultimate_name(u.uid)), 0.0)
+	u.release_lock_frames = ActionTimeline.RELEASE_LOCK_FRAMES
+	u.recovery_frames = ActionTimeline.frames(0.8)
 	u.ult_charge = 0.0
 	u.angle = u.ult_angle
 	u.phase = "大招蓄力"
 	u.timer = 0.3
+	u.shot_count = 0
 	u.active_skill = ultimate_name(u.uid)
 	u.action_left = 0.0
 	u.dodge = 0.0
+	u.dodge_frames = 0
 	u.avoid_left = 0.0
 	u.path = PackedVector2Array()
 	u.intent = u.active_skill
@@ -3021,6 +3375,12 @@ func start_ultimate(u: Dictionary) -> void:
 	log_event("蓝%d · 大招 %s" % [u.member + 1, u.active_skill])
 
 func release_ultimate(u: Dictionary) -> void:
+	u.action_committed = true
+	u.shot_count = 1
+	emit_ultimate_effects(u)
+	enter_attack_recovery(u, 0.8)
+
+func emit_ultimate_effects(u: Dictionary) -> void:
 	finish_spell(u, ultimate_name(u.uid))
 	var shape := ultimate_geometry(u, u.ult_angle)
 	if u.member == 0:
@@ -3050,10 +3410,11 @@ func run_ultimate_tests() -> void:
 	units[2].p = Vector2(300, 320)
 	units[1].hp = 0
 	units[3].hp = 0
+	for uid in range(4): loadouts[uid] = Tactics.build([], [])
 	begin_ultimate_aim(0)
 	assert(confirm_ultimate(Vector2(500, 320)))
 	assert(ultimate_aim == -1 and units[0].ult_charge == 0 and units[0].phase == "大招蓄力")
-	for tick in range(19): simulate(STEP)
+	for tick in range(20): simulate(STEP)
 	assert(units[2].hp == MAX_HP - 45)
 	assert(units[0].phase == "收招")
 	reset_round()
@@ -3131,15 +3492,18 @@ func run_resource_tests() -> void:
 	pattern_fixture()
 	begin_shot(units[0], 2, "风刃")
 	assert(units[0].energy == 75)
-	update_attack(units[0], 0.01)
+	update_attack(units[0], STEP * 2)
 	assert(units[0].cooldown == 0 and units[0].shot_count == 1)
-	update_attack(units[0], 0.23)
+	update_attack(units[0], STEP * 14)
+	assert(units[0].cooldown == 2.3 and units[0].phase == "释放硬直")
+	update_attack(units[0], STEP)
 	assert(units[0].cooldown == 2.3 and units[0].phase == "收招")
 	assert(not can_use_skill(units[0], "火矢") and not can_use_skill(units[0], "追风") and not can_use_skill(units[0], "点射"))
 	assert(can_use_skill(units[0], "侧闪") and can_use_skill(units[0], "后撤"))
 	units[0].cooldown = 0
 	units[0].energy = 10
 	assert(not can_use_skill(units[0], "点射"))
+	ActionTimeline.clear(units[0])
 	units[0].phase = "保持射位"
 	units[0].action_left = 2
 	units[0].intent = "架枪防御"

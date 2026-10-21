@@ -12,6 +12,9 @@ func _process(_delta: float) -> void:
 	var u: Dictionary = game.units[uid]
 	disabled = not game.started or u.hp <= 0 or u.ult_charge < 100 or u.phase == "大招蓄力"
 	tooltip_text = game.ultimate_name(uid) + ("：45伤害，宽幅光束，墙体可挡。" if uid == 0 else "：沿方向三连轰炸，每枚22伤害，可越过墙体。") + "每12秒充满；大招无视精力和公共CD，扣70精力，可透支。点击头像慢放瞄准，左键释放，右键/Esc取消。"
+	if game.has_method("beat_ultimate_available"):
+		disabled = not game.beat_ultimate_available(uid)
+		tooltip_text = game.beat_ultimate_tooltip(uid)
 	queue_redraw()
 
 func _draw() -> void:

@@ -47,6 +47,9 @@ func box(p: Vector2, size: Vector2, height: float, color: Color, alpha := 1.0) -
 	top.append(top[0])
 	g.draw_polyline(top, Color(color.lightened(0.2), alpha), 1.2, true)
 
+func display_position(u: Dictionary) -> Vector2:
+	return u.p
+
 func render(game) -> void:
 	g = game
 	g.draw_rect(Rect2(20, 145, 890, 645), Color("0b1522"))
@@ -68,6 +71,7 @@ func render(game) -> void:
 		var t := 40.0 + n * 70
 		line(Vector2(t, 8), Vector2(t + 14, 8), Color("63b2cc"), 3)
 		line(Vector2(t, 632), Vector2(t + 14, 632), Color("63b2cc"), 3)
+	if not g.started: deployment_grid()
 	for w in g.walls:
 		polygon([w.position, w.position + Vector2(w.size.x, 0), w.end + Vector2(28, 32), w.position + Vector2(28, w.size.y + 32)], Color(0, 0, 0, 0.22))
 	ground_effects()
@@ -76,15 +80,17 @@ func render(game) -> void:
 	for w in g.wall_states:
 		actors.append({"depth": w.rect.get_center().x + w.rect.get_center().y, "wall": w.rect, "state": w})
 	for u in g.units:
-		disc(u.p + Vector2(7, 7), 27, Color(0, 0, 0, 0.28))
-		actors.append({"depth": u.p.x + u.p.y, "unit": u})
+		var displayed := display_position(u)
+		disc(displayed + Vector2(7, 7), 27, Color(0, 0, 0, 0.28))
+		actors.append({"depth": displayed.x + displayed.y, "unit": u})
 	actors.sort_custom(func(a, b): return a.depth < b.depth)
 	for actor in actors:
 		if actor.has("wall"):
 			var w: Rect2 = actor.wall
 			var alpha := 1.0
 			for u in g.units:
-				if u.hp > 0 and Rect2(project(w.position, 60) - Vector2(85, 0), Vector2(150, 150)).has_point(project(u.p, 25)) and u.p.x + u.p.y < actor.depth: alpha = 0.48
+				var displayed := display_position(u)
+				if u.hp > 0 and Rect2(project(w.position, 60) - Vector2(85, 0), Vector2(150, 150)).has_point(project(displayed, 25)) and displayed.x + displayed.y < actor.depth: alpha = 0.48
 			draw_wall(actor.state, alpha)
 		else: robot(actor.unit)
 	air_effects()
@@ -94,7 +100,45 @@ func render(game) -> void:
 		var age: float = 0.65 - fx.life
 		var color := Color("8affbb" if fx.get("healing", false) else "fff2cc", minf(1, fx.life * 4))
 		g.draw_string(g.font, project(fx.p, 70 + age * 45) + Vector2(21, 0), ("+%d" if fx.get("healing", false) else "−%d") % fx.amount, HORIZONTAL_ALIGNMENT_LEFT, -1, 23 if fx.amount >= 16 else 17, color)
-	g.draw_string(g.font, Vector2(46, 723), "连续移动  /  立体演出 · 平面判定       蓝紫 / 蓝方攻击     橙红 / 红方攻击", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("96adbe"))
+	var hint := "连续移动  /  立体演出 · 平面判定       蓝紫 / 蓝方攻击     橙红 / 红方攻击"
+	if not g.started:
+		hint = "8×8 布阵  /  拖动任意机甲，或选中后点击空格放置 · 绿色可放 / 红色不可放"
+	g.draw_string(g.font, Vector2(46, 723), hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("96adbe"))
+
+func deployment_grid() -> void:
+	var step: float = g.DEPLOY_CELL_SIZE
+	for x in range(g.DEPLOY_GRID):
+		for y in range(g.DEPLOY_GRID):
+			var cell := Vector2i(x, y)
+			var center: Vector2 = g.deployment_center(cell)
+			if not g.valid_position(center):
+				polygon([center + Vector2(-40, -40), center + Vector2(40, -40), center + Vector2(40, 40), center + Vector2(-40, 40)], Color(0.95, 0.3, 0.3, 0.10))
+				draw_cell_cross(center, Color(0.95, 0.45, 0.45, 0.55))
+			else:
+				disc(center, 3, Color(0.65, 0.85, 0.95, 0.4))
+	for n in range(1, g.DEPLOY_GRID):
+		line(Vector2(n * step, 0), Vector2(n * step, g.SIZE), Color(0.6, 0.8, 0.9, 0.24))
+		line(Vector2(0, n * step), Vector2(g.SIZE, n * step), Color(0.6, 0.8, 0.9, 0.24))
+	for n in range(g.DEPLOY_GRID):
+		g.draw_string(g.font, project(Vector2((n + 0.5) * step, 0)) + Vector2(0, -8), String.chr(65 + n), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("aec9d8"))
+		g.draw_string(g.font, project(Vector2(0, (n + 0.5) * step)) + Vector2(-18, 0), str(n + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("aec9d8"))
+	if g.selected < 0: return
+	var cell: Vector2i = g.deployment_cell(g.deployment_cursor)
+	if cell.x < 0 or cell.y < 0 or cell.x >= g.DEPLOY_GRID or cell.y >= g.DEPLOY_GRID: return
+	var center: Vector2 = g.deployment_center(cell)
+	var allowed: bool = g.can_deploy(g.selected, cell)
+	var color := Color("69e3b3") if allowed else Color("ff697d")
+	polygon([center + Vector2(-40, -40), center + Vector2(40, -40), center + Vector2(40, 40), center + Vector2(-40, 40)], Color(color, 0.25))
+	ring(center, g.RADIUS, color, 2)
+	if not allowed: draw_cell_cross(center, color)
+	if g.deployment_drag >= 0:
+		line(g.units[g.deployment_drag].p, center, Color(color, 0.7), 2)
+	var label := "%s%d · %s" % [String.chr(65 + cell.x), cell.y + 1, "可放置" if allowed else "不可放置"]
+	g.draw_string(g.font, project(center, 18) + Vector2(28, 0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, color)
+
+func draw_cell_cross(center: Vector2, color: Color) -> void:
+	line(center - Vector2(10, 10), center + Vector2(10, 10), color, 2)
+	line(center + Vector2(-10, 10), center + Vector2(10, -10), color, 2)
 
 func landing(p: Vector2, radius: float, color: Color, progress: float, total: float) -> void:
 	disc(p, radius, Color(color, 0.1))
@@ -122,9 +166,10 @@ func ground_effects() -> void:
 				line(dest - direction * 14, dest - direction * 14 - direction.rotated(0.5) * 10, g.MOVE_HINT, 2)
 				line(dest - direction * 14, dest - direction * 14 - direction.rotated(-0.5) * 10, g.MOVE_HINT, 2)
 		if not g.show_aim: continue
-		if u.phase == "吟唱":
+		if u.phase == "吟唱" or (u.get("action_stage", "") == g.ActionTimeline.RELEASE and not u.get("action_committed", false)):
+			var windup_left: float = 0.0 if u.action_stage == g.ActionTimeline.RELEASE else u.timer
 			if u.active_skill in g.Tactics.AREAS:
-				for p in g.mortar_points(u.lock_point): landing(p, g.pattern_radius(u.active_skill), color, 1 - (u.timer + g.BLAST_FLIGHT) / g.area_total_time(u.active_skill), g.area_total_time(u.active_skill))
+				for p in g.mortar_points(u.lock_point): landing(p, g.pattern_radius(u.active_skill), color, 1 - (windup_left + g.BLAST_FLIGHT) / g.area_total_time(u.active_skill), g.area_total_time(u.active_skill))
 			elif u.active_skill in g.Tactics.LINES:
 				var end: Vector2 = g.beam_end(u.p, u.lock_angle)
 				strip(u.p, end, g.pattern_radius(u.active_skill), Color(color, 0.16))
@@ -157,8 +202,8 @@ func robot(u: Dictionary) -> void:
 		return
 	var dir := Vector2.from_angle(u.angle)
 	var side := dir.orthogonal()
-	var motion: float = 1.0 if u.action_left > 0 or u.dodge > 0 else 0.0
-	var bob: float = sin((60 - g.clock) * 18 + u.uid) * motion * 1.5
+	var motion: float = u.get("visual_motion", 1.0 if u.action_left > 0 or u.dodge > 0 else 0.0)
+	var bob: float = sin(u.get("visual_time", 60 - g.clock) * 18 + u.uid) * motion * 1.5
 	var hop: float = minf(16, u.blast_impulse.length() * 0.012)
 	var h := 19.0 + bob + hop
 	if u.dodge > 0:
@@ -205,11 +250,14 @@ func robot(u: Dictionary) -> void:
 			var orb := p + Vector2.from_angle((60 - g.clock) * 4 + i * TAU / 4) * 27
 			g.draw_circle(project(orb, 15 + progress * 18), 2 + progress * 2, color.lightened(0.6))
 
+func health_capacity() -> int:
+	return int(g.MAX_HP)
+
 func label(u: Dictionary) -> void:
 	var p := project(u.p, 57)
 	var color: Color = g.BLUE if u.team == 0 else g.RED
 	g.draw_rect(Rect2(p + Vector2(-31, -8), Vector2(62, 7)), Color("0b1520"))
-	g.draw_rect(Rect2(p + Vector2(-30, -7), Vector2(60 * u.hp / g.MAX_HP, 5)), color)
+	g.draw_rect(Rect2(p + Vector2(-30, -7), Vector2(60.0 * u.hp / health_capacity(), 5)), color)
 	g.draw_rect(Rect2(p + Vector2(-30, 1), Vector2(60, 4)), Color("17232b"))
 	g.draw_rect(Rect2(p + Vector2(-30, 1), Vector2(60 * clampf(u.energy / 100, 0, 1), 4)), Color("72e5b4"))
 	if u.energy < 0:
@@ -217,8 +265,8 @@ func label(u: Dictionary) -> void:
 	if u.cooldown > 0:
 		g.draw_string(g.font, p + Vector2(34, 4), "CD %.1f" % u.cooldown, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("f5ce78"))
 	g.draw_string(g.font, p + Vector2(-30, -14), "%s%d   %d" % ["蓝" if u.team == 0 else "红", u.member + 1, u.hp], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.WHITE)
-	var text: String = u.active_skill if u.phase in ["吟唱", "大招蓄力", "点射", "锁定", "瞄准"] else u.intent
-	if u.phase == "收招": text = "收招"
+	if u.get("hide_action_label", false): return
+	var text: String = g.action_state_label(u) if g.ActionTimeline.busy(u) or u.dodge > 0 else u.intent
 	var w: float = g.font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
 	var below := project(u.p) + Vector2(-w / 2, 28)
 	g.draw_rect(Rect2(below + Vector2(-4, -13), Vector2(w + 8, 18)), Color(0.03, 0.07, 0.1, 0.82))

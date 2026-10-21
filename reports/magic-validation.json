@@ -1,22 +1,27 @@
 {
 	"activations": {
-		"侧闪": 21,
+		"侧闪": 37,
 		"协同追击": 11,
-		"压制射击": 39,
-		"回春": 23,
-		"强力射击": 25,
-		"掩护队友": 25,
-		"架枪防御": 38,
-		"标记弹": 10,
-		"火矢": 29,
-		"焰返": 14,
-		"短冲刺": 10,
-		"绕侧": 12,
-		"荆棘": 26,
-		"落岩": 31,
-		"追风": 12,
-		"震山": 6,
-		"风刃": 33
+		"压制射击": 85,
+		"后撤": 12,
+		"回春": 42,
+		"强力射击": 29,
+		"接敌": 193,
+		"掩护队友": 8,
+		"搜寻": 80,
+		"普通攻击": 576,
+		"架枪防御": 66,
+		"标记弹": 13,
+		"火矢": 60,
+		"焰返": 13,
+		"短冲刺": 18,
+		"绕侧": 25,
+		"荆棘": 59,
+		"落岩": 55,
+		"调整站位": 2796,
+		"追风": 32,
+		"震山": 8,
+		"风刃": 52
 	},
 	"checks": [
 		"wind multi-hit",
@@ -31,140 +36,140 @@
 			"blue": "风火连击",
 			"blue_left": true,
 			"red": "标记集火",
-			"seconds": 10.4166666666661,
+			"seconds": 18.8499999999989,
 			"winner": 1
 		},
 		{
 			"blue": "风火连击",
 			"blue_left": false,
 			"red": "标记集火",
-			"seconds": 10.4999999999994,
+			"seconds": 18.5166666666656,
 			"winner": 1
 		},
 		{
 			"blue": "风火连击",
 			"blue_left": true,
 			"red": "游击牵制",
-			"seconds": 12.5333333333326,
+			"seconds": 24.9333333333319,
 			"winner": 0
 		},
 		{
 			"blue": "风火连击",
 			"blue_left": false,
 			"red": "游击牵制",
-			"seconds": 13.9999999999992,
+			"seconds": 28.3333333333317,
 			"winner": 0
 		},
 		{
 			"blue": "风火连击",
 			"blue_left": true,
 			"red": "掩护反击",
-			"seconds": 11.1999999999994,
-			"winner": 1
+			"seconds": 31.6999999999982,
+			"winner": 0
 		},
 		{
 			"blue": "风火连击",
 			"blue_left": false,
 			"red": "掩护反击",
-			"seconds": 11.4833333333327,
-			"winner": 1
+			"seconds": 30.7999999999982,
+			"winner": 0
 		},
 		{
 			"blue": "风火连击",
 			"blue_left": true,
 			"red": "风火连击",
-			"seconds": 12.3333333333326,
-			"winner": 0
+			"seconds": 26.2499999999985,
+			"winner": 1
 		},
 		{
 			"blue": "风火连击",
 			"blue_left": false,
 			"red": "风火连击",
-			"seconds": 12.3333333333326,
-			"winner": 1
+			"seconds": 26.2499999999985,
+			"winner": 0
 		},
 		{
 			"blue": "风火连击",
 			"blue_left": true,
 			"red": "山林守势",
-			"seconds": 14.1166666666659,
-			"winner": 0
+			"seconds": 32.3666666666648,
+			"winner": 1
 		},
 		{
 			"blue": "风火连击",
 			"blue_left": false,
 			"red": "山林守势",
-			"seconds": 20.1999999999989,
+			"seconds": 32.0666666666648,
 			"winner": 0
 		},
 		{
 			"blue": "山林守势",
 			"blue_left": true,
 			"red": "标记集火",
-			"seconds": 13.9499999999992,
-			"winner": 1
+			"seconds": 33.7166666666648,
+			"winner": 0
 		},
 		{
 			"blue": "山林守势",
 			"blue_left": false,
 			"red": "标记集火",
-			"seconds": 12.6999999999993,
+			"seconds": 32.3499999999982,
 			"winner": 1
 		},
 		{
 			"blue": "山林守势",
 			"blue_left": true,
 			"red": "游击牵制",
-			"seconds": 17.4166666666657,
+			"seconds": 32.0333333333315,
 			"winner": 0
 		},
 		{
 			"blue": "山林守势",
 			"blue_left": false,
 			"red": "游击牵制",
-			"seconds": 14.5499999999992,
+			"seconds": 31.0833333333316,
 			"winner": 0
 		},
 		{
 			"blue": "山林守势",
 			"blue_left": true,
 			"red": "掩护反击",
-			"seconds": 15.1333333333325,
+			"seconds": 43.9166666666642,
 			"winner": 0
 		},
 		{
 			"blue": "山林守势",
 			"blue_left": false,
 			"red": "掩护反击",
-			"seconds": 13.6333333333326,
+			"seconds": 30.8499999999982,
 			"winner": 0
 		},
 		{
 			"blue": "山林守势",
 			"blue_left": true,
 			"red": "风火连击",
-			"seconds": 20.1999999999989,
+			"seconds": 32.0666666666648,
 			"winner": 1
 		},
 		{
 			"blue": "山林守势",
 			"blue_left": false,
 			"red": "风火连击",
-			"seconds": 14.1166666666659,
-			"winner": 1
+			"seconds": 32.3666666666648,
+			"winner": 0
 		},
 		{
 			"blue": "山林守势",
 			"blue_left": true,
 			"red": "山林守势",
-			"seconds": 17.7833333333323,
+			"seconds": 38.0999999999978,
 			"winner": 1
 		},
 		{
 			"blue": "山林守势",
 			"blue_left": false,
 			"red": "山林守势",
-			"seconds": 12.9499999999993,
+			"seconds": 38.0999999999978,
 			"winner": 0
 		}
 	]

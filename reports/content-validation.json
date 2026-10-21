@@ -14,95 +14,95 @@
 			"blue": "标记集火",
 			"blue_left": true,
 			"red": "标记集火",
-			"seconds": 19.3666666666656,
-			"shots": 31,
+			"seconds": 18.6333333333323,
+			"shots": 30,
 			"winner": 1
 		},
 		{
 			"blue": "标记集火",
 			"blue_left": false,
 			"red": "标记集火",
-			"seconds": 27.0999999999985,
-			"shots": 37,
-			"winner": 1
+			"seconds": 18.6333333333323,
+			"shots": 30,
+			"winner": 0
 		},
 		{
 			"blue": "标记集火",
 			"blue_left": true,
 			"red": "游击牵制",
-			"seconds": 18.8166666666656,
-			"shots": 30,
+			"seconds": 19.1833333333322,
+			"shots": 32,
 			"winner": 0
 		},
 		{
 			"blue": "标记集火",
 			"blue_left": false,
 			"red": "游击牵制",
-			"seconds": 16.9666666666657,
-			"shots": 30,
+			"seconds": 20.1999999999989,
+			"shots": 35,
 			"winner": 0
 		},
 		{
 			"blue": "标记集火",
 			"blue_left": true,
 			"red": "掩护反击",
-			"seconds": 21.4333333333321,
-			"shots": 39,
+			"seconds": 22.3666666666654,
+			"shots": 38,
 			"winner": 0
 		},
 		{
 			"blue": "标记集火",
 			"blue_left": false,
 			"red": "掩护反击",
-			"seconds": 26.2499999999985,
-			"shots": 46,
-			"winner": 1
-		},
-		{
-			"blue": "游击牵制",
-			"blue_left": true,
-			"red": "标记集火",
-			"seconds": 16.9833333333324,
-			"shots": 30,
-			"winner": 1
-		},
-		{
-			"blue": "游击牵制",
-			"blue_left": false,
-			"red": "标记集火",
-			"seconds": 18.8166666666656,
-			"shots": 30,
-			"winner": 1
-		},
-		{
-			"blue": "游击牵制",
-			"blue_left": true,
-			"red": "游击牵制",
-			"seconds": 31.5499999999982,
-			"shots": 46,
+			"seconds": 28.0833333333317,
+			"shots": 44,
 			"winner": 0
 		},
 		{
 			"blue": "游击牵制",
+			"blue_left": true,
+			"red": "标记集火",
+			"seconds": 20.1999999999989,
+			"shots": 35,
+			"winner": 1
+		},
+		{
+			"blue": "游击牵制",
+			"blue_left": false,
+			"red": "标记集火",
+			"seconds": 19.1833333333322,
+			"shots": 32,
+			"winner": 1
+		},
+		{
+			"blue": "游击牵制",
+			"blue_left": true,
+			"red": "游击牵制",
+			"seconds": 40.3999999999977,
+			"shots": 55,
+			"winner": 1
+		},
+		{
+			"blue": "游击牵制",
 			"blue_left": false,
 			"red": "游击牵制",
-			"seconds": 41.033333333331,
+			"seconds": 40.3999999999977,
+			"shots": 55,
+			"winner": 0
+		},
+		{
+			"blue": "游击牵制",
+			"blue_left": true,
+			"red": "掩护反击",
+			"seconds": 31.9166666666649,
 			"shots": 52,
 			"winner": 1
 		},
 		{
 			"blue": "游击牵制",
-			"blue_left": true,
-			"red": "掩护反击",
-			"seconds": 29.5833333333317,
-			"shots": 51,
-			"winner": 1
-		},
-		{
-			"blue": "游击牵制",
 			"blue_left": false,
 			"red": "掩护反击",
-			"seconds": 30.7499999999983,
+			"seconds": 30.7666666666649,
 			"shots": 51,
 			"winner": 1
 		},
@@ -110,65 +110,65 @@
 			"blue": "掩护反击",
 			"blue_left": true,
 			"red": "标记集火",
-			"seconds": 26.2499999999985,
-			"shots": 46,
-			"winner": 0
+			"seconds": 28.0833333333317,
+			"shots": 44,
+			"winner": 1
 		},
 		{
 			"blue": "掩护反击",
 			"blue_left": false,
 			"red": "标记集火",
-			"seconds": 21.4333333333321,
-			"shots": 39,
+			"seconds": 22.3666666666654,
+			"shots": 38,
 			"winner": 1
 		},
 		{
 			"blue": "掩护反击",
 			"blue_left": true,
 			"red": "游击牵制",
-			"seconds": 31.2166666666649,
-			"shots": 49,
+			"seconds": 30.7666666666649,
+			"shots": 51,
 			"winner": 0
 		},
 		{
 			"blue": "掩护反击",
 			"blue_left": false,
 			"red": "游击牵制",
-			"seconds": 29.5833333333317,
-			"shots": 51,
+			"seconds": 31.9166666666649,
+			"shots": 52,
 			"winner": 0
 		},
 		{
 			"blue": "掩护反击",
 			"blue_left": true,
 			"red": "掩护反击",
-			"seconds": 33.7333333333314,
-			"shots": 64,
+			"seconds": 34.999999999998,
+			"shots": 61,
 			"winner": 0
 		},
 		{
 			"blue": "掩护反击",
 			"blue_left": false,
 			"red": "掩护反击",
-			"seconds": 33.7333333333314,
-			"shots": 64,
+			"seconds": 34.999999999998,
+			"shots": 61,
 			"winner": 1
 		}
 	],
 	"skill_activations": {
-		"侧闪": 10,
-		"协同追击": 68,
-		"压制射击": 101,
-		"后撤": 23,
-		"强力射击": 90,
-		"接敌": 166,
-		"掩护队友": 21,
+		"侧闪": 6,
+		"协同追击": 48,
+		"压制射击": 120,
+		"后撤": 38,
+		"强力射击": 92,
+		"接敌": 206,
+		"掩护队友": 24,
 		"搜寻": 72,
-		"普通攻击": 534,
-		"架枪防御": 58,
-		"标记弹": 39,
-		"短冲刺": 51,
-		"绕侧": 71,
-		"调整站位": 2096
+		"普通攻击": 520,
+		"架枪防御": 48,
+		"标记弹": 38,
+		"短冲刺": 54,
+		"绕侧": 72,
+		"调整站位": 2280
 	}
 }
