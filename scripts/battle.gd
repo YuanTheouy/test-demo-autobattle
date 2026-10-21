@@ -29,7 +29,11 @@ const ATTACK_RED := Color("ff825e")
 const BLAST_RADIUS := 64.0
 const BLAST_CAST := 0.25
 const BLAST_FLIGHT := 0.65
-var walls: Array[Rect2] = [Rect2(270, 104, 20, 112), Rect2(350, 424, 20, 112)]
+const WALL_LAYOUT := [Rect2(270, 104, 20, 112), Rect2(350, 424, 20, 112)]
+const WALL_HP := 300.0
+var walls: Array[Rect2] = []
+var wall_states: Array[Dictionary] = []
+var wall_damage := {}
 var tactics := [0, 1]
 var team_focus := [-1, -1]
 var focus_timer := 0.0
@@ -96,10 +100,23 @@ func _ready() -> void:
 	font = SystemFont.new()
 	font.font_names = PackedStringArray(["PingFang SC", "Heiti SC", "Arial"])
 	DisplayServer.window_set_title("AutoBattle — 立体竞技场 / pseudo3d-arena")
+	reset_walls()
 	setup_navigation()
 	setup_loadouts()
 	setup_ui()
 	reset_round()
+	if "--wall-test" in OS.get_cmdline_user_args():
+		run_wall_tests()
+		get_tree().quit()
+		return
+	if "--wall-preview" in OS.get_cmdline_user_args() or "--wall-broken-preview" in OS.get_cmdline_user_args():
+		queue_wall_damage(0, 100)
+		queue_wall_damage(1, 300 if "--wall-broken-preview" in OS.get_cmdline_user_args() else 200)
+		apply_wall_damage()
+		for fx in effects:
+			if fx.get("wall_break", false): fx.life = 0.5
+		capture_preview.call_deferred()
+		return
 	if "--view-test" in OS.get_cmdline_user_args():
 		run_view_tests()
 		get_tree().quit()
@@ -332,6 +349,7 @@ func add_button(parent: Node, title: String, callback: Callable) -> Button:
 	return b
 
 func reset_round() -> void:
+	reset_walls()
 	running = false
 	started = false
 	finished = false
@@ -993,6 +1011,7 @@ func update_attack(u: Dictionary, dt: float) -> void:
 		u.cooldown = 1.35
 
 func update_bullets(dt: float) -> void:
+	wall_damage.clear()
 	for fx in impacts: fx.life -= dt
 	impacts = impacts.filter(func(fx): return fx.life > 0)
 	var damage := [0.0, 0.0, 0.0, 0.0]
@@ -1013,30 +1032,40 @@ func update_bullets(dt: float) -> void:
 		var old: Vector2 = b.p
 		var next: Vector2 = old + b.v * dt
 		b.life -= dt
-		if blocked(old, next):
+		var wall_hit := first_wall_hit(old, next)
+		var victim := -1
+		var earliest: float = wall_hit.get("distance", INF)
+		for i in range(units.size()):
+			var u: Dictionary = units[i]
+			if u.hp <= 0 or u.team == b.team: continue
+			var segment: Vector2 = next - old
+			var length: float = segment.length()
+			if length <= 0: continue
+			var direction := segment / length
+			var offset: Vector2 = old - u.p
+			var along: float = offset.dot(direction)
+			var discriminant: float = along * along - (offset.length_squared() - RADIUS * RADIUS)
+			if discriminant < 0: continue
+			var enter: float = maxf(0, -along - sqrt(discriminant))
+			if -along + sqrt(discriminant) >= 0 and enter <= length and enter < earliest:
+				earliest = enter
+				victim = i
+		if victim >= 0:
+			var u: Dictionary = units[victim]
+			damage[victim] += maxf(0, float(b.get("damage", 1.0)) + (6.0 if b.get("heavy", false) and u.marked > 0 else 0.0) - (6.0 if u.guard > 0 and not b.get("true_damage", false) else 0.0))
+			add_impulse(u, b.v.normalized() * clampf(65.0 + float(b.get("damage", 1.0)) * 4.0, 70.0, 170.0))
+			if b.get("mark", false): marks[victim] = true
+			if b.get("slow", false): slows[victim] = true
+			if b.get("thorns", false): thorns[victim] = true
+			if b.get("skill", "") not in ["协同追击", "追风"]:
+				hit_events.append({"source": b.get("source", -1), "team": b.team, "target": victim, "life": 0.8})
+			hits += 1
 			b.life = -1
-			effects.append({"p": old, "life": 0.18, "color": GOLD})
-		else:
-			var victim := -1
-			var earliest := INF
-			for i in range(units.size()):
-				var u: Dictionary = units[i]
-				if u.hp <= 0 or u.team == b.team: continue
-				var near := Geometry2D.get_closest_point_to_segment(u.p, old, next)
-				if near.distance_to(u.p) <= RADIUS and old.distance_to(near) < earliest:
-					earliest = old.distance_to(near); victim = i
-			if victim >= 0:
-				var u: Dictionary = units[victim]
-				damage[victim] += maxf(0, float(b.get("damage", 1.0)) + (6.0 if b.get("heavy", false) and u.marked > 0 else 0.0) - (6.0 if u.guard > 0 and not b.get("true_damage", false) else 0.0))
-				add_impulse(u, b.v.normalized() * clampf(65.0 + float(b.get("damage", 1.0)) * 4.0, 70.0, 170.0))
-				if b.get("mark", false): marks[victim] = true
-				if b.get("slow", false): slows[victim] = true
-				if b.get("thorns", false): thorns[victim] = true
-				if b.get("skill", "") not in ["协同追击", "追风"]:
-					hit_events.append({"source": b.get("source", -1), "team": b.team, "target": victim, "life": 0.8})
-				hits += 1
-				b.life = -1
-				effects.append({"p": u.p, "life": 0.22, "color": Color.WHITE})
+			effects.append({"p": u.p, "life": 0.22, "color": Color.WHITE})
+		elif not wall_hit.is_empty():
+			queue_wall_damage(wall_hit.id, float(b.get("damage", 1.0)))
+			b.life = -1
+			effects.append({"p": wall_hit.p, "life": 0.22, "color": GOLD})
 		b.p = next
 	for i in range(units.size()):
 		var u: Dictionary = units[i]
@@ -1055,6 +1084,7 @@ func update_bullets(dt: float) -> void:
 				u.thorns = 4.0
 			if u.hp <= 0: log_event("%s%d 倒下" % ["蓝" if u.team == 0 else "红", u.member + 1])
 	bullets = bullets.filter(func(b: Dictionary): return b.life > 0)
+	apply_wall_damage()
 
 func end_round(winner: int, reason: String) -> void:
 	winner_team = winner
@@ -1811,6 +1841,15 @@ func resolve_hazards(dt: float, damage: Array) -> void:
 	for h in hazards:
 		h.left -= dt
 		if h.left > 0: continue
+		# Accumulate environment damage; destruction is applied after this simulation tick.
+		if h.kind == "beam":
+			var direction: Vector2 = (h.end - h.p).normalized()
+			var hit := first_wall_hit(h.p, h.end + direction * 2)
+			if not hit.is_empty(): queue_wall_damage(hit.id, h.damage)
+		else:
+			for w in wall_states:
+				if w.hp > 0 and h.p.distance_to(h.p.clamp(w.rect.position, w.rect.end)) <= h.radius:
+					queue_wall_damage(w.id, h.damage)
 		h.push_targets = []
 		for i in range(units.size()):
 			var u: Dictionary = units[i]
@@ -2469,3 +2508,94 @@ func prepare_view_preview(kind: String) -> void:
 	refresh_ui()
 	queue_redraw()
 	capture_preview.call_deferred()
+
+
+func reset_walls() -> void:
+	walls.assign(WALL_LAYOUT)
+	wall_states.clear()
+	wall_damage.clear()
+	for i in range(WALL_LAYOUT.size()):
+		wall_states.append({"id": i, "rect": WALL_LAYOUT[i], "hp": WALL_HP})
+
+func first_wall_hit(a: Vector2, b: Vector2) -> Dictionary:
+	var hit := {}
+	var nearest := INF
+	for w in wall_states:
+		if w.hp <= 0: continue
+		var rect: Rect2 = w.rect
+		if rect.has_point(a): return {"id": w.id, "p": a, "distance": 0.0}
+		var corners := [rect.position, Vector2(rect.end.x, rect.position.y), rect.end, Vector2(rect.position.x, rect.end.y)]
+		for n in range(4):
+			var point = Geometry2D.segment_intersects_segment(a, b, corners[n], corners[(n + 1) % 4])
+			if point != null and a.distance_to(point) < nearest:
+				nearest = a.distance_to(point)
+				hit = {"id": w.id, "p": point, "distance": nearest}
+	return hit
+
+func queue_wall_damage(id: int, amount: float) -> void:
+	wall_damage[id] = float(wall_damage.get(id, 0.0)) + maxf(0, amount)
+
+func apply_wall_damage() -> void:
+	var destroyed := false
+	for id in wall_damage:
+		var w: Dictionary = wall_states[id]
+		if w.hp <= 0: continue
+		w.hp = maxf(0, w.hp - wall_damage[id])
+		if w.hp <= 0:
+			walls.erase(w.rect)
+			destroyed = true
+			effects.append({"p": w.rect.get_center(), "life": 0.8, "color": GOLD, "wall_break": true})
+			log_event("掩体%d 被摧毁，通路已打开" % (id + 1))
+	wall_damage.clear()
+	if destroyed:
+		navigation_border = -999
+		refresh_boundary_navigation()
+
+func run_wall_tests() -> void:
+	reset_round()
+	assert(wall_states.size() == 2 and wall_states[0].hp == 300)
+	assert(blocked(Vector2(240, 160), Vector2(320, 160)))
+	queue_wall_damage(0, 100)
+	apply_wall_damage()
+	assert(wall_states[0].hp == 200 and walls.size() == 2)
+	queue_wall_damage(0, 100)
+	apply_wall_damage()
+	assert(wall_states[0].hp == 100)
+	queue_wall_damage(0, 100)
+	apply_wall_damage()
+	assert(wall_states[0].hp == 0 and walls.size() == 1)
+	assert(not blocked(Vector2(240, 160), Vector2(320, 160)))
+	assert(valid_position(Vector2(280, 160)))
+	assert(not nav.is_point_solid(Vector2i(13, 7)))
+	reset_round()
+	assert(wall_states[0].hp == 300 and walls.size() == 2)
+	# A projectile must stop at the wall, including the shot that breaks it.
+	units[0].p = Vector2(220, 160)
+	units[2].p = Vector2(340, 160)
+	units[1].hp = 0
+	units[3].hp = 0
+	wall_states[0].hp = 7
+	bullets.append({"p": Vector2(240, 160), "v": Vector2(1300, 0), "life": 1.0, "team": 0, "damage": 7.0})
+	update_bullets(0.1)
+	assert(wall_states[0].hp == 0 and units[2].hp == MAX_HP and bullets.is_empty())
+	bullets.append({"p": Vector2(240, 160), "v": Vector2(1300, 0), "life": 1.0, "team": 0, "damage": 7.0})
+	update_bullets(0.1)
+	assert(units[2].hp == MAX_HP - 7)
+	reset_round()
+	hazards.append({"kind": "beam", "p": Vector2(240, 160), "end": beam_end(Vector2(240, 160), 0), "left": 0.0, "damage": 22.0, "radius": 7.0, "team": 0, "source": 0})
+	update_bullets(STEP)
+	assert(wall_states[0].hp == 278)
+	update_bullets(STEP)
+	assert(wall_states[0].hp == 278, "Beam visual must not deal repeated wall damage")
+	hazards.append({"kind": "area", "p": Vector2(270, 160), "left": 0.0, "damage": 18.0, "radius": 64.0, "team": 0, "source": 0})
+	update_bullets(STEP)
+	assert(wall_states[0].hp == 260 and wall_states[1].hp == 300)
+	reset_round()
+	units[0].p = Vector2(180, 160)
+	units[2].p = Vector2(235, 160)
+	units[1].hp = 0
+	units[3].hp = 0
+	bullets.append({"p": Vector2(200, 160), "v": Vector2(1300, 0), "life": 1.0, "team": 0, "damage": 7.0})
+	update_bullets(0.1)
+	assert(units[2].hp == MAX_HP - 7 and wall_states[0].hp == 300, "A body before the wall intercepts the bullet first")
+	print("WALL PASSED: 300/200/100/0 stages, projectile blocking and break shot, beam once, area damage, collision/navigation opening, reset")

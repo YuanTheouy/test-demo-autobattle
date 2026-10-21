@@ -72,7 +72,8 @@ func render(game) -> void:
 		polygon([w.position, w.position + Vector2(w.size.x, 0), w.end + Vector2(28, 32), w.position + Vector2(28, w.size.y + 32)], Color(0, 0, 0, 0.22))
 	ground_effects()
 	var actors: Array = []
-	for w in g.walls: actors.append({"depth": w.get_center().x + w.get_center().y, "wall": w})
+	for w in g.wall_states:
+		actors.append({"depth": w.rect.get_center().x + w.rect.get_center().y, "wall": w.rect, "state": w})
 	for u in g.units:
 		disc(u.p + Vector2(7, 7), 27, Color(0, 0, 0, 0.28))
 		actors.append({"depth": u.p.x + u.p.y, "unit": u})
@@ -83,8 +84,7 @@ func render(game) -> void:
 			var alpha := 1.0
 			for u in g.units:
 				if u.hp > 0 and Rect2(project(w.position, 60) - Vector2(85, 0), Vector2(150, 150)).has_point(project(u.p, 25)) and u.p.x + u.p.y < actor.depth: alpha = 0.48
-			box(w.position, w.size, 48, Color("58758b"), alpha)
-			line(w.position + Vector2(5, 8), w.position + Vector2(5, w.size.y - 8), Color(0.6, 0.85, 1, alpha), 2, 49)
+			draw_wall(actor.state, alpha)
 		else: robot(actor.unit)
 	air_effects()
 	for u in g.units:
@@ -277,8 +277,40 @@ func air_effects() -> void:
 					g.draw_circle(tip, 19 * life, Color(color, life * 0.35))
 					g.draw_circle(tip, 8 * life, Color(1, 0.9, 0.7, life * 0.8))
 	for fx in g.effects:
+		if fx.get("wall_break", false):
+			var progress: float = 1 - fx.life / 0.8
+			for i in range(16):
+				var direction := Vector2.from_angle(i * TAU / 16 + 0.3)
+				var point := project(fx.p + direction * progress * (32 + i % 4 * 9), 8 + sin(progress * PI) * (22 + i % 3 * 12))
+				g.draw_rect(Rect2(point - Vector2(3, 3), Vector2(6, 6)), Color(0.65, 0.77, 0.83, 1 - progress))
+			ring(fx.p, 15 + progress * 65, Color(0.7, 0.8, 0.85, (1 - progress) * 0.45), 3)
+			continue
 		var life: float = minf(1, fx.life * 5)
 		var p := project(fx.p, 22)
 		for i in range(6):
 			var dir := Vector2.from_angle(i * TAU / 6)
 			g.draw_line(p + dir * (1 - life) * 18, p + dir * ((1 - life) * 18 + 5), Color(fx.color, life), 1.5, true)
+
+
+func draw_wall(state: Dictionary, alpha: float) -> void:
+	var w: Rect2 = state.rect
+	if state.hp <= 0:
+		for i in range(10):
+			var p := w.position + Vector2(3 + (i * 13) % 24, i * w.size.y / 10)
+			box(p, Vector2(7 + i % 3, 9), 3 + i % 4, Color("455563"), 0.65)
+		return
+	box(w.position, w.size, 48, Color("58758b"), alpha)
+	line(w.position + Vector2(5, 8), w.position + Vector2(5, w.size.y - 8), Color(0.6, 0.85, 1, alpha), 2, 49)
+	if state.hp <= 200:
+		# Cracks are attached to the visible wall face, not to screen-space ground.
+		var count := 4 if state.hp <= 100 else 2
+		for i in range(count):
+			var base := w.position + Vector2(w.size.x, 16 + i * 25)
+			var points := PackedVector2Array([project(base, 48), project(base + Vector2(0, 7), 36), project(base + Vector2(0, -3), 26), project(base + Vector2(0, 10), 14), project(base + Vector2(0, 6), 2)])
+			g.draw_polyline(points, Color(0.06, 0.1, 0.14, alpha), 3 if state.hp <= 100 else 1.8, true)
+			g.draw_line(points[2], project(base + Vector2(0, -12), 17), Color(0.08, 0.13, 0.18, alpha), 2, true)
+			line(base, base - Vector2(w.size.x, 7), Color(0.08, 0.13, 0.18, alpha), 2, 48)
+	var p := project(w.get_center(), 66)
+	g.draw_rect(Rect2(p + Vector2(-26, -5), Vector2(52, 5)), Color("16232d"))
+	g.draw_rect(Rect2(p + Vector2(-25, -4), Vector2(50 * state.hp / g.WALL_HP, 3)), Color("e6b76b") if state.hp <= 100 else Color("89acbe"))
+	g.draw_string(g.font, p + Vector2(-27, -10), "掩体 %d" % state.hp, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("c9d7e1"))
