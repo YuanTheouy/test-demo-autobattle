@@ -5,7 +5,7 @@ config/name="AutoBattle — 双人对抗"
 run/main_scene="res://main.tscn"
 
 [display]
-window/size/viewport_width=1400
+window/size/viewport_width=1640
 window/size/viewport_height=830
 window/stretch/mode="canvas_items"
 
