@@ -1892,7 +1892,7 @@ func release_pattern(u: Dictionary) -> void:
 	var skill: String = u.active_skill
 	var data: Dictionary = Tactics.MAGIC[skill]
 	if skill in Tactics.AREAS:
-		u.blast_impulse = (u.blast_impulse - Vector2.from_angle(u.lock_angle) * 600.0).limit_length(3150.0)
+		u.blast_impulse = (u.blast_impulse - Vector2.from_angle(u.lock_angle) * 140.0).limit_length(3150.0)
 		u.blast_lock = 0.22
 	else:
 		add_impulse(u, -Vector2.from_angle(u.lock_angle) * (115.0 if skill in Tactics.LINES else 80.0))
@@ -1941,7 +1941,7 @@ func resolve_hazards(dt: float, damage: Array) -> void:
 				else:
 					var away: Vector2 = (u.p - h.p).normalized()
 					if away.is_zero_approx(): away = Vector2.from_angle(u.angle + PI)
-					u.blast_impulse = (u.blast_impulse + away * (2550.0 if h.get("skill", "") == "烈焰爆破" else 2175.0)).limit_length(3150.0)
+					u.blast_impulse = (u.blast_impulse + away * (380.0 if h.get("skill", "") == "烈焰爆破" else 320.0)).limit_length(650.0)
 				u.blast_lock = 0.22
 				damage[i] += maxf(0, h.damage - (6 if u.guard > 0 and not h.get("true_damage", h.kind == "beam") else 0))
 				hits += 1
@@ -2475,18 +2475,18 @@ func run_blast_push_tests() -> void:
 		units[2].p = Vector2(280, 320)
 		hazards.append({"kind": "area", "skill": skill, "p": units[2].p - Vector2(20, 0), "origin": units[0].p, "radius": pattern_radius(skill), "left": 0.0, "damage": 18.0, "team": 0, "source": 0})
 		update_bullets(STEP)
-		assert(units[2].blast_impulse.length() >= 2175)
+		assert(is_equal_approx(units[2].blast_impulse.length(), 380.0 if skill == "烈焰爆破" else 320.0))
 		var path_length := 0.0
 		for tick in range(120):
 			var before: Vector2 = units[2].p
 			apply_forced_motion(units[2], STEP)
 			path_length += before.distance_to(units[2].p)
 			assert(valid_arena_position(units[2].p))
-		assert(path_length > 350 and units[2].hp == MAX_HP - 18)
+		assert(path_length > 75 and path_length < 120 and units[2].hp == MAX_HP - 18)
 		pattern_fixture()
 		begin_shot(units[0], 2, skill)
 		update_attack(units[0], Tactics.MAGIC[skill].cast + 0.01)
-		assert(units[0].blast_impulse.length() >= 599)
+		assert(is_equal_approx(units[0].blast_impulse.length(), 140.0))
 	# Wall faces reflect their normal component, keeping the tangent component.
 	pattern_fixture()
 	units[0].p = Vector2(240, 160)
