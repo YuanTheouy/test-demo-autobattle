@@ -96,6 +96,10 @@ func _ready() -> void:
 	setup_loadouts()
 	setup_ui()
 	reset_round()
+	if "--impact-test" in OS.get_cmdline_user_args():
+		run_impact_tests()
+		get_tree().quit()
+		return
 	if "--expansion-test" in OS.get_cmdline_user_args():
 		run_expansion_tests()
 		get_tree().quit()
@@ -332,7 +336,7 @@ func reset_round() -> void:
 		for member in range(2):
 			var p: Vector2 = Vector2(120, 200 + member * 240) if attack else Vector2(520, 200 + member * 240)
 			units.append({"uid": team * 2 + member, "team": team, "member": member, "attack": attack, "p": p,
-				"evade_source": -1, "counter_left": 0.0, "thorns": 0.0, "thorn_tick": 0.0, "hurt_recent": 0.0, "hit_flash": 0.0, "heal_flash": 0.0, "reason": "基础作战就绪", "rule_kind": "", "rule_slot": -1, "slow": 0.0, "shield": 0.0, "shield_time": 0.0, "patrol": 0, "dash_recovery": false, "avoid_left": 0.0, "avoid_dir": Vector2.ZERO, "active_skill": "点射", "rule": "待机", "rule_flash": 0.0, "fire_flash": 0.0, "marked": 0.0, "guard": 0.0, "skill_cds": {}, "action_left": 0.0, "action_goal": p,
+				"impulse": Vector2.ZERO, "evade_source": -1, "counter_left": 0.0, "thorns": 0.0, "thorn_tick": 0.0, "hurt_recent": 0.0, "hit_flash": 0.0, "heal_flash": 0.0, "reason": "基础作战就绪", "rule_kind": "", "rule_slot": -1, "slow": 0.0, "shield": 0.0, "shield_time": 0.0, "patrol": 0, "dash_recovery": false, "avoid_left": 0.0, "avoid_dir": Vector2.ZERO, "active_skill": "点射", "rule": "待机", "rule_flash": 0.0, "fire_flash": 0.0, "marked": 0.0, "guard": 0.0, "skill_cds": {}, "action_left": 0.0, "action_goal": p,
 				"intent": "待机", "retreat": 0.0, "retreat_cd": 0.0, "hp": MAX_HP, "phase": "移动", "timer": 0.0, "cooldown": 0.0,
 				"angle": 0.0 if attack else PI, "target": -1, "path": PackedVector2Array(),
 				"repath": 0.0, "goal": p, "dodge": 0.0, "dodge_dir": Vector2.ZERO, "shot_count": 0, "last_seen": Vector2(-1, -1), "memory": 0.0})
@@ -538,6 +542,8 @@ func simulate(dt: float) -> void:
 				u.timer = 0.45
 			continue
 		if not try_active(u, visible[u.team]): baseline_action(u, visible[u.team])
+	for actor in next_units:
+		if actor.hp > 0: apply_forced_motion(actor, dt)
 	# Reject conflicting movement proposals together, never first-come-first-served.
 	var rejected: Array[int] = []
 	for i in range(next_units.size()):
@@ -546,6 +552,7 @@ func simulate(dt: float) -> void:
 				rejected.append(i); rejected.append(j)
 	for i in rejected:
 		next_units[i].p = units[i].p
+		next_units[i].impulse = Vector2.ZERO
 		next_units[i].phase = "让行" if next_units[i].action_left > 0 else next_units[i].phase
 	units = next_units
 	for grant in shields_pending:
@@ -789,6 +796,35 @@ func move_unit(u: Dictionary, goal: Vector2, dt: float) -> void:
 		return
 	u.phase = "让行"
 
+func add_impulse(u: Dictionary, velocity: Vector2) -> void:
+	u.impulse = (u.impulse + velocity).limit_length(260.0)
+
+func beam_push_direction(beam: Dictionary, u: Dictionary) -> Vector2:
+	var forward: Vector2 = (beam.end - beam.p).normalized()
+	var side := forward.orthogonal()
+	var offset: float = (u.p - beam.p).dot(side)
+	var sign_value: float = signf(offset) if absf(offset) > 0.1 else (1.0 if u.member == 0 else -1.0)
+	return (forward * 0.35 + side * sign_value * 0.94).normalized()
+
+func apply_forced_motion(u: Dictionary, dt: float) -> void:
+	# Sustain the push only while an initially hit body still touches the live beam.
+	# Damage is resolved once by the hazard, never again by this movement effect.
+	for beam in blasts:
+		if beam.kind != "beam" or beam.life <= 0 or u.uid not in beam.get("push_targets", []): continue
+		var nearest: Vector2 = Geometry2D.get_closest_point_to_segment(u.p, beam.p, beam.end)
+		if nearest.distance_to(u.p) <= RADIUS + beam.radius and not blocked(beam.p, u.p):
+			add_impulse(u, beam_push_direction(beam, u) * 1100.0 * dt)
+	var displacement: Vector2 = u.impulse * dt
+	var steps := maxi(1, int(ceil(displacement.length() / 4.0)))
+	for step in range(steps):
+		var candidate: Vector2 = u.p + displacement / steps
+		if not movement_is_free(u, candidate) or blocked(u.p, candidate):
+			u.impulse = Vector2.ZERO
+			break
+		u.p = candidate
+	u.impulse *= exp(-6.0 * dt)
+	if u.impulse.length() < 1.0: u.impulse = Vector2.ZERO
+
 func movement_is_free(u: Dictionary, next: Vector2) -> bool:
 	if not valid_arena_position(next): return false
 	for other in units:
@@ -827,6 +863,7 @@ func update_attack(u: Dictionary, dt: float) -> void:
 		var direction := Vector2.from_angle(u.angle)
 		var projectile_speed := ROCK_SPEED if u.active_skill in ["落岩", "震山"] else (BASIC_BULLET_SPEED if u.active_skill == "点射" else BULLET_SPEED)
 		bullets.append({"p": u.p + direction * (RADIUS + 4), "v": direction * projectile_speed, "team": u.team, "life": SHOT_RANGE / projectile_speed, "true_damage": magic_element(u.active_skill) == "火", "element": magic_element(u.active_skill), "thorns": u.active_skill == "荆棘", "damage": shot_damage(u.active_skill), "source": u.uid, "skill": u.active_skill, "mark": u.active_skill == "标记弹", "heavy": u.active_skill == "强力射击", "slow": u.active_skill == "压制射击"})
+		add_impulse(u, -direction * (105.0 if u.active_skill in ["落岩", "震山", "强力射击"] else 55.0))
 		shots += 1
 		u.shot_count += 1
 		u.fire_flash = 0.18
@@ -875,6 +912,7 @@ func update_bullets(dt: float) -> void:
 			if victim >= 0:
 				var u: Dictionary = units[victim]
 				damage[victim] += maxf(0, float(b.get("damage", 1.0)) + (6.0 if b.get("heavy", false) and u.marked > 0 else 0.0) - (6.0 if u.guard > 0 and not b.get("true_damage", false) else 0.0))
+				add_impulse(u, b.v.normalized() * clampf(65.0 + float(b.get("damage", 1.0)) * 4.0, 70.0, 170.0))
 				if b.get("mark", false): marks[victim] = true
 				if b.get("slow", false): slows[victim] = true
 				if b.get("thorns", false): thorns[victim] = true
@@ -1745,6 +1783,7 @@ func release_pattern(u: Dictionary) -> void:
 	shots += 1
 	var skill: String = u.active_skill
 	var data: Dictionary = Tactics.MAGIC[skill]
+	add_impulse(u, -Vector2.from_angle(u.lock_angle) * (115.0 if skill in Tactics.LINES else 80.0))
 	if skill in Tactics.LINES:
 		hazards.append({"kind": "beam", "skill": skill, "p": u.p, "end": beam_end(u.p, u.lock_angle), "team": u.team, "source": u.uid, "left": 0.0, "damage": data.damage, "radius": pattern_radius(skill), "true_damage": data.element == "火"})
 	elif skill in Tactics.AREAS:
@@ -1765,6 +1804,7 @@ func resolve_hazards(dt: float, damage: Array) -> void:
 	for h in hazards:
 		h.left -= dt
 		if h.left > 0: continue
+		h.push_targets = []
 		for i in range(units.size()):
 			var u: Dictionary = units[i]
 			if u.hp <= 0 or u.team == h.team: continue
@@ -1774,11 +1814,19 @@ func resolve_hazards(dt: float, damage: Array) -> void:
 			else:
 				contact = area_overlaps_body(h.p, h.radius, u.p)
 			if contact:
+				h.push_targets.append(u.uid)
+				if h.kind == "beam":
+					add_impulse(u, beam_push_direction(h, u) * 120.0)
+				else:
+					var away: Vector2 = (u.p - h.p).normalized()
+					if away.is_zero_approx(): away = Vector2.from_angle(u.angle + PI)
+					add_impulse(u, away * 155.0)
 				damage[i] += maxf(0, h.damage - (6 if u.guard > 0 and not h.get("true_damage", h.kind == "beam") else 0))
 				hits += 1
 				hit_events.append({"source": h.source, "team": h.team, "target": i, "life": 0.8})
 		var fx: Dictionary = h.duplicate()
-		fx.life = 0.3
+		fx.duration = 0.55 if h.kind == "beam" else 0.3
+		fx.life = fx.duration
 		blasts.append(fx)
 	hazards = hazards.filter(func(h): return h.left > 0)
 
@@ -1822,10 +1870,10 @@ func draw_patterns() -> void:
 		var shell: Vector2 = h.get("origin", h.p).lerp(h.p, t) + Vector2(0, -80 * sin(t * PI))
 		draw_circle(ORIGIN + shell, 5, ATTACK_BLUE if h.team == 0 else ATTACK_RED)
 	for fx in blasts:
-		var color := Color(ATTACK_BLUE if fx.team == 0 else ATTACK_RED, fx.life / 0.3)
+		var color := Color(ATTACK_BLUE if fx.team == 0 else ATTACK_RED, fx.life / fx.get("duration", 0.3))
 		if fx.kind == "beam":
 			draw_line(ORIGIN + fx.p, ORIGIN + fx.end, Color(color, color.a * 0.25), fx.radius * 4)
-			draw_line(ORIGIN + fx.p, ORIGIN + fx.end, color, fx.radius * 2 * fx.life / 0.3)
+			draw_line(ORIGIN + fx.p, ORIGIN + fx.end, color, fx.radius * 2)
 			draw_line(ORIGIN + fx.p, ORIGIN + fx.end, Color(Color.WHITE, color.a), 3)
 			if fx.get("skill", "") == "裂地冲击":
 				for n in range(1, 9):
@@ -1834,16 +1882,16 @@ func draw_patterns() -> void:
 		else:
 			draw_circle(ORIGIN + fx.p, fx.radius, Color(color, fx.life * 0.6))
 			draw_arc(ORIGIN + fx.p, fx.radius, 0, TAU, 96, color, 3)
-			draw_arc(ORIGIN + fx.p, fx.radius * (1 - fx.life / 0.3), 0, TAU, 32, color, 3)
+			draw_arc(ORIGIN + fx.p, fx.radius * (1 - fx.life / fx.get("duration", 0.3)), 0, TAU, 32, color, 3)
 
 		if fx.kind == "area":
 			if fx.get("skill", "") == "烈焰爆破":
 				for n in range(6):
 					var petal: Vector2 = ORIGIN + fx.p + Vector2.from_angle(n * TAU / 6) * fx.radius * 0.35
-					draw_arc(petal, fx.radius * 0.35 * fx.life / 0.3, 0, TAU, 16, Color("fff0bf", color.a * 0.65), 3)
+					draw_arc(petal, fx.radius * 0.35 * fx.life / fx.get("duration", 0.3), 0, TAU, 16, Color("fff0bf", color.a * 0.65), 3)
 			for n in range(12):
 				var direction := Vector2.from_angle(n * TAU / 12)
-				var tip: Vector2 = ORIGIN + fx.p + direction * fx.radius * (1.0 - fx.life / 0.3)
+				var tip: Vector2 = ORIGIN + fx.p + direction * fx.radius * (1.0 - fx.life / fx.get("duration", 0.3))
 				draw_line(tip, tip - direction * 14, color.lightened(0.3), 3)
 
 func pattern_fixture() -> void:
@@ -2038,8 +2086,9 @@ func run_evasion_tests() -> void:
 	units[2].timer = 0.8
 	units[0].p.y += 90
 	assert(not prepare_tactical_escape(units[0], [2]))
-	# Two simultaneous landing zones: don't dodge from one into the other.
+	# Two simultaneous landing zones: isolate walking from attack recoil into a zone.
 	pattern_fixture()
+	units[0].cooldown = 2.0
 	units[2].phase = "收招"
 	units[2].timer = 10
 	for point in [Vector2(100, 320), Vector2(100, 390)]:
@@ -2303,3 +2352,43 @@ func run_expansion_tests() -> void:
 	update_attack(units[0], 0.46)
 	assert(is_equal_approx(units[0].cooldown, 1.35))
 	print("EXPANSION PASSED: all 13 attacks emitted intended damage, new patterns/guard, heal+shield, true damage, basic cadence, 50HP")
+
+func run_impact_tests() -> void:
+	pattern_fixture()
+	var start: Vector2 = units[0].p
+	begin_shot(units[0], 2, "点射")
+	update_attack(units[0], STEP)
+	for tick in range(20): apply_forced_motion(units[0], STEP)
+	assert(units[0].p.x < start.x - 5 and units[0].p.x > start.x - 15)
+	assert(units[0].phase == "收招", "Recoil must not cancel the action")
+	for offset in [-8.0, 8.0]:
+		pattern_fixture()
+		units[2].p.y += offset
+		start = units[2].p
+		begin_shot(units[0], 2, "蓄能贯穿")
+		units[0].lock_angle = 0.0
+		update_attack(units[0], 1.11)
+		update_bullets(STEP)
+		assert(units[2].hp == MAX_HP - 22)
+		var left_beam := false
+		var speed_at_exit := 0.0
+		for tick in range(90):
+			apply_forced_motion(units[2], STEP)
+			if absf(units[2].p.y - 320) > RADIUS + 7 and not left_beam:
+				left_beam = true
+				speed_at_exit = units[2].impulse.length()
+			update_bullets(STEP)
+		assert(left_beam and speed_at_exit > 20)
+		assert(units[2].p.x > start.x + 5)
+		assert((units[2].p.y - start.y) * offset > 0, "Push toward nearest side of beam")
+		assert(units[2].impulse.length() < 2 and units[2].hp == MAX_HP - 22)
+	# Wall, border and another body stop forced movement without overlap.
+	for position in [Vector2(210, 160), Vector2(600, 320), Vector2(190, 320)]:
+		pattern_fixture()
+		units[0].p = position
+		add_impulse(units[0], Vector2(260, 0))
+		for tick in range(60):
+			apply_forced_motion(units[0], STEP)
+			assert(valid_arena_position(units[0].p))
+			assert(units[0].p.distance_to(units[2].p) >= RADIUS * 2)
+	print("IMPACT PASSED: physical recoil without action cancel; laser forward+nearest-side push, exit then decay, single damage; walls/borders/bodies")
