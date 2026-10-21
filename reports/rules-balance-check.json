@@ -1,0 +1,27 @@
+{
+  "matches": 200,
+  "seeds": 100,
+  "jitter_per_axis": 10,
+  "blue_left": {
+    "blue": 31,
+    "red": 53,
+    "draw": 16
+  },
+  "blue_right_default": {
+    "blue": 90,
+    "red": 9,
+    "draw": 1
+  },
+  "color_only_control": {
+    "paired_scenarios": 40,
+    "mismatches": 0,
+    "compared": [
+      "winner",
+      "shots",
+      "hits",
+      "end_time"
+    ],
+    "note": "Physical positions, loadouts, UIDs, and update order unchanged; team color labels inverted."
+  },
+  "status": "Strong configuration-by-spawn-side effect; root cause and balance fixes not yet established."
+}

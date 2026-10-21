@@ -1,0 +1,138 @@
+{
+  "fixed_step": 0.0166666666666667,
+  "jitter_pixels_per_axis": 10,
+  "note": "Color/order reversals are duplicate paired checks, not independent samples. Ordered tactic pairs cover both physical spawn sides.",
+  "order_color_mismatches": 16,
+  "results": [
+    {
+      "draws": 0,
+      "left_tactic": 0,
+      "left_wins": 76,
+      "right_tactic": 0,
+      "right_wins": 124
+    },
+    {
+      "draws": 0,
+      "left_tactic": 0,
+      "left_wins": 64,
+      "right_tactic": 1,
+      "right_wins": 136
+    },
+    {
+      "draws": 0,
+      "left_tactic": 0,
+      "left_wins": 64,
+      "right_tactic": 2,
+      "right_wins": 136
+    },
+    {
+      "draws": 2,
+      "left_tactic": 1,
+      "left_wins": 69,
+      "right_tactic": 0,
+      "right_wins": 129
+    },
+    {
+      "draws": 6,
+      "left_tactic": 1,
+      "left_wins": 67,
+      "right_tactic": 1,
+      "right_wins": 127
+    },
+    {
+      "draws": 6,
+      "left_tactic": 1,
+      "left_wins": 67,
+      "right_tactic": 2,
+      "right_wins": 127
+    },
+    {
+      "draws": 2,
+      "left_tactic": 2,
+      "left_wins": 69,
+      "right_tactic": 0,
+      "right_wins": 129
+    },
+    {
+      "draws": 6,
+      "left_tactic": 2,
+      "left_wins": 67,
+      "right_tactic": 1,
+      "right_wins": 127
+    },
+    {
+      "draws": 6,
+      "left_tactic": 2,
+      "left_wins": 67,
+      "right_tactic": 2,
+      "right_wins": 127
+    }
+  ],
+  "samples": 100,
+  "seed_start": 20261020,
+  "tactic_names": [
+    "集中压迫",
+    "分散牵制",
+    "保护反击"
+  ],
+  "wall_seconds": 206.716,
+  "side_averaged_matrix": [
+    [
+      {
+        "win_percent": 50.0,
+        "loss_percent": 50.0,
+        "draw_percent": 0.0
+      },
+      {
+        "win_percent": 48.25,
+        "loss_percent": 51.25,
+        "draw_percent": 0.5
+      },
+      {
+        "win_percent": 48.25,
+        "loss_percent": 51.25,
+        "draw_percent": 0.5
+      }
+    ],
+    [
+      {
+        "win_percent": 51.25,
+        "loss_percent": 48.25,
+        "draw_percent": 0.5
+      },
+      {
+        "win_percent": 48.5,
+        "loss_percent": 48.5,
+        "draw_percent": 3.0
+      },
+      {
+        "win_percent": 48.5,
+        "loss_percent": 48.5,
+        "draw_percent": 3.0
+      }
+    ],
+    [
+      {
+        "win_percent": 51.25,
+        "loss_percent": 48.25,
+        "draw_percent": 0.5
+      },
+      {
+        "win_percent": 48.5,
+        "loss_percent": 48.5,
+        "draw_percent": 3.0
+      },
+      {
+        "win_percent": 48.5,
+        "loss_percent": 48.5,
+        "draw_percent": 3.0
+      }
+    ]
+  ],
+  "script_sha256": "891c638321df64cf2b116b60ec2c929b0053ac1848618acc00dfd9c5ae8fd035",
+  "limitations": [
+    "Presets 1 and 2 currently share identical behavior branches.",
+    "Color/order checks are paired repetitions, not independent samples.",
+    "Symmetric diagonal is formed by counting both team perspectives, not evidence of no side bias."
+  ]
+}

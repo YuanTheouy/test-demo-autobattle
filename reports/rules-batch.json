@@ -1,0 +1,1795 @@
+{
+	"blue_red_draw": [
+		121,
+		62,
+		17
+	],
+	"configuration": [
+		{
+			"active": [
+				[
+					"标记弹",
+					"仅未标记敌人",
+					"优先队友目标"
+				],
+				[
+					"强力射击",
+					"仅已标记敌人",
+					"优先低血量"
+				],
+				[
+					"点射",
+					"优先队友目标",
+					"无"
+				],
+				[
+					"接敌",
+					"无",
+					"无"
+				]
+			],
+			"reaction": [
+				[
+					"架枪防御",
+					"自己HP≤50%",
+					"无"
+				],
+				[
+					"侧闪",
+					"无",
+					"无"
+				],
+				[
+					"留空",
+					"无",
+					"无"
+				],
+				[
+					"留空",
+					"无",
+					"无"
+				]
+			]
+		},
+		{
+			"active": [
+				[
+					"强力射击",
+					"仅已标记敌人",
+					"优先队友目标"
+				],
+				[
+					"点射",
+					"优先队友目标",
+					"无"
+				],
+				[
+					"接敌",
+					"无",
+					"无"
+				],
+				[
+					"留空",
+					"无",
+					"无"
+				]
+			],
+			"reaction": [
+				[
+					"架枪防御",
+					"无",
+					"无"
+				],
+				[
+					"侧闪",
+					"无",
+					"无"
+				],
+				[
+					"留空",
+					"无",
+					"无"
+				],
+				[
+					"留空",
+					"无",
+					"无"
+				]
+			]
+		},
+		{
+			"active": [
+				[
+					"后撤",
+					"自己HP≤50%",
+					"敌人距离≤2格"
+				],
+				[
+					"绕侧",
+					"无",
+					"无"
+				],
+				[
+					"点射",
+					"优先低血量",
+					"无"
+				],
+				[
+					"接敌",
+					"无",
+					"无"
+				]
+			],
+			"reaction": [
+				[
+					"侧闪",
+					"无",
+					"无"
+				],
+				[
+					"架枪防御",
+					"自己HP≤50%",
+					"无"
+				],
+				[
+					"留空",
+					"无",
+					"无"
+				],
+				[
+					"留空",
+					"无",
+					"无"
+				]
+			]
+		},
+		{
+			"active": [
+				[
+					"强力射击",
+					"敌人正在恢复",
+					"优先低血量"
+				],
+				[
+					"绕侧",
+					"无",
+					"无"
+				],
+				[
+					"点射",
+					"优先低血量",
+					"无"
+				],
+				[
+					"接敌",
+					"无",
+					"无"
+				]
+			],
+			"reaction": [
+				[
+					"侧闪",
+					"无",
+					"无"
+				],
+				[
+					"架枪防御",
+					"无",
+					"无"
+				],
+				[
+					"留空",
+					"无",
+					"无"
+				],
+				[
+					"留空",
+					"无",
+					"无"
+				]
+			]
+		}
+	],
+	"matches": [
+		{
+			"hits": 36,
+			"seconds": 34.3833333333314,
+			"seed": 20261020,
+			"shots": 53,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 38,
+			"seconds": 26.8499999999985,
+			"seed": 20261020,
+			"shots": 56,
+			"swapped": true,
+			"winner": 1
+		},
+		{
+			"hits": 48,
+			"seconds": 30.6166666666649,
+			"seed": 20261021,
+			"shots": 73,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 26,
+			"seconds": 9.98333333333277,
+			"seed": 20261021,
+			"shots": 38,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 41,
+			"seconds": 21.4833333333321,
+			"seed": 20261022,
+			"shots": 66,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 42,
+			"seconds": 21.3833333333321,
+			"seed": 20261022,
+			"shots": 72,
+			"swapped": true,
+			"winner": 1
+		},
+		{
+			"hits": 36,
+			"seconds": 19.2333333333322,
+			"seed": 20261023,
+			"shots": 52,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 29,
+			"seconds": 14.2166666666659,
+			"seed": 20261023,
+			"shots": 48,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 36,
+			"seconds": 28.7999999999984,
+			"seed": 20261024,
+			"shots": 59,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 28,
+			"seconds": 11.2999999999994,
+			"seed": 20261024,
+			"shots": 39,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 36,
+			"seconds": 60.0166666666645,
+			"seed": 20261025,
+			"shots": 75,
+			"swapped": false,
+			"winner": -1
+		},
+		{
+			"hits": 36,
+			"seconds": 17.3666666666657,
+			"seed": 20261025,
+			"shots": 57,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 37,
+			"seconds": 18.2666666666656,
+			"seed": 20261026,
+			"shots": 59,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 28,
+			"seconds": 10.1499999999994,
+			"seed": 20261026,
+			"shots": 39,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 45,
+			"seconds": 22.6499999999987,
+			"seed": 20261027,
+			"shots": 84,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 26,
+			"seconds": 9.98333333333277,
+			"seed": 20261027,
+			"shots": 38,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 42,
+			"seconds": 43.9666666666642,
+			"seed": 20261028,
+			"shots": 82,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 28,
+			"seconds": 10.1333333333328,
+			"seed": 20261028,
+			"shots": 39,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 42,
+			"seconds": 39.6833333333311,
+			"seed": 20261029,
+			"shots": 74,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 25,
+			"seconds": 60.0166666666645,
+			"seed": 20261029,
+			"shots": 49,
+			"swapped": true,
+			"winner": -1
+		},
+		{
+			"hits": 30,
+			"seconds": 60.0166666666645,
+			"seed": 20261030,
+			"shots": 61,
+			"swapped": false,
+			"winner": -1
+		},
+		{
+			"hits": 36,
+			"seconds": 22.6166666666654,
+			"seed": 20261030,
+			"shots": 68,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 42,
+			"seconds": 29.6999999999983,
+			"seed": 20261031,
+			"shots": 68,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 28,
+			"seconds": 10.1499999999994,
+			"seed": 20261031,
+			"shots": 39,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 33,
+			"seconds": 19.3999999999989,
+			"seed": 20261032,
+			"shots": 59,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 28,
+			"seconds": 10.1499999999994,
+			"seed": 20261032,
+			"shots": 39,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 39,
+			"seconds": 47.033333333331,
+			"seed": 20261033,
+			"shots": 67,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 22,
+			"seconds": 10.5499999999994,
+			"seed": 20261033,
+			"shots": 36,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 39,
+			"seconds": 30.5833333333316,
+			"seed": 20261034,
+			"shots": 81,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 26,
+			"seconds": 9.98333333333277,
+			"seed": 20261034,
+			"shots": 38,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 42,
+			"seconds": 42.1166666666643,
+			"seed": 20261035,
+			"shots": 67,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 27,
+			"seconds": 9.99999999999943,
+			"seed": 20261035,
+			"shots": 38,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 44,
+			"seconds": 24.1999999999986,
+			"seed": 20261036,
+			"shots": 68,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 39,
+			"seconds": 29.166666666665,
+			"seed": 20261036,
+			"shots": 54,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 40,
+			"seconds": 17.549999999999,
+			"seed": 20261037,
+			"shots": 60,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 27,
+			"seconds": 10.1499999999994,
+			"seed": 20261037,
+			"shots": 39,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 35,
+			"seconds": 19.7499999999989,
+			"seed": 20261038,
+			"shots": 66,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 27,
+			"seconds": 10.1499999999994,
+			"seed": 20261038,
+			"shots": 39,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 54,
+			"seconds": 26.2166666666652,
+			"seed": 20261039,
+			"shots": 92,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 35,
+			"seconds": 17.3833333333323,
+			"seed": 20261039,
+			"shots": 50,
+			"swapped": true,
+			"winner": 1
+		},
+		{
+			"hits": 38,
+			"seconds": 21.5166666666654,
+			"seed": 20261040,
+			"shots": 61,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 22,
+			"seconds": 10.9499999999994,
+			"seed": 20261040,
+			"shots": 39,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 40,
+			"seconds": 25.8166666666652,
+			"seed": 20261041,
+			"shots": 56,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 36,
+			"seconds": 17.3666666666657,
+			"seed": 20261041,
+			"shots": 57,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 42,
+			"seconds": 60.0166666666645,
+			"seed": 20261042,
+			"shots": 84,
+			"swapped": false,
+			"winner": -1
+		},
+		{
+			"hits": 35,
+			"seconds": 15.9333333333324,
+			"seed": 20261042,
+			"shots": 54,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 41,
+			"seconds": 60.0166666666645,
+			"seed": 20261043,
+			"shots": 85,
+			"swapped": false,
+			"winner": -1
+		},
+		{
+			"hits": 26,
+			"seconds": 9.98333333333277,
+			"seed": 20261043,
+			"shots": 38,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 42,
+			"seconds": 29.4999999999983,
+			"seed": 20261044,
+			"shots": 74,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 24,
+			"seconds": 14.1166666666659,
+			"seed": 20261044,
+			"shots": 39,
+			"swapped": true,
+			"winner": 1
+		},
+		{
+			"hits": 40,
+			"seconds": 22.8166666666654,
+			"seed": 20261045,
+			"shots": 83,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 28,
+			"seconds": 11.2999999999994,
+			"seed": 20261045,
+			"shots": 39,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 40,
+			"seconds": 24.7499999999986,
+			"seed": 20261046,
+			"shots": 78,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 30,
+			"seconds": 11.316666666666,
+			"seed": 20261046,
+			"shots": 39,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 34,
+			"seconds": 20.6499999999988,
+			"seed": 20261047,
+			"shots": 67,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 30,
+			"seconds": 14.2166666666659,
+			"seed": 20261047,
+			"shots": 46,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 41,
+			"seconds": 36.7999999999979,
+			"seed": 20261048,
+			"shots": 65,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 36,
+			"seconds": 17.3666666666657,
+			"seed": 20261048,
+			"shots": 55,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 41,
+			"seconds": 60.0166666666645,
+			"seed": 20261049,
+			"shots": 59,
+			"swapped": false,
+			"winner": -1
+		},
+		{
+			"hits": 29,
+			"seconds": 28.916666666665,
+			"seed": 20261049,
+			"shots": 53,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 33,
+			"seconds": 19.6499999999989,
+			"seed": 20261050,
+			"shots": 52,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 42,
+			"seconds": 24.7499999999986,
+			"seed": 20261050,
+			"shots": 82,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 42,
+			"seconds": 21.6999999999988,
+			"seed": 20261051,
+			"shots": 68,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 27,
+			"seconds": 10.0166666666661,
+			"seed": 20261051,
+			"shots": 38,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 39,
+			"seconds": 27.0166666666651,
+			"seed": 20261052,
+			"shots": 61,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 26,
+			"seconds": 9.99999999999943,
+			"seed": 20261052,
+			"shots": 38,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 41,
+			"seconds": 35.699999999998,
+			"seed": 20261053,
+			"shots": 69,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 28,
+			"seconds": 11.2833333333327,
+			"seed": 20261053,
+			"shots": 39,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 26,
+			"seconds": 60.0166666666645,
+			"seed": 20261054,
+			"shots": 68,
+			"swapped": false,
+			"winner": -1
+		},
+		{
+			"hits": 42,
+			"seconds": 24.7499999999986,
+			"seed": 20261054,
+			"shots": 82,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 33,
+			"seconds": 32.9499999999981,
+			"seed": 20261055,
+			"shots": 69,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 35,
+			"seconds": 15.9499999999991,
+			"seed": 20261055,
+			"shots": 54,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 35,
+			"seconds": 11.6333333333327,
+			"seed": 20261056,
+			"shots": 45,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 34,
+			"seconds": 17.1333333333324,
+			"seed": 20261056,
+			"shots": 58,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 29,
+			"seconds": 60.0166666666645,
+			"seed": 20261057,
+			"shots": 63,
+			"swapped": false,
+			"winner": -1
+		},
+		{
+			"hits": 35,
+			"seconds": 15.9333333333324,
+			"seed": 20261057,
+			"shots": 54,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 41,
+			"seconds": 25.7833333333319,
+			"seed": 20261058,
+			"shots": 78,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 30,
+			"seconds": 14.2333333333325,
+			"seed": 20261058,
+			"shots": 48,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 45,
+			"seconds": 32.4833333333315,
+			"seed": 20261059,
+			"shots": 65,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 26,
+			"seconds": 10.0166666666661,
+			"seed": 20261059,
+			"shots": 38,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 37,
+			"seconds": 26.5499999999985,
+			"seed": 20261060,
+			"shots": 60,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 31,
+			"seconds": 14.2166666666659,
+			"seed": 20261060,
+			"shots": 48,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 47,
+			"seconds": 60.0166666666645,
+			"seed": 20261061,
+			"shots": 96,
+			"swapped": false,
+			"winner": -1
+		},
+		{
+			"hits": 28,
+			"seconds": 10.1166666666661,
+			"seed": 20261061,
+			"shots": 39,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 42,
+			"seconds": 21.6999999999988,
+			"seed": 20261062,
+			"shots": 68,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 36,
+			"seconds": 17.3666666666657,
+			"seed": 20261062,
+			"shots": 57,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 36,
+			"seconds": 45.2333333333309,
+			"seed": 20261063,
+			"shots": 62,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 29,
+			"seconds": 11.316666666666,
+			"seed": 20261063,
+			"shots": 39,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 41,
+			"seconds": 28.3666666666651,
+			"seed": 20261064,
+			"shots": 69,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 42,
+			"seconds": 24.7499999999986,
+			"seed": 20261064,
+			"shots": 82,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 39,
+			"seconds": 47.033333333331,
+			"seed": 20261065,
+			"shots": 67,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 28,
+			"seconds": 10.1666666666661,
+			"seed": 20261065,
+			"shots": 39,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 36,
+			"seconds": 18.2833333333323,
+			"seed": 20261066,
+			"shots": 56,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 29,
+			"seconds": 11.316666666666,
+			"seed": 20261066,
+			"shots": 39,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 45,
+			"seconds": 60.0166666666645,
+			"seed": 20261067,
+			"shots": 76,
+			"swapped": false,
+			"winner": -1
+		},
+		{
+			"hits": 42,
+			"seconds": 21.3999999999988,
+			"seed": 20261067,
+			"shots": 73,
+			"swapped": true,
+			"winner": 1
+		},
+		{
+			"hits": 32,
+			"seconds": 12.8499999999993,
+			"seed": 20261068,
+			"shots": 46,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 26,
+			"seconds": 11.266666666666,
+			"seed": 20261068,
+			"shots": 40,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 38,
+			"seconds": 30.1833333333316,
+			"seed": 20261069,
+			"shots": 54,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 29,
+			"seconds": 11.316666666666,
+			"seed": 20261069,
+			"shots": 39,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 39,
+			"seconds": 30.8666666666649,
+			"seed": 20261070,
+			"shots": 58,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 43,
+			"seconds": 23.933333333332,
+			"seed": 20261070,
+			"shots": 69,
+			"swapped": true,
+			"winner": 1
+		},
+		{
+			"hits": 34,
+			"seconds": 60.0166666666645,
+			"seed": 20261071,
+			"shots": 60,
+			"swapped": false,
+			"winner": -1
+		},
+		{
+			"hits": 26,
+			"seconds": 10.0833333333328,
+			"seed": 20261071,
+			"shots": 38,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 31,
+			"seconds": 41.8999999999976,
+			"seed": 20261072,
+			"shots": 53,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 36,
+			"seconds": 17.4166666666657,
+			"seed": 20261072,
+			"shots": 60,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 42,
+			"seconds": 30.5333333333316,
+			"seed": 20261073,
+			"shots": 64,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 26,
+			"seconds": 10.0666666666661,
+			"seed": 20261073,
+			"shots": 38,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 36,
+			"seconds": 28.7999999999984,
+			"seed": 20261074,
+			"shots": 59,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 26,
+			"seconds": 9.98333333333277,
+			"seed": 20261074,
+			"shots": 38,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 50,
+			"seconds": 36.049999999998,
+			"seed": 20261075,
+			"shots": 94,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 26,
+			"seconds": 10.0166666666661,
+			"seed": 20261075,
+			"shots": 38,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 37,
+			"seconds": 17.499999999999,
+			"seed": 20261076,
+			"shots": 60,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 28,
+			"seconds": 10.1499999999994,
+			"seed": 20261076,
+			"shots": 39,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 39,
+			"seconds": 32.6999999999981,
+			"seed": 20261077,
+			"shots": 89,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 30,
+			"seconds": 11.316666666666,
+			"seed": 20261077,
+			"shots": 39,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 42,
+			"seconds": 21.2499999999988,
+			"seed": 20261078,
+			"shots": 82,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 28,
+			"seconds": 10.1333333333328,
+			"seed": 20261078,
+			"shots": 39,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 25,
+			"seconds": 60.0166666666645,
+			"seed": 20261079,
+			"shots": 53,
+			"swapped": false,
+			"winner": -1
+		},
+		{
+			"hits": 26,
+			"seconds": 10.0166666666661,
+			"seed": 20261079,
+			"shots": 38,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 28,
+			"seconds": 23.483333333332,
+			"seed": 20261080,
+			"shots": 60,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 42,
+			"seconds": 24.7499999999986,
+			"seed": 20261080,
+			"shots": 82,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 32,
+			"seconds": 22.1333333333321,
+			"seed": 20261081,
+			"shots": 65,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 42,
+			"seconds": 24.7333333333319,
+			"seed": 20261081,
+			"shots": 82,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 35,
+			"seconds": 34.0166666666647,
+			"seed": 20261082,
+			"shots": 60,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 28,
+			"seconds": 10.1333333333328,
+			"seed": 20261082,
+			"shots": 39,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 38,
+			"seconds": 60.0166666666645,
+			"seed": 20261083,
+			"shots": 61,
+			"swapped": false,
+			"winner": -1
+		},
+		{
+			"hits": 26,
+			"seconds": 12.7999999999993,
+			"seed": 20261083,
+			"shots": 34,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 41,
+			"seconds": 33.2333333333314,
+			"seed": 20261084,
+			"shots": 78,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 21,
+			"seconds": 8.28333333333286,
+			"seed": 20261084,
+			"shots": 30,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 39,
+			"seconds": 15.7833333333324,
+			"seed": 20261085,
+			"shots": 56,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 27,
+			"seconds": 10.0166666666661,
+			"seed": 20261085,
+			"shots": 38,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 44,
+			"seconds": 42.6999999999976,
+			"seed": 20261086,
+			"shots": 91,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 30,
+			"seconds": 14.2499999999992,
+			"seed": 20261086,
+			"shots": 48,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 39,
+			"seconds": 30.8666666666649,
+			"seed": 20261087,
+			"shots": 58,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 36,
+			"seconds": 17.3666666666657,
+			"seed": 20261087,
+			"shots": 57,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 39,
+			"seconds": 19.9666666666655,
+			"seed": 20261088,
+			"shots": 59,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 26,
+			"seconds": 9.99999999999943,
+			"seed": 20261088,
+			"shots": 38,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 35,
+			"seconds": 60.0166666666645,
+			"seed": 20261089,
+			"shots": 59,
+			"swapped": false,
+			"winner": -1
+		},
+		{
+			"hits": 34,
+			"seconds": 17.1333333333324,
+			"seed": 20261089,
+			"shots": 58,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 28,
+			"seconds": 60.0166666666645,
+			"seed": 20261090,
+			"shots": 62,
+			"swapped": false,
+			"winner": -1
+		},
+		{
+			"hits": 42,
+			"seconds": 24.7499999999986,
+			"seed": 20261090,
+			"shots": 82,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 44,
+			"seconds": 35.7166666666646,
+			"seed": 20261091,
+			"shots": 90,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 27,
+			"seconds": 10.0166666666661,
+			"seed": 20261091,
+			"shots": 38,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 40,
+			"seconds": 16.0666666666658,
+			"seed": 20261092,
+			"shots": 52,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 27,
+			"seconds": 10.0499999999994,
+			"seed": 20261092,
+			"shots": 38,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 30,
+			"seconds": 17.4333333333323,
+			"seed": 20261093,
+			"shots": 57,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 21,
+			"seconds": 9.93333333333277,
+			"seed": 20261093,
+			"shots": 35,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 32,
+			"seconds": 24.9166666666653,
+			"seed": 20261094,
+			"shots": 52,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 26,
+			"seconds": 10.0166666666661,
+			"seed": 20261094,
+			"shots": 38,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 32,
+			"seconds": 13.9166666666659,
+			"seed": 20261095,
+			"shots": 48,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 37,
+			"seconds": 17.349999999999,
+			"seed": 20261095,
+			"shots": 57,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 39,
+			"seconds": 17.7166666666657,
+			"seed": 20261096,
+			"shots": 46,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 30,
+			"seconds": 14.2166666666659,
+			"seed": 20261096,
+			"shots": 46,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 37,
+			"seconds": 32.8499999999981,
+			"seed": 20261097,
+			"shots": 77,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 38,
+			"seconds": 30.166666666665,
+			"seed": 20261097,
+			"shots": 67,
+			"swapped": true,
+			"winner": 1
+		},
+		{
+			"hits": 31,
+			"seconds": 40.4999999999977,
+			"seed": 20261098,
+			"shots": 59,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 33,
+			"seconds": 13.8166666666659,
+			"seed": 20261098,
+			"shots": 45,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 36,
+			"seconds": 24.4333333333319,
+			"seed": 20261099,
+			"shots": 55,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 39,
+			"seconds": 25.9499999999985,
+			"seed": 20261099,
+			"shots": 51,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 39,
+			"seconds": 27.9999999999984,
+			"seed": 20261100,
+			"shots": 69,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 42,
+			"seconds": 24.7499999999986,
+			"seed": 20261100,
+			"shots": 82,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 36,
+			"seconds": 60.0166666666645,
+			"seed": 20261101,
+			"shots": 72,
+			"swapped": false,
+			"winner": -1
+		},
+		{
+			"hits": 28,
+			"seconds": 10.1499999999994,
+			"seed": 20261101,
+			"shots": 39,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 44,
+			"seconds": 31.8499999999982,
+			"seed": 20261102,
+			"shots": 76,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 44,
+			"seconds": 28.0333333333317,
+			"seed": 20261102,
+			"shots": 66,
+			"swapped": true,
+			"winner": 1
+		},
+		{
+			"hits": 35,
+			"seconds": 17.6666666666657,
+			"seed": 20261103,
+			"shots": 67,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 40,
+			"seconds": 31.2999999999982,
+			"seed": 20261103,
+			"shots": 69,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 35,
+			"seconds": 19.2666666666656,
+			"seed": 20261104,
+			"shots": 62,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 42,
+			"seconds": 21.3833333333321,
+			"seed": 20261104,
+			"shots": 72,
+			"swapped": true,
+			"winner": 1
+		},
+		{
+			"hits": 39,
+			"seconds": 20.0499999999989,
+			"seed": 20261105,
+			"shots": 69,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 26,
+			"seconds": 10.0166666666661,
+			"seed": 20261105,
+			"shots": 38,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 36,
+			"seconds": 38.2499999999978,
+			"seed": 20261106,
+			"shots": 73,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 37,
+			"seconds": 17.349999999999,
+			"seed": 20261106,
+			"shots": 57,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 35,
+			"seconds": 16.0833333333324,
+			"seed": 20261107,
+			"shots": 50,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 30,
+			"seconds": 11.316666666666,
+			"seed": 20261107,
+			"shots": 39,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 41,
+			"seconds": 13.9666666666659,
+			"seed": 20261108,
+			"shots": 52,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 30,
+			"seconds": 11.316666666666,
+			"seed": 20261108,
+			"shots": 39,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 41,
+			"seconds": 16.5999999999991,
+			"seed": 20261109,
+			"shots": 59,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 31,
+			"seconds": 14.2166666666659,
+			"seed": 20261109,
+			"shots": 48,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 38,
+			"seconds": 17.7166666666657,
+			"seed": 20261110,
+			"shots": 46,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 34,
+			"seconds": 17.149999999999,
+			"seed": 20261110,
+			"shots": 58,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 34,
+			"seconds": 18.4999999999989,
+			"seed": 20261111,
+			"shots": 65,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 26,
+			"seconds": 9.99999999999943,
+			"seed": 20261111,
+			"shots": 38,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 25,
+			"seconds": 10.4833333333327,
+			"seed": 20261112,
+			"shots": 34,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 20,
+			"seconds": 8.28333333333286,
+			"seed": 20261112,
+			"shots": 30,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 44,
+			"seconds": 60.0166666666645,
+			"seed": 20261113,
+			"shots": 68,
+			"swapped": false,
+			"winner": -1
+		},
+		{
+			"hits": 28,
+			"seconds": 17.049999999999,
+			"seed": 20261113,
+			"shots": 50,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 45,
+			"seconds": 38.1833333333312,
+			"seed": 20261114,
+			"shots": 91,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 26,
+			"seconds": 9.99999999999943,
+			"seed": 20261114,
+			"shots": 38,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 48,
+			"seconds": 27.1166666666651,
+			"seed": 20261115,
+			"shots": 83,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 27,
+			"seconds": 10.0166666666661,
+			"seed": 20261115,
+			"shots": 38,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 44,
+			"seconds": 37.0999999999979,
+			"seed": 20261116,
+			"shots": 86,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 28,
+			"seconds": 11.2833333333327,
+			"seed": 20261116,
+			"shots": 39,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 46,
+			"seconds": 29.1999999999983,
+			"seed": 20261117,
+			"shots": 83,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 31,
+			"seconds": 14.2166666666659,
+			"seed": 20261117,
+			"shots": 48,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 43,
+			"seconds": 24.7833333333319,
+			"seed": 20261118,
+			"shots": 62,
+			"swapped": false,
+			"winner": 1
+		},
+		{
+			"hits": 33,
+			"seconds": 17.1666666666657,
+			"seed": 20261118,
+			"shots": 58,
+			"swapped": true,
+			"winner": 0
+		},
+		{
+			"hits": 46,
+			"seconds": 38.1499999999978,
+			"seed": 20261119,
+			"shots": 81,
+			"swapped": false,
+			"winner": 0
+		},
+		{
+			"hits": 30,
+			"seconds": 14.2499999999992,
+			"seed": 20261119,
+			"shots": 48,
+			"swapped": true,
+			"winner": 0
+		}
+	]
+}

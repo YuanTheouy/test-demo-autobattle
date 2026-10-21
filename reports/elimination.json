@@ -1,0 +1,79 @@
+{
+	"fixed_step": 0.0166666666666667,
+	"jitter_pixels_per_axis": 10,
+	"note": "Color/order reversals are duplicate paired checks, not independent samples. Ordered tactic pairs cover both physical spawn sides.",
+	"order_color_mismatches": 16,
+	"results": [
+		{
+			"draws": 0,
+			"left_tactic": 0,
+			"left_wins": 76,
+			"right_tactic": 0,
+			"right_wins": 124
+		},
+		{
+			"draws": 0,
+			"left_tactic": 0,
+			"left_wins": 64,
+			"right_tactic": 1,
+			"right_wins": 136
+		},
+		{
+			"draws": 0,
+			"left_tactic": 0,
+			"left_wins": 64,
+			"right_tactic": 2,
+			"right_wins": 136
+		},
+		{
+			"draws": 2,
+			"left_tactic": 1,
+			"left_wins": 69,
+			"right_tactic": 0,
+			"right_wins": 129
+		},
+		{
+			"draws": 6,
+			"left_tactic": 1,
+			"left_wins": 67,
+			"right_tactic": 1,
+			"right_wins": 127
+		},
+		{
+			"draws": 6,
+			"left_tactic": 1,
+			"left_wins": 67,
+			"right_tactic": 2,
+			"right_wins": 127
+		},
+		{
+			"draws": 2,
+			"left_tactic": 2,
+			"left_wins": 69,
+			"right_tactic": 0,
+			"right_wins": 129
+		},
+		{
+			"draws": 6,
+			"left_tactic": 2,
+			"left_wins": 67,
+			"right_tactic": 1,
+			"right_wins": 127
+		},
+		{
+			"draws": 6,
+			"left_tactic": 2,
+			"left_wins": 67,
+			"right_tactic": 2,
+			"right_wins": 127
+		}
+	],
+	"samples": 100,
+	"seed_start": 20261020,
+	"tactic_names": [
+		"集中压迫",
+		"分散牵制",
+		"保护反击"
+	],
+	"wall_seconds": 206.716
+}
