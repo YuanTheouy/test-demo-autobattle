@@ -16,6 +16,12 @@ const MAX_INSET := 145.0
 const BLUE := Color("52b6ff")
 const RED := Color("ff697d")
 const GOLD := Color("f5ce78")
+const MOVE_HINT := Color("69e3b3")
+const ATTACK_BLUE := Color("9599ff")
+const ATTACK_RED := Color("ff825e")
+const BLAST_RADIUS := 64.0
+const BLAST_CAST := 0.55
+const BLAST_FLIGHT := 0.95
 var walls: Array[Rect2] = [Rect2(240, 80, 80, 160), Rect2(320, 400, 80, 160)]
 var tactics := [0, 1]
 var team_focus := [-1, -1]
@@ -77,11 +83,15 @@ var skill_help: Label
 func _ready() -> void:
 	font = SystemFont.new()
 	font.font_names = PackedStringArray(["PingFang SC", "Heiti SC", "Arial"])
-	DisplayServer.window_set_title("AutoBattle — 技能与条件原型")
+	DisplayServer.window_set_title("AutoBattle — 即时竞技场 / realtime-arena")
 	setup_navigation()
 	setup_loadouts()
 	setup_ui()
 	reset_round()
+	if "--arena-test" in OS.get_cmdline_user_args():
+		run_arena_tests()
+		get_tree().quit()
+		return
 	if "--blast-test" in OS.get_cmdline_user_args():
 		run_blast_tests()
 		get_tree().quit()
@@ -167,7 +177,7 @@ func apply_preset(team: int, index: int) -> void:
 	reset_round()
 
 func setup_ui() -> void:
-	var title := text_label(self, "AUTOBATTLE  /  技能 × 条件", 27)
+	var title := text_label(self, "AUTOBATTLE  /  即时小队对战", 27)
 	title.position = Vector2(35, 25)
 	subtitle = text_label(self, "", 15)
 	subtitle.position = Vector2(36, 68)
@@ -235,7 +245,7 @@ func setup_ui() -> void:
 				row.add_child(menu)
 				picks.append(menu)
 			editor_rows.append({"kind": kind, "slot": slot, "menus": picks, "row": row})
-	skill_help = text_label(panel, "锁线蓄力 → 瞬发贯穿 · 扇形 → 五发霰弹\n圆圈十字 → 炮击落点；圈外可躲避，落点不追踪", 13)
+	skill_help = text_label(panel, "蓝紫：蓝方攻击 · 橙红：红方攻击 · 绿线：移动\n落点锁定 → 外环补满 → 爆炸；按实际圆形范围命中", 13)
 	info_label = text_label(panel, "", 14)
 	info_label.custom_minimum_size = Vector2(650, 70)
 	info_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -480,7 +490,7 @@ func simulate(dt: float) -> void:
 			continue
 		var can_evade: bool = u.phase not in ["吟唱", "点射", "收招", "架枪防御", "回春", "掩护队友"] and not (u.phase == "瞄准" and u.shot_count > 0)
 		if can_evade:
-			if u.phase == "瞄准" and u.shot_count == 0 and try_reaction(u, visible[u.team], true): continue
+			if try_reaction(u, visible[u.team]): continue
 			if prepare_tactical_escape(u, visible[u.team]):
 				var step_to: Vector2 = u.p.move_toward(u.action_goal, unit_move_speed(u) * dt)
 				if u.phase == "规避预警" and movement_is_free(u, step_to): u.p = step_to
@@ -489,8 +499,6 @@ func simulate(dt: float) -> void:
 		if u.phase in ["吟唱", "瞄准", "点射", "收招"]:
 			update_attack(u, dt)
 			continue
-		if counter_after_escape(u, visible[u.team]): continue
-		if try_reaction(u, visible[u.team]): continue
 		if u.action_left > 0:
 			u.action_left = maxf(0, u.action_left - dt)
 			if u.intent not in ["架枪防御", "掩护队友", "回春"]:
@@ -842,9 +850,7 @@ func refresh_ui() -> void:
 
 func _draw() -> void:
 	draw_style_box(make_box(Color("101d2a"), Color("314657")), Rect2(ORIGIN, Vector2(SIZE, SIZE)))
-	for i in range(1, 8):
-		draw_line(ORIGIN + Vector2(i * 80, 0), ORIGIN + Vector2(i * 80, SIZE), Color(0.2, 0.3, 0.4, 0.10))
-		draw_line(ORIGIN + Vector2(0, i * 80), ORIGIN + Vector2(SIZE, i * 80), Color(0.2, 0.3, 0.4, 0.10))
+	draw_arc(ORIGIN + Vector2(SIZE / 2, SIZE / 2), 95, 0, TAU, 96, Color(0.3, 0.5, 0.55, 0.12), 1)
 	var safe := safe_rect()
 	var inset := safe.position.x
 	var danger := Color(0.95, 0.25, 0.28, 0.18)
@@ -858,13 +864,12 @@ func _draw() -> void:
 	for wall in walls:
 		draw_rect(Rect2(wall.position + ORIGIN + Vector2(4, 5), wall.size), Color(0, 0, 0, 0.35))
 		draw_style_box(make_box(Color("354858"), Color("6b8292")), Rect2(wall.position + ORIGIN, wall.size))
-		for tile in range(1, int(wall.size.y / 80)):
-			draw_line(ORIGIN + wall.position + Vector2(0, tile * 80), ORIGIN + wall.position + Vector2(wall.size.x, tile * 80), Color("6b8292"), 2)
 	draw_patterns()
 	for i in range(units.size()):
 		var u: Dictionary = units[i]
 		var p: Vector2 = u.p + ORIGIN
 		var color: Color = BLUE if u.team == 0 else RED
+		var attack_color: Color = ATTACK_BLUE if u.team == 0 else ATTACK_RED
 		if u.hp <= 0:
 			draw_line(p - Vector2(7, 7), p + Vector2(7, 7), color.darkened(0.6), 3)
 			draw_line(p + Vector2(-7, 7), p + Vector2(7, -7), color.darkened(0.6), 3)
@@ -872,14 +877,9 @@ func _draw() -> void:
 		if show_aim and u.active_skill not in ["蓄能贯穿", "霰弹", "抛射轰击"] and u.phase in ["吟唱", "瞄准", "锁定", "点射"]:
 			var direction := Vector2.from_angle(u.angle)
 			var cone := PackedVector2Array([p, p + direction.rotated(-0.045) * SHOT_RANGE, p + direction.rotated(0.045) * SHOT_RANGE])
-			draw_colored_polygon(cone, Color(color, 0.09))
-			draw_line(p, p + direction * SHOT_RANGE, Color(color, 0.65 if u.phase != "瞄准" else 0.18), 1.5)
-		if selected == i:
-			draw_arc(p, RADIUS + 5, 0, TAU, 40, Color.WHITE, 2)
-			var prev: Vector2 = p
-			for point in u.path:
-				draw_dashed_line(prev, point + ORIGIN, Color(color, 0.4), 1, 5)
-				prev = point + ORIGIN
+			draw_colored_polygon(cone, Color(attack_color, 0.06))
+			draw_line(p, p + direction * SHOT_RANGE, Color(attack_color, 0.65 if u.phase != "瞄准" else 0.18), 1.5)
+		if selected == i: draw_arc(p, RADIUS + 5, 0, TAU, 40, Color.WHITE, 2)
 		draw_circle(p + Vector2(2, 3), RADIUS + 2, Color(0, 0, 0, 0.4))
 		if u.marked > 0:
 			draw_arc(p, RADIUS + 3, 0, TAU, 32, GOLD, 2)
@@ -909,14 +909,7 @@ func _draw() -> void:
 		if u.phase == "收招":
 			var duration: float = 1.0 if u.active_skill in ["强力射击", "落岩", "震山"] else 0.65
 			draw_arc(p, RADIUS + 3, -PI / 2, -PI / 2 + TAU * clampf(u.timer / duration, 0, 1), 32, Color(color, 0.65), 2)
-		if show_aim and (u.action_left > 0 or u.intent == "规避预警") and u.p.distance_to(u.action_goal) > 10:
-			var destination: Vector2 = ORIGIN + u.action_goal
-			var previous: Vector2 = p
-			if u.intent == "规避预警": draw_dashed_line(p, destination, Color(color, 0.6), 1.5, 5)
-			for point in u.path:
-				draw_dashed_line(previous, ORIGIN + point, Color(color, 0.3), 1, 5)
-				previous = ORIGIN + point
-			draw_arc(destination, 5, 0, TAU, 12, Color(color, 0.5), 1)
+		draw_move_path(u)
 		for pip in range(int(MAX_HP)):
 			draw_rect(Rect2(p + Vector2(-23 + pip * 12, -35), Vector2(9, 6)), color if pip < int(u.hp) else Color("273440"))
 		draw_string(font, p + Vector2(-7, 8), str(u.member + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 24, Color("102033"))
@@ -937,7 +930,9 @@ func _draw() -> void:
 	for link in links:
 		draw_dashed_line(ORIGIN + link.a, ORIGIN + link.b, Color(link.color, minf(1, link.life * 2)), 3, 7)
 	for b in bullets:
-		draw_line(b.p + ORIGIN, b.p + ORIGIN - b.v.normalized() * (18 if b.get("heavy", false) else 9), Tactics.ELEMENT_COLORS[b.element] if b.get("element", "") != "" else (GOLD if b.get("mark", false) else (Color("c291ff") if b.get("slow", false) else (BLUE if b.team == 0 else RED))), 7 if b.get("element", "") == "山" else (5 if b.get("heavy", false) else 3))
+		var shot_color: Color = ATTACK_BLUE if b.team == 0 else ATTACK_RED
+		draw_line(b.p + ORIGIN, b.p + ORIGIN - b.v.normalized() * 12, shot_color, 5 if b.get("element", "") == "山" else 3)
+		draw_circle(b.p + ORIGIN, 4, shot_color.lightened(0.25))
 	for fx in effects:
 		draw_arc(fx.p + ORIGIN, 5 + (0.22 - fx.life) * 35, 0, TAU, 16, Color(fx.color, minf(1, fx.life * 5)), 2)
 	if not started:
@@ -1071,7 +1066,7 @@ func run_team_tests() -> void:
 
 func passes_condition(u: Dictionary, target: int, condition: String) -> bool:
 	match condition:
-		"敌人距离≥3格": return target >= 0 and u.p.distance_to(units[target].p) >= 240
+		"敌人距离≥3米": return target >= 0 and u.p.distance_to(units[target].p) >= 240
 		"敌人正在攻击队友":
 			var ally := ally_index(u)
 			return target >= 0 and ally >= 0 and units[target].target == ally and units[target].phase in ["吟唱", "瞄准", "点射"]
@@ -1086,7 +1081,7 @@ func passes_condition(u: Dictionary, target: int, condition: String) -> bool:
 		"仅已标记敌人": return target >= 0 and units[target].marked > 0
 		"仅未标记敌人": return target >= 0 and units[target].marked <= 0
 		"敌人正在收招": return target >= 0 and units[target].phase == "收招"
-		"敌人距离≤2格": return target >= 0 and u.p.distance_to(units[target].p) <= 160
+		"敌人距离≤2米": return target >= 0 and u.p.distance_to(units[target].p) <= 160
 	return true
 
 func rule_target(u: Dictionary, visible: Array, rule: Array, shooting: bool) -> int:
@@ -1473,7 +1468,7 @@ func run_content_tests() -> void:
 	reset_round()
 	units[0].p = Vector2(140, 320)
 	units[2].p = Vector2(260, 320)
-	loadouts[0] = Tactics.build([["后撤", "敌人距离≤2格", "无"]], [])
+	loadouts[0] = Tactics.build([["后撤", "敌人距离≤2米", "无"]], [])
 	assert(try_active(units[0], [2]) and units[0].intent == "后撤")
 	var file := FileAccess.open("res://reports/content-validation.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify({"checks": ["empty rules fight", "last-seen search", "shield scope", "shield absorption", "slow impact", "follow-up no chain", "fixed-step playback", "single step"], "skill_activations": counts, "matches": results}, "\t"))
@@ -1625,11 +1620,11 @@ func beam_end(p: Vector2, angle: float) -> Vector2:
 	return p + direction * SHOT_RANGE
 
 func mortar_points(center: Vector2) -> Array:
-	var points: Array = []
-	for offset in [Vector2(-65, -35), Vector2(65, -35), Vector2(0, 65)]:
-		var point: Vector2 = (center + offset).clamp(Vector2(40, 40), Vector2(SIZE - 40, SIZE - 40))
-		points.append(point)
-	return points
+	# One readable locked landing zone; no random scatter or target tracking.
+	return [center.clamp(Vector2.ONE * BLAST_RADIUS, Vector2.ONE * (SIZE - BLAST_RADIUS))]
+
+func blast_progress(remaining: float) -> float:
+	return clampf(1.0 - remaining / (BLAST_CAST + BLAST_FLIGHT), 0, 1)
 
 func release_pattern(u: Dictionary) -> void:
 	u.fire_flash = 0.18
@@ -1638,7 +1633,7 @@ func release_pattern(u: Dictionary) -> void:
 		hazards.append({"kind": "beam", "p": u.p, "end": beam_end(u.p, u.lock_angle), "team": u.team, "source": u.uid, "left": 0.0, "damage": 2.0, "radius": 7.0})
 	elif u.active_skill == "抛射轰击":
 		for point in mortar_points(u.lock_point):
-			hazards.append({"kind": "area", "p": point, "origin": u.p, "team": u.team, "source": u.uid, "left": 0.95, "damage": 1.0, "radius": 40.0})
+			hazards.append({"kind": "area", "p": point, "origin": u.p, "team": u.team, "source": u.uid, "left": BLAST_FLIGHT, "damage": 1.0, "radius": BLAST_RADIUS})
 	else:
 		for angle in [-0.36, -0.18, 0.0, 0.18, 0.36]:
 			var direction := Vector2.from_angle(u.lock_angle + angle)
@@ -1673,17 +1668,23 @@ func resolve_hazards(dt: float, damage: Array) -> void:
 
 func draw_landing(point: Vector2, color: Color, progress: float) -> void:
 	var p := ORIGIN + point
-	draw_circle(p, 40, Color(color, 0.09))
-	draw_arc(p, 40, 0, TAU, 40, Color(color, 0.7), 1.5)
-	draw_arc(p, 43, -PI / 2, -PI / 2 + TAU * progress, 40, color, 3)
-	draw_line(p - Vector2(6, 0), p + Vector2(6, 0), color, 1)
-	draw_line(p - Vector2(0, 6), p + Vector2(0, 6), color, 1)
+	var value := clampf(progress, 0, 1)
+	draw_circle(p, BLAST_RADIUS, Color(color, 0.05 + value * 0.07))
+	# The thin full circle is the actual damage boundary; the thick arc is the timer.
+	draw_arc(p, BLAST_RADIUS, 0, TAU, 96, Color(color, 0.25), 1.5)
+	if value > 0:
+		draw_arc(p, BLAST_RADIUS, -PI / 2, -PI / 2 + TAU * value, 96, color, 3.5)
+		var tip := p + Vector2.from_angle(-PI / 2 + TAU * value) * BLAST_RADIUS
+		draw_circle(tip, 4, color.lightened(0.3))
+	draw_line(p - Vector2(5, 0), p + Vector2(5, 0), Color(color, 0.65), 1)
+	draw_line(p - Vector2(0, 5), p + Vector2(0, 5), Color(color, 0.65), 1)
+	draw_string(font, p + Vector2(-14, BLAST_RADIUS + 17), "%.1fs" % ((1 - value) * (BLAST_CAST + BLAST_FLIGHT)), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, color)
 
 func draw_patterns() -> void:
 	if show_aim:
 		for u in units:
 			if u.hp <= 0 or u.phase != "吟唱": continue
-			var color: Color = BLUE if u.team == 0 else RED
+			var color: Color = ATTACK_BLUE if u.team == 0 else ATTACK_RED
 			if u.active_skill == "蓄能贯穿":
 				var end := beam_end(u.p, u.lock_angle)
 				draw_line(ORIGIN + u.p, ORIGIN + end, Color(color, 0.18), 14)
@@ -1694,22 +1695,23 @@ func draw_patterns() -> void:
 				draw_colored_polygon(polygon, Color(color, 0.12))
 				for angle in [-0.36, -0.18, 0.0, 0.18, 0.36]: draw_dashed_line(ORIGIN + u.p, ORIGIN + u.p + Vector2.from_angle(u.lock_angle + angle) * 228, Color(color, 0.5), 1, 6)
 			elif u.active_skill == "抛射轰击":
-				for point in mortar_points(u.lock_point): draw_landing(point, color, (0.55 - u.timer) / 1.5)
+				for point in mortar_points(u.lock_point): draw_landing(point, color, blast_progress(u.timer + BLAST_FLIGHT))
 		for h in hazards:
 			if h.kind != "area": continue
-			var color: Color = BLUE if h.team == 0 else RED
-			draw_landing(h.p, color, 1.0 - h.left / 1.5)
+			var color: Color = ATTACK_BLUE if h.team == 0 else ATTACK_RED
+			draw_landing(h.p, color, blast_progress(h.left))
 	for h in hazards:
 		if h.kind != "area": continue
 		var t: float = clampf(1.0 - h.left / 0.95, 0, 1)
 		var shell: Vector2 = h.origin.lerp(h.p, t) + Vector2(0, -80 * sin(t * PI))
-		draw_circle(ORIGIN + shell, 4, GOLD)
+		draw_circle(ORIGIN + shell, 5, ATTACK_BLUE if h.team == 0 else ATTACK_RED)
 	for fx in blasts:
-		var color := Color(GOLD, fx.life / 0.3)
+		var color := Color(ATTACK_BLUE if fx.team == 0 else ATTACK_RED, fx.life / 0.3)
 		if fx.kind == "beam": draw_line(ORIGIN + fx.p, ORIGIN + fx.end, color, 14 * fx.life / 0.3)
 		else:
-			draw_circle(ORIGIN + fx.p, 40, Color(color, fx.life * 0.6))
-			draw_arc(ORIGIN + fx.p, 40 * (1 - fx.life / 0.3), 0, TAU, 32, color, 3)
+			draw_circle(ORIGIN + fx.p, fx.radius, Color(color, fx.life * 0.6))
+			draw_arc(ORIGIN + fx.p, fx.radius, 0, TAU, 96, color, 3)
+			draw_arc(ORIGIN + fx.p, fx.radius * (1 - fx.life / 0.3), 0, TAU, 32, color, 3)
 
 func pattern_fixture() -> void:
 	reset_round()
@@ -1746,7 +1748,7 @@ func run_pattern_tests() -> void:
 	begin_shot(units[0], 2, "抛射轰击")
 	var points := mortar_points(units[0].lock_point)
 	update_attack(units[0], 0.56)
-	assert(hazards.size() == 3)
+	assert(hazards.size() == 1)
 	units[2].p = points[0]
 	update_bullets(0.5)
 	assert(units[2].hp == 4)
@@ -1785,7 +1787,7 @@ func perceived_dangers(u: Dictionary, visible: Array) -> Array:
 				var direction := Vector2.from_angle(enemy.lock_angle + angle)
 				dangers.append({"kind": "line", "p": enemy.p, "end": enemy.p + direction * 228, "radius": 0.0, "eta": enemy.timer + maxf(0, enemy.p.distance_to(u.p) - RADIUS) / 250, "source": index})
 		elif skill == "抛射轰击":
-			for point in mortar_points(enemy.lock_point): dangers.append({"kind": "area", "p": point, "radius": 40.0, "eta": enemy.timer + 0.95, "source": index})
+			for point in mortar_points(enemy.lock_point): dangers.append({"kind": "area", "p": point, "radius": BLAST_RADIUS, "eta": enemy.timer + BLAST_FLIGHT, "source": index})
 	for h in hazards:
 		if h.kind == "area" and h.team != u.team:
 			dangers.append({"kind": "area", "p": h.p, "radius": h.radius, "eta": h.left, "source": h.source})
@@ -1840,8 +1842,6 @@ func prepare_tactical_escape(u: Dictionary, visible: Array) -> bool:
 	if not threatened:
 		if u.intent == "规避预警": u.action_left = 0; u.phase = "移动"
 		return false
-	# PP is the faster option if the user configured it and it is available.
-	if try_reaction(u, visible, true): return true
 	var choice := escape_destination(u, dangers, unit_move_speed(u))
 	if choice.is_empty(): return false
 	if u.intent != "规避预警":
@@ -1898,7 +1898,7 @@ func run_evasion_tests() -> void:
 		countered = countered or units[0].intent == "收招反打"
 		landed_in_recovery = landed_in_recovery or (units[2].hp < 4 and units[2].phase == "收招")
 	print("duel ", escaped, " ", countered, " ", landed_in_recovery, " hp ", units[0].hp, " enemy ", units[2].hp, " phase ", units[0].phase)
-	assert(escaped and countered and landed_in_recovery and units[0].hp == 4, "Must dodge locked cast and land a normal counter during recovery")
+	assert(escaped and not countered and units[0].hp == 4, "Baseline dodges without injecting automatic counter rules")
 	# Already outside the beam should not move merely because it was targeted.
 	pattern_fixture()
 	begin_shot(units[2], 0, "蓄能贯穿")
@@ -1925,7 +1925,7 @@ func run_evasion_tests() -> void:
 	hazards.append({"kind": "area", "p": units[0].p, "radius": 40.0, "team": 1, "source": 2, "left": 0.1, "damage": 1.0})
 	for tick in range(10): simulate(STEP)
 	assert(units[0].hp == 3 and units[0].phase == "收招")
-	print("EVASION PASSED: baseline dodge, counter lands during recovery, no false alarm, overlapping zones, action commitment")
+	print("EVASION PASSED: baseline dodge, no automatic counter priority, no false alarm, overlapping zones, action commitment")
 
 func run_blast_tests() -> void:
 	# Screenshot-like case: impact center inside the upper wall, body outside its corner.
@@ -1958,3 +1958,74 @@ func run_blast_tests() -> void:
 		assert(units[2].hp == 4, "Shield and guard still absorb a one-point hit")
 	assert(beam_end(Vector2(180, 160), 0).x < 241)
 	print("BLAST PASSED: wall-centered repro, body edge/tangent/outside, warning vs impact, single damage tick, AI geometry, friendly fire, defense, beam cover")
+
+func run_arena_tests() -> void:
+	assert(blast_progress(BLAST_CAST + BLAST_FLIGHT) == 0)
+	assert(blast_progress(0) == 1)
+	assert(is_equal_approx(blast_progress(BLAST_FLIGHT), BLAST_CAST / (BLAST_CAST + BLAST_FLIGHT)))
+	# Locked landing point and one continuous clock spanning cast and flight.
+	for dodge_target in [false, true]:
+		pattern_fixture()
+		begin_shot(units[0], 2, "抛射轰击")
+		var locked: Vector2 = units[0].lock_point
+		update_attack(units[0], BLAST_CAST - 0.01)
+		assert(hazards.is_empty() and shots == 0)
+		update_attack(units[0], 0.02)
+		assert(hazards.size() == 1 and hazards[0].p == locked and hazards[0].radius == BLAST_RADIUS)
+		if dodge_target: units[2].p = locked + Vector2(BLAST_RADIUS + RADIUS + 1, 0)
+		update_bullets(BLAST_FLIGHT - 0.01)
+		assert(units[2].hp == 4)
+		update_bullets(0.02)
+		assert(units[2].hp == (4 if dodge_target else 3))
+		assert(blasts.size() == 1 and blasts[0].radius == BLAST_RADIUS)
+	# A configured PP may choose offense instead of baseline movement.
+	pattern_fixture()
+	begin_shot(units[2], 0, "蓄能贯穿")
+	units[2].timer = 0.8
+	loadouts[0] = Tactics.build([], [["焰返", "无", "无"]])
+	var before: Vector2 = units[0].p
+	simulate(STEP)
+	assert(units[0].active_skill == "焰返" and units[0].p == before)
+	# Empty PP still performs basic continuous walking, not tile hops.
+	pattern_fixture()
+	begin_shot(units[2], 0, "蓄能贯穿")
+	units[2].timer = 0.8
+	units[0].cooldown = 0.25
+	before = units[0].p
+	simulate(STEP)
+	assert(units[0].intent == "规避预警" and units[0].p.distance_to(before) > 0 and units[0].p.distance_to(before) < 3)
+	var rows: Array = []
+	for opponent in range(7):
+		for side in [false, true]:
+			team_presets = [5, opponent]
+			setup_loadouts()
+			blue_attacks = side
+			reset_round()
+			for tick in range(3602):
+				if finished: break
+				simulate(STEP)
+				for u in units:
+					assert(u.hp >= 0 and u.hp <= 4 and u.hp == floorf(u.hp))
+					if u.hp > 0: assert(valid_arena_position(u.p))
+			assert(finished and shots > 0)
+			rows.append({"blue": 5, "red": opponent, "blue_left": side, "winner": winner_team, "seconds": ROUND_TIME - clock, "skills": reaction_counts.duplicate()})
+	var file := FileAccess.open("res://reports/arena-validation.json", FileAccess.WRITE)
+	file.store_string(JSON.stringify(rows, "\t"))
+	print("ARENA PASSED: continuous movement, locked single circle, continuous cast/flight ring, exact impact time/radius, PP before baseline, 14 matches")
+
+func draw_move_path(u: Dictionary) -> void:
+	if u.dodge <= 0 and u.action_left <= 0 and u.intent != "规避预警": return
+	var destination: Vector2 = u.p + u.dodge_dir * 200 * u.dodge if u.dodge > 0 else u.action_goal
+	if u.p.distance_to(destination) <= 10: return
+	var points: Array = [u.p]
+	if u.dodge <= 0 and u.intent != "规避预警":
+		for point in u.path: points.append(point)
+	points.append(destination)
+	for i in range(1, points.size()): draw_dashed_line(ORIGIN + points[i - 1], ORIGIN + points[i], Color(MOVE_HINT, 0.7), 2, 7)
+	var end: Vector2 = ORIGIN + destination
+	draw_arc(end, 10, 0, TAU, 28, MOVE_HINT, 2)
+	draw_circle(end, 3, MOVE_HINT)
+	var direction: Vector2 = (destination - u.p).normalized()
+	var arrow := end - direction * 16
+	draw_line(arrow, arrow - direction.rotated(0.55) * 9, MOVE_HINT, 2)
+	draw_line(arrow, arrow - direction.rotated(-0.55) * 9, MOVE_HINT, 2)

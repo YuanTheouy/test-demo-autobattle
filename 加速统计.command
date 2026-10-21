@@ -7,7 +7,7 @@ if [[ ! -x "$godot_binary" ]]; then
   read -r '?按回车关闭。'
   exit 1
 fi
-echo '格子版：炮击压制对照七套配置，交换出生侧，共14场。'
-"$godot_binary" --headless --path "$PWD" -- --batch-test
-echo '完成。汇总：reports/grid-validation.json（每次覆盖）。'
+echo '即时竞技场：炮击压制对照七套配置，交换出生侧，共14场。'
+"$godot_binary" --headless --path "$PWD" -- --arena-test
+echo '完成。汇总：reports/arena-validation.json（每次覆盖）。'
 read -r '?按回车关闭。'
