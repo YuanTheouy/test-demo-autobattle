@@ -3,7 +3,8 @@ extends "res://scripts/battle.gd"
 # Grid simulation. p is always the occupied cell center; movement is animated separately.
 const CELL := 80.0
 const MOVE_HINT := Color("69e3b3")
-const ATTACK_HINT := Color("ffae57")
+const ATTACK_BLUE := Color("9599ff")
+const ATTACK_RED := Color("ff825e")
 const DIRS := [Vector2i.RIGHT, Vector2i.DOWN, Vector2i.LEFT, Vector2i.UP]
 var pending: Array = []
 var grid_fx: Array = []
@@ -35,7 +36,7 @@ func update_grid_labels(node: Node) -> void:
 			if child.text.begins_with("反应 ·"): child.text = "反应 · 事件触发；移动、前摇与收招期间不能插入"
 			if child.text.begins_with("AUTOBATTLE"): child.text = "AUTOBATTLE  /  格子战术"
 		update_grid_labels(child)
-	skill_help.text = "步行 / 闪避：相邻1格 · 攻击距离：曼哈顿3格\n贯穿一列 · 霰弹扇形 · 炮击十字；亮格才会命中\n橙色格：攻击 · 绿色虚线＋圆点：移动路径与目的地"
+	skill_help.text = "步行 / 闪避：相邻1格 · 攻击距离：曼哈顿3格\n贯穿一列 · 霰弹扇形 · 炮击十字；亮格才会命中\n蓝紫 / 橙红：双方攻击 · 绿线＋圆点：移动路径与目的地"
 
 func setup_navigation() -> void: pass
 func refresh_boundary_navigation() -> void: pass
@@ -493,16 +494,16 @@ func _draw() -> void:
 		paint_cells(range_cells, Color("d4e4ee"), 0.08)
 	if show_aim:
 		for u in units:
-			if u.hp > 0 and u.phase == "吟唱": paint_cells(u.attack_cells, ATTACK_HINT, 0.20)
-		for a in pending: paint_cells(a.cells, ATTACK_HINT, 0.28)
-	for fx in grid_fx: paint_cells(fx.cells, GOLD, fx.life * 1.8)
+			if u.hp > 0 and u.phase == "吟唱": paint_cells(u.attack_cells, ATTACK_BLUE if u.team == 0 else ATTACK_RED, 0.20)
+		for a in pending: paint_cells(a.cells, ATTACK_BLUE if a.team == 0 else ATTACK_RED, 0.28)
+	for fx in grid_fx: paint_cells(fx.cells, ATTACK_BLUE if fx.team == 0 else ATTACK_RED, fx.life * 1.8)
 	for a in pending:
 		if a.total <= 0: continue
 		for c in a.cells:
 			var t: float = clampf(1 - a.left / a.total, 0, 1)
 			var p: Vector2 = a.origin.lerp(center(c), t)
 			if a.skill == "抛射轰击": p.y -= sin(t * PI) * 65
-			draw_circle(ORIGIN + p, 4, GOLD)
+			draw_circle(ORIGIN + p, 4, ATTACK_BLUE if a.team == 0 else ATTACK_RED)
 	# Movement guidance is independent of the attack-range toggle.
 	for u in units:
 		if u.hp <= 0 or not u.moving: continue
