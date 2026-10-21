@@ -2,6 +2,8 @@ extends "res://scripts/battle.gd"
 
 # Grid simulation. p is always the occupied cell center; movement is animated separately.
 const CELL := 80.0
+const MOVE_HINT := Color("69e3b3")
+const ATTACK_HINT := Color("ffae57")
 const DIRS := [Vector2i.RIGHT, Vector2i.DOWN, Vector2i.LEFT, Vector2i.UP]
 var pending: Array = []
 var grid_fx: Array = []
@@ -33,7 +35,7 @@ func update_grid_labels(node: Node) -> void:
 			if child.text.begins_with("反应 ·"): child.text = "反应 · 事件触发；移动、前摇与收招期间不能插入"
 			if child.text.begins_with("AUTOBATTLE"): child.text = "AUTOBATTLE  /  格子战术"
 		update_grid_labels(child)
-	skill_help.text = "步行 / 闪避：相邻1格 · 攻击距离：曼哈顿3格\n贯穿一列 · 霰弹扇形 · 炮击十字；亮格才会命中"
+	skill_help.text = "步行 / 闪避：相邻1格 · 攻击距离：曼哈顿3格\n贯穿一列 · 霰弹扇形 · 炮击十字；亮格才会命中\n橙色格：攻击 · 绿色虚线＋圆点：移动路径与目的地"
 
 func setup_navigation() -> void: pass
 func refresh_boundary_navigation() -> void: pass
@@ -75,6 +77,7 @@ func reset_round() -> void:
 		u.attack_cells = []
 		u.last_cell = Vector2i(-1, -1)
 		u.pp_seen = {}
+		u.planned_path = []
 	refresh_ui()
 
 func refresh_ui() -> void:
@@ -111,7 +114,7 @@ func _physics_process(delta: float) -> void:
 	queue_redraw()
 	if "--preview" in OS.get_cmdline_user_args():
 		preview_frames += 1
-		if preview_frames == 600: capture_preview.call_deferred()
+		if preview_frames == (20 if "--movement-preview" in OS.get_cmdline_user_args() else 600): capture_preview.call_deferred()
 
 func passes_condition(u: Dictionary, target: int, condition: String) -> bool:
 	if condition == "敌人距离≤2格": return target >= 0 and distance(cell_of(u.p), cell_of(units[target].p)) <= 2
@@ -211,6 +214,7 @@ func launch(u: Dictionary) -> void:
 func start_step(u: Dictionary, c: Vector2i, duration := 0.55) -> bool:
 	if u.get("moving", false) or distance(cell_of(u.p), c) != 1 or not free_cell(c, u.uid): return false
 	u.moving = true
+	u.planned_path = [cell_of(u.p), c]
 	u.move_to = c
 	u.move_total = duration * (1.5 if u.slow > 0 else 1.0)
 	u.move_left = u.move_total
@@ -218,21 +222,28 @@ func start_step(u: Dictionary, c: Vector2i, duration := 0.55) -> bool:
 	u.reason = "移动到 %s%d；到达后重新检查规则" % [char(65 + c.x), c.y + 1]
 	return true
 
-func first_step(u: Dictionary, goal: Vector2i) -> Vector2i:
+func route_to(u: Dictionary, goal: Vector2i) -> Array:
 	var start := cell_of(u.p)
 	var queue: Array = [start]
 	var previous := {start: start}
 	while not queue.is_empty():
 		var c: Vector2i = queue.pop_front()
 		if c == goal:
-			while previous[c] != start and c != start: c = previous[c]
-			return c
+			var route: Array = [c]
+			while c != start:
+				c = previous[c]
+				route.push_front(c)
+			return route
 		for d in DIRS:
 			var next: Vector2i = c + d
 			if next not in previous and free_cell(next, u.uid):
 				previous[next] = c
 				queue.append(next)
-	return start
+	return []
+
+func first_step(u: Dictionary, goal: Vector2i) -> Vector2i:
+	var route := route_to(u, goal)
+	return route[1] if route.size() > 1 else cell_of(u.p)
 
 func movement_skill(u: Dictionary, target: int, skill: String) -> bool:
 	var best := cell_of(u.p)
@@ -375,7 +386,8 @@ func baseline_grid(u: Dictionary, visible: Array) -> void:
 			if cost < best and first_step(u, c) != cell_of(u.p): best = cost; goal = c
 	var step := first_step(u, goal)
 	if step == cell_of(u.p): u.patrol += 1; u.phase = "待命"; return
-	start_step(u, step)
+	var planned := route_to(u, goal)
+	if start_step(u, step): u.planned_path = planned
 	u.intent = "基础接敌" if not visible.is_empty() else "基础搜寻"
 
 func simulate(dt: float) -> void:
@@ -481,8 +493,8 @@ func _draw() -> void:
 		paint_cells(range_cells, Color("d4e4ee"), 0.08)
 	if show_aim:
 		for u in units:
-			if u.hp > 0 and u.phase == "吟唱": paint_cells(u.attack_cells, BLUE if u.team == 0 else RED, 0.20)
-		for a in pending: paint_cells(a.cells, BLUE if a.team == 0 else RED, 0.28)
+			if u.hp > 0 and u.phase == "吟唱": paint_cells(u.attack_cells, ATTACK_HINT, 0.20)
+		for a in pending: paint_cells(a.cells, ATTACK_HINT, 0.28)
 	for fx in grid_fx: paint_cells(fx.cells, GOLD, fx.life * 1.8)
 	for a in pending:
 		if a.total <= 0: continue
@@ -491,14 +503,32 @@ func _draw() -> void:
 			var p: Vector2 = a.origin.lerp(center(c), t)
 			if a.skill == "抛射轰击": p.y -= sin(t * PI) * 65
 			draw_circle(ORIGIN + p, 4, GOLD)
+	# Movement guidance is independent of the attack-range toggle.
+	for u in units:
+		if u.hp <= 0 or not u.moving: continue
+		var route: Array = u.get("planned_path", [cell_of(u.p), u.move_to])
+		var previous: Vector2 = ORIGIN + u.p.lerp(center(u.move_to), clampf(1 - u.move_left / u.move_total, 0, 1))
+		for index in range(1, route.size()):
+			var point := ORIGIN + center(route[index])
+			draw_dashed_line(previous, point, MOVE_HINT, 2, 7)
+			if index < route.size() - 1: draw_circle(point, 3, MOVE_HINT)
+			previous = point
+		paint_cells([u.move_to], MOVE_HINT, 0.07)
+		if not route.is_empty():
+			var endpoint := ORIGIN + center(route.back())
+			draw_arc(endpoint, 11, 0, TAU, 28, MOVE_HINT, 2)
+			draw_circle(endpoint, 4, MOVE_HINT)
+			if route.size() > 1:
+				var direction := (endpoint - ORIGIN - center(route[route.size() - 2])).normalized()
+				var arrow := endpoint - direction * 18
+				draw_line(arrow, arrow - direction.rotated(0.55) * 10, MOVE_HINT, 2)
+				draw_line(arrow, arrow - direction.rotated(-0.55) * 10, MOVE_HINT, 2)
 	for u in units:
 		var color: Color = BLUE if u.team == 0 else RED
 		var p: Vector2 = u.p
 		if u.moving:
 			p = u.p.lerp(center(u.move_to), clampf(1 - u.move_left / u.move_total, 0, 1))
-			paint_cells([cell_of(u.p)], color, 0.06)
-			draw_dashed_line(ORIGIN + u.p, ORIGIN + center(u.move_to), color, 1, 5)
-			if show_aim: paint_cells([u.move_to], color, 0.08)
+			paint_cells([cell_of(u.p)], MOVE_HINT, 0.04)
 		p += ORIGIN
 		if u.hp <= 0:
 			draw_line(p - Vector2(8, 8), p + Vector2(8, 8), color.darkened(0.5), 3)
