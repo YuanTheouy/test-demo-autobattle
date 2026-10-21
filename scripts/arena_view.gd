@@ -210,6 +210,10 @@ func label(u: Dictionary) -> void:
 	var color: Color = g.BLUE if u.team == 0 else g.RED
 	g.draw_rect(Rect2(p + Vector2(-31, -8), Vector2(62, 7)), Color("0b1520"))
 	g.draw_rect(Rect2(p + Vector2(-30, -7), Vector2(60 * u.hp / g.MAX_HP, 5)), color)
+	g.draw_rect(Rect2(p + Vector2(-30, 1), Vector2(60, 4)), Color("17232b"))
+	g.draw_rect(Rect2(p + Vector2(-30, 1), Vector2(60 * u.energy / 100, 4)), Color("72e5b4"))
+	if u.cooldown > 0:
+		g.draw_string(g.font, p + Vector2(34, 4), "CD %.1f" % u.cooldown, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("f5ce78"))
 	g.draw_string(g.font, p + Vector2(-30, -14), "%s%d   %d" % ["蓝" if u.team == 0 else "红", u.member + 1, u.hp], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.WHITE)
 	var text: String = u.active_skill if u.phase in ["吟唱", "大招蓄力", "点射", "锁定", "瞄准"] else u.intent
 	if u.phase == "收招": text = "收招"
@@ -343,4 +347,4 @@ func ultimate_preview() -> void:
 				else: landing(point, shape.radius, color, (0.3 - u.timer) / 0.95, 0.95)
 		if aiming:
 			g.draw_rect(Rect2(185, 155, 560, 34), Color(0.04, 0.08, 0.13, 0.95))
-			g.draw_string(g.font, Vector2(199, 177), "%s · 慢放瞄准 · 左键释放 / 右键或 Esc 取消" % g.ultimate_name(u.uid), HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("ffe7a0"))
+			g.draw_string(g.font, Vector2(199, 177), "%s · %s · 右键/Esc取消" % [g.ultimate_name(u.uid), ("精力不足70" if u.energy < 70 else ("公共CD %.1fs" % u.cooldown if u.cooldown > 0 else ("等待收招" if u.phase in ["吟唱", "瞄准", "点射", "收招", "大招蓄力"] else "左键释放")))], HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("ffe7a0"))

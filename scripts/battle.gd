@@ -109,6 +109,10 @@ func _ready() -> void:
 	setup_loadouts()
 	setup_ui()
 	reset_round()
+	if "--resource-test" in OS.get_cmdline_user_args():
+		run_resource_tests()
+		get_tree().quit()
+		return
 	if "--ultimate-test" in OS.get_cmdline_user_args():
 		run_ultimate_tests()
 		get_tree().quit()
@@ -363,7 +367,7 @@ func rebuild_editor() -> void:
 		for column in range(3):
 			var menu: OptionButton = row.menus[column]
 			if column > 0:
-				var allowed: Array = ["无", "优先低血量", "自己HP≤50", "队友HP≤50"] if loadouts[editor_unit][row.kind][row.slot][0] in ["回春", "灵木护佑"] else CONDITIONS
+				var allowed: Array = ["无", "优先低血量", "自己HP≤50", "队友HP≤50", "自己精力≥80", "自己精力≥50", "自己精力≤30"] if loadouts[editor_unit][row.kind][row.slot][0] in ["回春", "灵木护佑"] else CONDITIONS
 				menu.clear()
 				for condition in allowed: menu.add_item(condition)
 				if loadouts[editor_unit][row.kind][row.slot][column] not in allowed:
@@ -371,7 +375,7 @@ func rebuild_editor() -> void:
 			var value: String = loadouts[editor_unit][row.kind][row.slot][column]
 			for index in range(menu.item_count):
 				if menu.get_item_text(index) == value: menu.select(index)
-			if column == 0: menu.tooltip_text = Tactics.DESCRIPTIONS.get(value, "")
+			if column == 0: menu.tooltip_text = Tactics.DESCRIPTIONS.get(value, "") + "\n精力消耗：%d；%s" % [energy_cost(value), "受公共施法CD限制" if uses_public_cd(value) else "不受公共施法CD限制"]
 
 func add_button(parent: Node, title: String, callback: Callable) -> Button:
 	var b := Button.new()
@@ -416,7 +420,7 @@ func reset_round() -> void:
 		var attack: bool = (team == 0) == blue_attacks
 		for member in range(2):
 			var p: Vector2 = Vector2(120, 200 + member * 240) if attack else Vector2(520, 200 + member * 240)
-			units.append({"ult_charge": 0.0, "ult_angle": 0.0, "uid": team * 2 + member, "team": team, "member": member, "attack": attack, "p": p,
+			units.append({"energy": 100.0, "ult_charge": 0.0, "ult_angle": 0.0, "uid": team * 2 + member, "team": team, "member": member, "attack": attack, "p": p,
 				"blast_impulse": Vector2.ZERO, "blast_lock": 0.0, "impulse": Vector2.ZERO, "evade_source": -1, "counter_left": 0.0, "thorns": 0.0, "thorn_tick": 0.0, "hurt_recent": 0.0, "hit_flash": 0.0, "heal_flash": 0.0, "reason": "基础作战就绪", "rule_kind": "", "rule_slot": -1, "slow": 0.0, "shield": 0.0, "shield_time": 0.0, "patrol": 0, "dash_recovery": false, "avoid_left": 0.0, "avoid_dir": Vector2.ZERO, "active_skill": "点射", "rule": "待机", "rule_flash": 0.0, "fire_flash": 0.0, "marked": 0.0, "guard": 0.0, "skill_cds": {}, "action_left": 0.0, "action_goal": p,
 				"intent": "待机", "retreat": 0.0, "retreat_cd": 0.0, "hp": MAX_HP, "phase": "移动", "timer": 0.0, "cooldown": 0.0,
 				"angle": 0.0 if attack else PI, "target": -1, "path": PackedVector2Array(),
@@ -579,6 +583,8 @@ func simulate(dt: float) -> void:
 		for key in u.skill_cds.keys(): u.skill_cds[key] = maxf(0, u.skill_cds[key] - dt)
 		u.counter_left = maxf(0, u.counter_left - dt)
 		u.cooldown = maxf(0, u.cooldown - dt)
+		if u.phase not in ["吟唱", "瞄准", "点射", "收招", "大招蓄力", "回春", "灵木护佑", "掩护队友"]:
+			u.energy = minf(100, u.energy + 12.0 * dt)
 		u.blast_lock = maxf(0, u.blast_lock - dt)
 		u.marked = maxf(0, u.marked - dt)
 		u.guard = maxf(0, u.guard - dt)
@@ -626,7 +632,7 @@ func simulate(dt: float) -> void:
 			var movement_reason: String = u.reason
 			if try_active(u, visible[u.team]): continue
 			u.reason = movement_reason
-			if u.cooldown <= 0 and u.intent == "战斗走位": u.action_left = 0.0
+			if can_use_skill(u, "点射") and u.intent == "战斗走位": u.action_left = 0.0
 		if u.action_left > 0:
 			u.action_left = maxf(0, u.action_left - dt)
 			if u.intent not in ["架枪防御", "掩护队友", "回春", "灵木护佑"]:
@@ -771,7 +777,7 @@ func choose_goal(u: Dictionary, visible: Array) -> Vector2:
 func unit_move_speed(u: Dictionary) -> float:
 	var base_speed := ENGAGE_SPEED if u.intent in ["基础接敌", "搜索", "战术换位"] else MOVE_SPEED
 	var skill_multiplier := 2.4 if u.intent == "短冲刺" else (1.2 if u.intent in ["绕侧", "后撤"] else 1.0)
-	return base_speed * (0.6 if u.slow > 0 else 1.0) * skill_multiplier
+	return base_speed * (0.6 if u.slow > 0 else 1.0) * skill_multiplier * energy_speed(u)
 
 func baseline_action(u: Dictionary, visible: Array) -> void:
 	u.rule_kind = ""
@@ -779,7 +785,7 @@ func baseline_action(u: Dictionary, visible: Array) -> void:
 	u.rule_flash = 0.0
 	var target := rule_target(u, visible, ["", "优先最近敌人", "无"], true)
 	if target >= 0:
-		if u.cooldown <= 0:
+		if can_use_skill(u, "点射"):
 			begin_shot(u, target, "点射")
 			u.intent = "基础点射"
 			u.rule = "基础点射"
@@ -854,12 +860,12 @@ func prepare_combat_step(u: Dictionary, target: int) -> bool:
 		if not clear: continue
 		u.target = target
 		u.action_goal = goal
-		u.action_left = minf(u.cooldown, 0.65)
+		u.action_left = clampf(u.cooldown, 0.3, 0.65)
 		u.path = PackedVector2Array()
 		u.avoid_left = 0.0
 		u.intent = "战斗走位"
 		u.phase = u.intent
-		u.reason = "武器恢复中，侧移保持射线；玩家技能可立即接管"
+		u.reason = "公共CD或精力恢复中，侧移保持射线"
 		return true
 	return false
 
@@ -870,6 +876,9 @@ func recovery_duration(skill: String) -> float:
 	return 0.45
 
 func begin_shot(u: Dictionary, target: int, skill: String) -> void:
+	if not can_use_skill(u, skill): return
+	u.energy -= energy_cost(skill)
+	if skill == "点射": u.skill_cds[skill] = 1.5
 	u.target = target
 	u.active_skill = skill
 	u.action_left = 0.0
@@ -885,7 +894,7 @@ func begin_shot(u: Dictionary, target: int, skill: String) -> void:
 
 func move_unit(u: Dictionary, goal: Vector2, dt: float) -> void:
 	if u.intent == "战斗走位":
-		var step_to: Vector2 = u.p.move_toward(goal, COMBAT_STEP_SPEED * (0.6 if u.slow > 0 else 1.0) * dt)
+		var step_to: Vector2 = u.p.move_toward(goal, COMBAT_STEP_SPEED * (0.6 if u.slow > 0 else 1.0) * energy_speed(u) * dt)
 		if movement_is_free(u, step_to) and not blocked(u.p, step_to): u.p = step_to
 		else: u.action_left = 0.0
 		if u.target >= 0:
@@ -1057,9 +1066,10 @@ func update_attack(u: Dictionary, dt: float) -> void:
 		if u.shot_count >= int(Tactics.MAGIC.get(u.active_skill, {}).get("hits", 1)):
 			u.phase = "收招"
 			u.timer = recovery_duration(u.active_skill)
+			finish_spell(u, u.active_skill)
 	elif u.phase == "收招" and u.timer <= 0:
 		u.phase = "移动"
-		u.cooldown = 1.35
+		# Public CD started at the last emission, and overlaps recovery.
 
 func update_bullets(dt: float) -> void:
 	wall_damage.clear()
@@ -1158,6 +1168,7 @@ func refresh_ui() -> void:
 	subtitle.text = "蓝：%s    vs    红：%s  ·  基础作战 + 技能策略" % [Tactics.NAMES[team_presets[0]], Tactics.NAMES[team_presets[1]]]
 	var u: Dictionary = units[editor_unit]
 	info_label.text = "%s%d · HP %d · %s\n%s\n标记 %.1fs / 减速 %.1fs / 荆棘 %.1fs / 护盾 %d" % ["蓝" if u.team == 0 else "红", u.member + 1, u.hp, u.phase if u.hp > 0 else "已倒下", u.reason, u.marked, u.slow, u.thorns, u.shield]
+	info_label.text += "\n精力 %d/100 · 公共施法CD %.1fs · 移速 %d%%" % [u.energy, u.cooldown, energy_speed(u) * 100]
 	for rule in loadouts[editor_unit].reaction:
 		if rule[0] == "侧闪":
 			var remaining := float(u.skill_cds.get("侧闪", 0.0))
@@ -1298,6 +1309,9 @@ func run_team_tests() -> void:
 
 func passes_condition(u: Dictionary, target: int, condition: String) -> bool:
 	match condition:
+		"自己精力≥80": return u.energy >= 80
+		"自己精力≥50": return u.energy >= 50
+		"自己精力≤30": return u.energy <= 30
 		"敌人距离≥3米": return target >= 0 and u.p.distance_to(units[target].p) >= 240
 		"敌人正在攻击队友":
 			var ally := ally_index(u)
@@ -1385,8 +1399,8 @@ func try_active(u: Dictionary, visible: Array) -> bool:
 			if first_skip.is_empty(): first_skip = "%s冷却中" % skill
 			continue
 		var shooting := skill in Tactics.MAGIC or skill in ["标记弹", "强力射击", "压制射击"]
-		if shooting and u.cooldown > 0:
-			if first_skip.is_empty(): first_skip = "武器正在恢复"
+		if not can_use_skill(u, skill):
+			if first_skip.is_empty(): first_skip = "精力不足" if u.energy < energy_cost(skill) else "公共施法CD中"
 			continue
 		var target := rule_target(u, visible, rule, shooting)
 		if target < 0:
@@ -1404,6 +1418,7 @@ func try_active(u: Dictionary, visible: Array) -> bool:
 			elif skill == "短冲刺": goal -= away * minf(90, u.p.distance_to(units[target].p) - 120)
 			u.action_goal = nearest_legal_goal(goal)
 			if u.p.distance_to(u.action_goal) < 15: continue
+			u.energy -= energy_cost(skill)
 			u.action_left = 0.5 if skill == "短冲刺" else 1.0
 			u.dash_recovery = skill == "短冲刺"
 			u.skill_cds[skill] = 4.0
@@ -1453,11 +1468,13 @@ func try_reaction(u: Dictionary, visible: Array, defensive_only := false) -> boo
 		var rule: Array = rows[slot]
 		var skill: String = rule[0]
 		if skill == "留空" or float(u.skill_cds.get(skill, 0.0)) > 0: continue
-		if skill in ["协同追击", "追风", "焰返", "震山"] and u.cooldown > 0: continue
+		if not can_use_skill(u, skill): continue
 		if defensive_only and skill not in ["侧闪", "架枪防御"]: continue
 		if skill in ["回春", "灵木护佑"]:
 			var recipient := heal_target(u, rule)
 			if recipient < 0: continue
+			u.energy -= energy_cost(skill)
+			finish_spell(u, skill)
 			heals_pending.append({"uid": units[recipient].uid, "amount": 8.0 if skill == "灵木护佑" else 12.0})
 			if skill == "灵木护佑": shields_pending.append({"uid": units[recipient].uid, "amount": 8.0})
 			links.append({"a": u.p, "b": units[recipient].p, "life": 0.7, "color": Tactics.ELEMENT_COLORS["林"]})
@@ -1513,6 +1530,9 @@ func try_reaction(u: Dictionary, visible: Array, defensive_only := false) -> boo
 		elif skill in ["焰返", "震山"]:
 			begin_shot(u, target, skill)
 			u.skill_cds[skill] = Tactics.MAGIC[skill].cd
+		if skill in ["侧闪", "架枪防御", "掩护队友"]:
+			u.energy -= energy_cost(skill)
+			if skill == "掩护队友": finish_spell(u, skill)
 		# Reactions replace a movement action; never resume its stale destination.
 		if skill == "侧闪": u.action_left = 0.0
 		u.avoid_left = 0.0
@@ -1705,7 +1725,7 @@ func run_content_tests() -> void:
 
 func heal_target(u: Dictionary, rule: Array) -> int:
 	for condition in [rule[1], rule[2]]:
-		if condition not in ["无", "优先低血量", "自己HP≤50", "队友HP≤50"]: return -1
+		if condition not in ["无", "优先低血量", "自己HP≤50", "队友HP≤50", "自己精力≥80", "自己精力≥50", "自己精力≤30"]: return -1
 		if not passes_condition(u, -1, condition): return -1
 	var best := -1
 	for index in range(units.size()):
@@ -1865,6 +1885,7 @@ func area_total_time(skill: String) -> float:
 	return float(Tactics.MAGIC[skill].cast) + BLAST_FLIGHT
 
 func release_pattern(u: Dictionary) -> void:
+	finish_spell(u, u.active_skill)
 	u.fire_flash = 0.18
 	shots += 1
 	var skill: String = u.active_skill
@@ -2087,7 +2108,7 @@ func counter_after_escape(u: Dictionary, visible: Array) -> bool:
 		u.reason = "已离开预警范围，等对手出招"
 		u.action_left = 0
 		return true
-	if enemy.phase != "收招" or u.cooldown > 0 or blocked(u.p, enemy.p) or u.p.distance_to(enemy.p) > SHOT_RANGE: return false
+	if enemy.phase != "收招" or not can_use_skill(u, "点射") or blocked(u.p, enemy.p) or u.p.distance_to(enemy.p) > SHOT_RANGE: return false
 	# Do not reset weapon cooldown or grant free shots: normal aim and ballistics apply.
 	begin_shot(u, source, "点射")
 	u.intent = "收招反打"
@@ -2282,7 +2303,7 @@ func run_tempo_tests() -> void:
 	update_attack(units[0], 0.02)
 	assert(bullets.size() == 5 and units[0].phase == "收招")
 	update_attack(units[0], 0.46)
-	assert(units[0].phase == "移动" and is_equal_approx(units[0].cooldown, 1.35))
+	assert(units[0].phase == "移动" and is_equal_approx(units[0].cooldown, 2.3))
 	print("TEMPO PASSED: continuous aimed footwork, ready attack and player AP preempt, cover safety, fast shotgun, committed laser")
 
 func run_defense_tests() -> void:
@@ -2370,7 +2391,7 @@ func run_expansion_tests() -> void:
 	update_attack(units[0], STEP)
 	assert(units[0].timer == 0.45)
 	update_attack(units[0], 0.46)
-	assert(is_equal_approx(units[0].cooldown, 1.35))
+	assert(is_equal_approx(units[0].cooldown, 1.8))
 	print("EXPANSION PASSED: all 13 attacks emitted intended damage, new patterns/guard, heal+shield, true damage, basic cadence, 100HP")
 
 func run_impact_tests() -> void:
@@ -2691,7 +2712,9 @@ func confirm_ultimate(point: Vector2) -> bool:
 	if finished or u.hp <= 0 or u.ult_charge < 100:
 		ultimate_aim = -1
 		return false
+	if not can_use_skill(u, ultimate_name(u.uid)) or u.phase in ["吟唱", "瞄准", "点射", "收招", "大招蓄力"]: return false
 	if not Rect2(Vector2.ZERO, Vector2(SIZE, SIZE)).has_point(point) or point.distance_to(u.p) < 12: return false
+	u.energy -= energy_cost(ultimate_name(u.uid))
 	u.ult_charge = 0.0
 	u.ult_angle = (point - u.p).angle()
 	u.angle = u.ult_angle
@@ -2713,6 +2736,7 @@ func confirm_ultimate(point: Vector2) -> bool:
 	return true
 
 func release_ultimate(u: Dictionary) -> void:
+	finish_spell(u, ultimate_name(u.uid))
 	var shape := ultimate_geometry(u, u.ult_angle)
 	if u.member == 0:
 		hazards.append({"kind": "beam", "skill": "天穹贯穿", "p": u.p, "end": shape.end, "radius": shape.radius, "damage": 45.0, "true_damage": true, "left": 0.0, "team": u.team, "source": u.uid})
@@ -2794,3 +2818,88 @@ func run_ultimate_tests() -> void:
 	update_bullets(BLAST_FLIGHT + 0.01)
 	assert(units[2].hp == MAX_HP - 22)
 	print("ULTIMATE PASSED: charge gate, cancel, invalid click, manual direction, cast and beam damage, slow motion and speed restore, barrage, death/reset")
+
+
+func energy_cost(skill: String) -> float:
+	if skill in ["天穹贯穿", "星火轰炸"]: return 70.0
+	if skill in ["蓄能贯穿", "抛射轰击", "烈焰爆破", "裂地冲击"]: return 45.0
+	if skill in ["绕侧", "后撤", "留空"]: return 0.0
+	if skill in ["短冲刺", "侧闪"]: return 20.0
+	if skill == "架枪防御": return 10.0
+	if skill == "点射": return 15.0
+	return 25.0
+
+func uses_public_cd(skill: String) -> bool:
+	return skill not in ["绕侧", "后撤", "短冲刺", "侧闪", "架枪防御", "留空"]
+
+func can_use_skill(u: Dictionary, skill: String) -> bool:
+	return u.energy + 0.00001 >= energy_cost(skill) and float(u.skill_cds.get(skill, 0)) <= 0 and (not uses_public_cd(skill) or u.cooldown <= 0)
+
+func finish_spell(u: Dictionary, skill: String) -> void:
+	var duration := 1.8 if skill == "点射" else (4.0 if skill in ["天穹贯穿", "星火轰炸"] else (3.0 if energy_cost(skill) >= 45 else 2.3))
+	u.cooldown = maxf(u.cooldown, duration)
+
+func energy_speed(u: Dictionary) -> float:
+	return lerpf(0.55, 1.0, clampf(u.energy / 100.0, 0, 1))
+
+func run_resource_tests() -> void:
+	pattern_fixture()
+	begin_shot(units[0], 2, "风刃")
+	assert(units[0].energy == 75)
+	update_attack(units[0], 0.01)
+	assert(units[0].cooldown == 0 and units[0].shot_count == 1)
+	update_attack(units[0], 0.23)
+	assert(units[0].cooldown == 2.3 and units[0].phase == "收招")
+	assert(not can_use_skill(units[0], "火矢") and not can_use_skill(units[0], "追风") and not can_use_skill(units[0], "点射"))
+	assert(can_use_skill(units[0], "侧闪") and can_use_skill(units[0], "后撤"))
+	units[0].cooldown = 0
+	units[0].energy = 10
+	assert(not can_use_skill(units[0], "点射"))
+	units[0].phase = "保持射位"
+	units[0].action_left = 2
+	units[0].intent = "架枪防御"
+	simulate(STEP)
+	assert(units[0].energy > 10 and units[0].energy < 11)
+	units[0].energy = 0
+	assert(is_equal_approx(energy_speed(units[0]), 0.55))
+	units[0].energy = 100
+	assert(is_equal_approx(energy_speed(units[0]), 1.0))
+	pattern_fixture()
+	begin_shot(units[0], 2, "蓄能贯穿")
+	assert(units[0].energy == 55 and units[0].cooldown == 0)
+	update_attack(units[0], 1.11)
+	assert(units[0].cooldown == 3.0)
+	update_attack(units[0], 1.01)
+	assert(units[0].cooldown == 3.0, "Finishing recovery must not reset GCD")
+	reset_round()
+	assert(units[0].energy == 100 and units[0].cooldown == 0)
+	pattern_fixture()
+	units[0].energy = 40
+	loadouts[0] = Tactics.build([["蓄能贯穿", "无", "无"], ["火矢", "无", "无"]], [])
+	assert(try_active(units[0], [2]) and units[0].active_skill == "火矢" and units[0].energy == 15)
+	units[0].phase = "吟唱"
+	units[0].timer = 1
+	var energy_before: float = units[0].energy
+	simulate(STEP)
+	assert(units[0].energy == energy_before, "No regeneration during casting")
+	reset_round()
+	started = true
+	units[0].ult_charge = 100
+	units[0].energy = 69
+	begin_ultimate_aim(0)
+	assert(not confirm_ultimate(Vector2(300, 300)) and units[0].ult_charge == 100)
+	units[0].energy = 100
+	units[0].cooldown = 1
+	assert(not confirm_ultimate(Vector2(300, 300)))
+	units[0].cooldown = 0
+	assert(confirm_ultimate(Vector2(300, 300)) and units[0].energy == 30)
+	release_ultimate(units[0])
+	assert(units[0].cooldown == 4)
+	reset_round()
+	units[1].hp = 50
+	units[1].hurt_recent = 1
+	units[1].p = units[0].p + Vector2(60, 0)
+	assert(heal_target(units[0], ["回春", "自己精力≥80", "无"]) == 1)
+	units[0].energy = 70
+	assert(heal_target(units[0], ["回春", "自己精力≥80", "无"]) == -1)
+	print("RESOURCE PASSED: one cost per burst, GCD after final emission, AP/PP gate, recovery movement, regeneration, speed floor, long cast, reset")
