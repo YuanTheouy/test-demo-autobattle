@@ -29,7 +29,7 @@ const ATTACK_RED := Color("ff825e")
 const BLAST_RADIUS := 64.0
 const BLAST_CAST := 0.25
 const BLAST_FLIGHT := 0.65
-var walls: Array[Rect2] = [Rect2(248, 104, 64, 112), Rect2(328, 424, 64, 112)]
+var walls: Array[Rect2] = [Rect2(270, 104, 20, 112), Rect2(350, 424, 20, 112)]
 var tactics := [0, 1]
 var team_focus := [-1, -1]
 var focus_timer := 0.0
@@ -96,6 +96,10 @@ func _ready() -> void:
 	setup_loadouts()
 	setup_ui()
 	reset_round()
+	if "--blast-push-test" in OS.get_cmdline_user_args():
+		run_blast_push_tests()
+		get_tree().quit()
+		return
 	if "--position-test" in OS.get_cmdline_user_args():
 		run_position_tests()
 		get_tree().quit()
@@ -283,7 +287,7 @@ func setup_ui() -> void:
 	info_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	result_label = text_label(panel, "", 18)
 	log_label = text_label(panel, "", 13)
-	var foot := text_label(self, "消灭对方获胜 · 18秒起硬边界收缩 · 60秒超时平局 · 点击圆点编辑", 14)
+	var foot := text_label(self, "消灭对方获胜 · 固定边界，不缩圈 · 60秒超时平局 · 点击圆点编辑", 14)
 	foot.position = Vector2(35, 789)
 	rebuild_editor()
 
@@ -344,7 +348,7 @@ func reset_round() -> void:
 		for member in range(2):
 			var p: Vector2 = Vector2(120, 200 + member * 240) if attack else Vector2(520, 200 + member * 240)
 			units.append({"uid": team * 2 + member, "team": team, "member": member, "attack": attack, "p": p,
-				"impulse": Vector2.ZERO, "evade_source": -1, "counter_left": 0.0, "thorns": 0.0, "thorn_tick": 0.0, "hurt_recent": 0.0, "hit_flash": 0.0, "heal_flash": 0.0, "reason": "基础作战就绪", "rule_kind": "", "rule_slot": -1, "slow": 0.0, "shield": 0.0, "shield_time": 0.0, "patrol": 0, "dash_recovery": false, "avoid_left": 0.0, "avoid_dir": Vector2.ZERO, "active_skill": "点射", "rule": "待机", "rule_flash": 0.0, "fire_flash": 0.0, "marked": 0.0, "guard": 0.0, "skill_cds": {}, "action_left": 0.0, "action_goal": p,
+				"blast_impulse": Vector2.ZERO, "blast_lock": 0.0, "impulse": Vector2.ZERO, "evade_source": -1, "counter_left": 0.0, "thorns": 0.0, "thorn_tick": 0.0, "hurt_recent": 0.0, "hit_flash": 0.0, "heal_flash": 0.0, "reason": "基础作战就绪", "rule_kind": "", "rule_slot": -1, "slow": 0.0, "shield": 0.0, "shield_time": 0.0, "patrol": 0, "dash_recovery": false, "avoid_left": 0.0, "avoid_dir": Vector2.ZERO, "active_skill": "点射", "rule": "待机", "rule_flash": 0.0, "fire_flash": 0.0, "marked": 0.0, "guard": 0.0, "skill_cds": {}, "action_left": 0.0, "action_goal": p,
 				"intent": "待机", "retreat": 0.0, "retreat_cd": 0.0, "hp": MAX_HP, "phase": "移动", "timer": 0.0, "cooldown": 0.0,
 				"angle": 0.0 if attack else PI, "target": -1, "path": PackedVector2Array(),
 				"repath": 0.0, "goal": p, "dodge": 0.0, "dodge_dir": Vector2.ZERO, "shot_count": 0, "last_seen": Vector2(-1, -1), "memory": 0.0})
@@ -481,9 +485,6 @@ func simulate(dt: float) -> void:
 	links = links.filter(func(link): return link.life > 0)
 	refresh_boundary_navigation()
 	enforce_boundary()
-	if not shrink_announced and ROUND_TIME - clock >= SHRINK_START:
-		shrink_announced = true
-		log_event("边界开始收缩，枪兵随边界向内移动")
 	var visible := [contacts(0), contacts(1)]
 	focus_timer -= dt
 	update_team_focus(visible)
@@ -496,6 +497,7 @@ func simulate(dt: float) -> void:
 		for key in u.skill_cds.keys(): u.skill_cds[key] = maxf(0, u.skill_cds[key] - dt)
 		u.counter_left = maxf(0, u.counter_left - dt)
 		u.cooldown = maxf(0, u.cooldown - dt)
+		u.blast_lock = maxf(0, u.blast_lock - dt)
 		u.marked = maxf(0, u.marked - dt)
 		u.guard = maxf(0, u.guard - dt)
 		u.slow = maxf(0, u.slow - dt)
@@ -553,7 +555,10 @@ func simulate(dt: float) -> void:
 			continue
 		if not try_active(u, visible[u.team]): baseline_action(u, visible[u.team])
 	for actor in next_units:
-		if actor.hp > 0: apply_forced_motion(actor, dt)
+		if actor.hp > 0:
+			if actor.blast_lock > 0:
+				actor.p = units[actor.uid].p.lerp(actor.p, 0.25)
+			apply_forced_motion(actor, dt)
 	# Reject conflicting movement proposals together, never first-come-first-served.
 	var rejected: Array[int] = []
 	for i in range(next_units.size()):
@@ -563,6 +568,7 @@ func simulate(dt: float) -> void:
 	for i in rejected:
 		next_units[i].p = units[i].p
 		next_units[i].impulse = Vector2.ZERO
+		next_units[i].blast_impulse = Vector2.ZERO
 		next_units[i].phase = "让行" if next_units[i].action_left > 0 else next_units[i].phase
 	units = next_units
 	for grant in shields_pending:
@@ -590,8 +596,7 @@ func simulate(dt: float) -> void:
 	effects = effects.filter(func(fx: Dictionary): return fx.life > 0)
 
 func safe_rect() -> Rect2:
-	var inset := MAX_INSET * clampf((ROUND_TIME - clock - SHRINK_START) / (SHRINK_END - SHRINK_START), 0, 1)
-	return Rect2(Vector2(inset, inset), Vector2(SIZE - inset * 2, SIZE - inset * 2))
+	return Rect2(Vector2.ZERO, Vector2(SIZE, SIZE))
 
 func ally_index(u: Dictionary) -> int:
 	for i in range(units.size()):
@@ -863,16 +868,38 @@ func apply_forced_motion(u: Dictionary, dt: float) -> void:
 		var nearest: Vector2 = Geometry2D.get_closest_point_to_segment(u.p, beam.p, beam.end)
 		if nearest.distance_to(u.p) <= RADIUS + beam.radius and not blocked(beam.p, u.p):
 			add_impulse(u, beam_push_direction(beam, u) * 1100.0 * dt)
-	var displacement: Vector2 = u.impulse * dt
-	var steps := maxi(1, int(ceil(displacement.length() / 4.0)))
+	var steps := maxi(1, int(ceil((u.impulse + u.blast_impulse).length() * dt / 4.0)))
 	for step in range(steps):
-		var candidate: Vector2 = u.p + displacement / steps
-		if not movement_is_free(u, candidate) or blocked(u.p, candidate):
+		var candidate: Vector2 = u.p + (u.impulse + u.blast_impulse) * dt / steps
+		var normal := forced_collision_normal(u.p, candidate)
+		if not normal.is_zero_approx():
+			u.impulse = u.impulse.bounce(normal) * 0.72
+			u.blast_impulse = u.blast_impulse.bounce(normal) * 0.72
+			continue
+		if not movement_is_free(u, candidate):
 			u.impulse = Vector2.ZERO
+			u.blast_impulse = Vector2.ZERO
 			break
 		u.p = candidate
+	u.blast_impulse *= exp(-3.5 * dt)
+	if u.blast_impulse.length() < 1.0: u.blast_impulse = Vector2.ZERO
 	u.impulse *= exp(-6.0 * dt)
 	if u.impulse.length() < 1.0: u.impulse = Vector2.ZERO
+
+func forced_collision_normal(origin: Vector2, candidate: Vector2) -> Vector2:
+	var bounds := safe_rect().grow(-RADIUS - 1)
+	if candidate.x < bounds.position.x: return Vector2.RIGHT
+	if candidate.x > bounds.end.x: return Vector2.LEFT
+	if candidate.y < bounds.position.y: return Vector2.DOWN
+	if candidate.y > bounds.end.y: return Vector2.UP
+	for wall in walls:
+		var solid := wall.grow(RADIUS + 1)
+		if not solid.has_point(candidate): continue
+		if origin.x <= solid.position.x: return Vector2.LEFT
+		if origin.x >= solid.end.x: return Vector2.RIGHT
+		if origin.y <= solid.position.y: return Vector2.UP
+		return Vector2.DOWN
+	return Vector2.ZERO
 
 func movement_is_free(u: Dictionary, next: Vector2) -> bool:
 	if not valid_arena_position(next): return false
@@ -1002,7 +1029,7 @@ func log_event(message: String) -> void:
 	if logs.size() > 3: logs.resize(3)
 
 func refresh_ui() -> void:
-	status_label.text = "对称歼灭  ·  %04.1f 秒    |    %s" % [maxf(clock, 0), "边缘收缩中" if ROUND_TIME - clock >= SHRINK_START else "%.0f 秒后缩圈" % (SHRINK_START - (ROUND_TIME - clock))]
+	status_label.text = "对称歼灭  ·  %04.1f 秒    |    固定场地 · 不缩圈" % maxf(clock, 0)
 	start_button.text = "暂停  [空格]" if running else ("重新开始  [空格]" if finished else ("继续  [空格]" if started else "开始交战  [空格]"))
 	result_label.text = result
 	log_label.text = "\n".join(logs)
@@ -1029,7 +1056,7 @@ func _draw() -> void:
 	draw_rect(Rect2(ORIGIN + Vector2(0, inset), Vector2(inset, SIZE - inset * 2)), danger)
 	draw_rect(Rect2(ORIGIN + Vector2(SIZE - inset, inset), Vector2(inset, SIZE - inset * 2)), danger)
 	if inset > 0: draw_rect(Rect2(ORIGIN + safe.position, safe.size), RED, false, 2)
-	if clock > ROUND_TIME - SHRINK_START:
+	if true:
 		draw_rect(Rect2(ORIGIN, Vector2(SIZE, SIZE)), Color(GOLD, 0.25), false, 1)
 	for wall in walls:
 		draw_rect(Rect2(wall.position + ORIGIN + Vector2(4, 5), wall.size), Color(0, 0, 0, 0.35))
@@ -1832,7 +1859,11 @@ func release_pattern(u: Dictionary) -> void:
 	shots += 1
 	var skill: String = u.active_skill
 	var data: Dictionary = Tactics.MAGIC[skill]
-	add_impulse(u, -Vector2.from_angle(u.lock_angle) * (115.0 if skill in Tactics.LINES else 80.0))
+	if skill in Tactics.AREAS:
+		u.blast_impulse = (u.blast_impulse - Vector2.from_angle(u.lock_angle) * 800.0).limit_length(4200.0)
+		u.blast_lock = 0.22
+	else:
+		add_impulse(u, -Vector2.from_angle(u.lock_angle) * (115.0 if skill in Tactics.LINES else 80.0))
 	if skill in Tactics.LINES:
 		hazards.append({"kind": "beam", "skill": skill, "p": u.p, "end": beam_end(u.p, u.lock_angle), "team": u.team, "source": u.uid, "left": 0.0, "damage": data.damage, "radius": pattern_radius(skill), "true_damage": data.element == "火"})
 	elif skill in Tactics.AREAS:
@@ -1869,7 +1900,8 @@ func resolve_hazards(dt: float, damage: Array) -> void:
 				else:
 					var away: Vector2 = (u.p - h.p).normalized()
 					if away.is_zero_approx(): away = Vector2.from_angle(u.angle + PI)
-					add_impulse(u, away * 155.0)
+					u.blast_impulse = (u.blast_impulse + away * (3400.0 if h.get("skill", "") == "烈焰爆破" else 2900.0)).limit_length(4200.0)
+				u.blast_lock = 0.22
 				damage[i] += maxf(0, h.damage - (6 if u.guard > 0 and not h.get("true_damage", h.kind == "beam") else 0))
 				hits += 1
 				hit_events.append({"source": h.source, "team": h.team, "target": i, "life": 0.8})
@@ -2476,3 +2508,39 @@ func run_position_tests() -> void:
 	simulate(STEP)
 	assert(units[1].intent == "后撤")
 	print("POSITION PASSED: close vs ranged goals, teammate opens angle, persistent destination, player AP preemption")
+
+func run_blast_push_tests() -> void:
+	for skill in Tactics.AREAS:
+		pattern_fixture()
+		units[2].p = Vector2(280, 320)
+		hazards.append({"kind": "area", "skill": skill, "p": units[2].p - Vector2(20, 0), "origin": units[0].p, "radius": pattern_radius(skill), "left": 0.0, "damage": 18.0, "team": 0, "source": 0})
+		update_bullets(STEP)
+		assert(units[2].blast_impulse.length() >= 2900)
+		var path_length := 0.0
+		for tick in range(120):
+			var before: Vector2 = units[2].p
+			apply_forced_motion(units[2], STEP)
+			path_length += before.distance_to(units[2].p)
+			assert(valid_arena_position(units[2].p))
+		assert(path_length > 400 and units[2].hp == MAX_HP - 18)
+		pattern_fixture()
+		begin_shot(units[0], 2, skill)
+		update_attack(units[0], Tactics.MAGIC[skill].cast + 0.01)
+		assert(units[0].blast_impulse.length() >= 799)
+	# Wall faces reflect their normal component, keeping the tangent component.
+	pattern_fixture()
+	units[0].p = Vector2(240, 160)
+	units[0].blast_impulse = Vector2(3400, 100)
+	apply_forced_motion(units[0], STEP)
+	assert(units[0].blast_impulse.x < 0 and units[0].blast_impulse.y > 0)
+	assert(valid_arena_position(units[0].p))
+	pattern_fixture()
+	units[0].p = Vector2(600, 320)
+	units[0].blast_impulse = Vector2(3400, 0)
+	apply_forced_motion(units[0], STEP)
+	assert(units[0].blast_impulse.x < 0 and valid_arena_position(units[0].p))
+	for elapsed in [0, 20, 40, 59]:
+		clock = ROUND_TIME - elapsed
+		assert(safe_rect() == Rect2(Vector2.ZERO, Vector2(SIZE, SIZE)))
+	assert(walls[0].size.x <= 64.0 / 3)
+	print("BLAST PUSH PASSED: 10x victim impulse, 10x caster recoil, swept wall/border bounce, tangential motion, no shrinking, thin walls")
