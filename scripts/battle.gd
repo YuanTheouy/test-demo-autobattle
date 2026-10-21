@@ -6,6 +6,8 @@ const SIZE := 640.0
 const RADIUS := 24.0
 const MAX_HP := 4.0
 const MOVE_SPEED := 87.0
+const ENGAGE_SPEED := 126.0
+const COMBAT_STEP_SPEED := 40.0
 const SHOT_RANGE := 270.0
 const SIGHT_RANGE := 410.0
 const BULLET_SPEED := 280.0
@@ -22,7 +24,7 @@ const ATTACK_RED := Color("ff825e")
 const BLAST_RADIUS := 64.0
 const BLAST_CAST := 0.25
 const BLAST_FLIGHT := 0.65
-var walls: Array[Rect2] = [Rect2(240, 80, 80, 160), Rect2(320, 400, 80, 160)]
+var walls: Array[Rect2] = [Rect2(248, 104, 64, 112), Rect2(328, 424, 64, 112)]
 var tactics := [0, 1]
 var team_focus := [-1, -1]
 var focus_timer := 0.0
@@ -630,7 +632,8 @@ func choose_goal(u: Dictionary, visible: Array) -> Vector2:
 	return destination
 
 func unit_move_speed(u: Dictionary) -> float:
-	return MOVE_SPEED * (0.6 if u.slow > 0 else 1.0) * (2.0 if u.intent == "短冲刺" else 1.0)
+	var base_speed := ENGAGE_SPEED if u.intent in ["基础接敌", "搜索"] else MOVE_SPEED
+	return base_speed * (0.6 if u.slow > 0 else 1.0) * (2.0 if u.intent == "短冲刺" else 1.0)
 
 func baseline_action(u: Dictionary, visible: Array) -> void:
 	u.rule_kind = ""
@@ -706,7 +709,7 @@ func begin_shot(u: Dictionary, target: int, skill: String) -> void:
 
 func move_unit(u: Dictionary, goal: Vector2, dt: float) -> void:
 	if u.intent == "战斗走位":
-		var step_to: Vector2 = u.p.move_toward(goal, 48.0 * (0.6 if u.slow > 0 else 1.0) * dt)
+		var step_to: Vector2 = u.p.move_toward(goal, COMBAT_STEP_SPEED * (0.6 if u.slow > 0 else 1.0) * dt)
 		if movement_is_free(u, step_to) and not blocked(u.p, step_to): u.p = step_to
 		else: u.action_left = 0.0
 		if u.target >= 0:
@@ -1614,7 +1617,8 @@ func run_magic_tests() -> void:
 
 func run_readability_tests() -> void:
 	for wall in walls:
-		for value in [wall.position.x, wall.position.y, wall.size.x, wall.size.y]: assert(fmod(value, 80.0) == 0)
+		assert(wall.size.x > 0 and wall.size.y > 0)
+		assert(Rect2(Vector2.ZERO, Vector2(SIZE, SIZE)).encloses(wall))
 	assert(RADIUS * 2 == 48)
 	# Identical incoming bullet hits a stationary unit but misses a side-stepping unit.
 	var health: Array = []
@@ -1659,7 +1663,7 @@ func run_readability_tests() -> void:
 			rows.append({"opponent": preset, "blue_left": side, "winner": winner_team, "seconds": ROUND_TIME - clock, "skills": reaction_counts.duplicate()})
 	var file := FileAccess.open("res://reports/readability-validation.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(rows, "\t"))
-	print("READABILITY PASSED: whole-cell walls, 48px bodies, integer HP, actual dodge, ten matches and boundaries")
+	print("READABILITY PASSED: continuous arena walls, 48px bodies, integer HP, actual dodge, ten matches and boundaries")
 
 # Telegraph geometry and hit geometry share these helpers. No random scatter.
 func beam_end(p: Vector2, angle: float) -> Vector2:
@@ -1786,7 +1790,7 @@ func run_pattern_tests() -> void:
 	update_attack(units[0], 1.11)
 	update_bullets(STEP)
 	assert(units[2].hp == 2)
-	assert(beam_end(Vector2(180, 160), 0).x < 241, "Beam stops at cover")
+	assert(beam_end(Vector2(180, 160), 0).x <= walls[0].position.x + 1, "Beam stops at cover")
 	pattern_fixture()
 	begin_shot(units[0], 2, "霰弹")
 	update_attack(units[0], 0.46)
@@ -1892,7 +1896,7 @@ func prepare_tactical_escape(u: Dictionary, visible: Array) -> bool:
 	if not threatened:
 		if u.intent == "规避预警": u.action_left = 0; u.phase = "移动"
 		return false
-	var choice := escape_destination(u, dangers, unit_move_speed(u))
+	var choice := escape_destination(u, dangers, MOVE_SPEED * (0.6 if u.slow > 0 else 1.0))
 	if choice.is_empty(): return false
 	if u.intent != "规避预警":
 		var key := "%d:规避预警" % u.uid
@@ -1980,8 +1984,8 @@ func run_evasion_tests() -> void:
 func run_blast_tests() -> void:
 	# Screenshot-like case: impact center inside the upper wall, body outside its corner.
 	pattern_fixture()
-	var center := Vector2(286, 234)
-	units[2].p = Vector2(324, 270)
+	var center: Vector2 = walls[0].end - Vector2(10, 6)
+	units[2].p = walls[0].end + Vector2(20, 30)
 	assert(valid_position(units[2].p) and blocked(center, units[2].p))
 	assert(area_overlaps_body(center, 40, units[2].p))
 	var blast := {"kind": "area", "p": center, "radius": 40.0, "team": 0, "source": 0, "left": 0.1, "damage": 1.0}
@@ -2006,7 +2010,7 @@ func run_blast_tests() -> void:
 		hazards.append({"kind": "area", "p": units[2].p, "radius": 40.0, "team": 0, "source": 0, "left": 0.0, "damage": 1.0})
 		update_bullets(STEP)
 		assert(units[2].hp == 4, "Shield and guard still absorb a one-point hit")
-	assert(beam_end(Vector2(180, 160), 0).x < 241)
+	assert(beam_end(Vector2(180, 160), 0).x <= walls[0].position.x + 1)
 	print("BLAST PASSED: wall-centered repro, body edge/tangent/outside, warning vs impact, single damage tick, AI geometry, friendly fire, defense, beam cover")
 
 func run_arena_tests() -> void:
@@ -2081,6 +2085,12 @@ func draw_move_path(u: Dictionary) -> void:
 	draw_line(arrow, arrow - direction.rotated(-0.55) * 9, MOVE_HINT, 2)
 
 func run_tempo_tests() -> void:
+	pattern_fixture()
+	units[0].intent = "基础接敌"
+	assert(is_equal_approx(unit_move_speed(units[0]), ENGAGE_SPEED))
+	units[0].intent = "规避预警"
+	assert(is_equal_approx(unit_move_speed(units[0]), MOVE_SPEED))
+	assert(ENGAGE_SPEED > MOVE_SPEED and MOVE_SPEED > COMBAT_STEP_SPEED)
 	pattern_fixture()
 	units[2].phase = "收招"
 	units[2].timer = 100.0
