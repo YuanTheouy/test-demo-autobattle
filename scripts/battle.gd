@@ -83,6 +83,8 @@ var hit_events: Array = []
 var shields_pending: Array = []
 var heals_pending: Array = []
 var impacts: Array = []
+var body_impacts: Array = []
+var body_pairs: Dictionary = {}
 var links: Array = []
 var skill_help: Label
 
@@ -96,6 +98,10 @@ func _ready() -> void:
 	setup_loadouts()
 	setup_ui()
 	reset_round()
+	if "--body-bounce-test" in OS.get_cmdline_user_args():
+		run_body_bounce_tests()
+		get_tree().quit()
+		return
 	if "--blast-push-test" in OS.get_cmdline_user_args():
 		run_blast_push_tests()
 		get_tree().quit()
@@ -554,21 +560,32 @@ func simulate(dt: float) -> void:
 				u.timer = 0.45
 			continue
 		if not try_active(u, visible[u.team]): baseline_action(u, visible[u.team])
+	body_impacts.clear()
+	body_pairs.clear()
 	for actor in next_units:
 		if actor.hp > 0:
 			if actor.blast_lock > 0:
 				actor.p = units[actor.uid].p.lerp(actor.p, 0.25)
 			apply_forced_motion(actor, dt)
+	for contact in body_impacts:
+		var receiver: Dictionary = next_units[contact.uid]
+		receiver.blast_impulse = (receiver.blast_impulse + contact.velocity).limit_length(3150.0)
+		receiver.blast_lock = maxf(receiver.blast_lock, 0.12)
 	# Reject conflicting movement proposals together, never first-come-first-served.
 	var rejected: Array[int] = []
 	for i in range(next_units.size()):
 		for j in range(i + 1, next_units.size()):
 			if next_units[i].hp > 0 and next_units[j].hp > 0 and next_units[i].p.distance_to(next_units[j].p) < RADIUS * 2:
+				var normal: Vector2 = (units[i].p - units[j].p).normalized()
+				for pair in [[i, normal], [j, -normal]]:
+					var actor: Dictionary = next_units[pair[0]]
+					var velocity: Vector2 = actor.impulse + actor.blast_impulse
+					if velocity.dot(pair[1]) < 0:
+						actor.impulse = Vector2.ZERO
+						actor.blast_impulse = velocity.bounce(pair[1]) * 0.55
 				rejected.append(i); rejected.append(j)
 	for i in rejected:
 		next_units[i].p = units[i].p
-		next_units[i].impulse = Vector2.ZERO
-		next_units[i].blast_impulse = Vector2.ZERO
 		next_units[i].phase = "让行" if next_units[i].action_left > 0 else next_units[i].phase
 	units = next_units
 	for grant in shields_pending:
@@ -876,10 +893,22 @@ func apply_forced_motion(u: Dictionary, dt: float) -> void:
 			u.impulse = u.impulse.bounce(normal) * 0.72
 			u.blast_impulse = u.blast_impulse.bounce(normal) * 0.72
 			continue
-		if not movement_is_free(u, candidate):
-			u.impulse = Vector2.ZERO
-			u.blast_impulse = Vector2.ZERO
+		var collided := false
+		for other in units:
+			if other.uid == u.uid or other.hp <= 0 or candidate.distance_to(other.p) >= RADIUS * 2: continue
+			collided = true
+			var body_normal: Vector2 = (u.p - other.p).normalized()
+			var velocity: Vector2 = u.impulse + u.blast_impulse
+			if velocity.dot(body_normal) < 0:
+				var key := "%d:%d" % [mini(u.uid, other.uid), maxi(u.uid, other.uid)]
+				if not body_pairs.has(key):
+					body_pairs[key] = true
+					body_impacts.append({"uid": other.uid, "velocity": body_normal * velocity.dot(body_normal) * 0.35})
+					effects.append({"p": (u.p + other.p) * 0.5, "life": 0.18, "color": GOLD})
+				u.impulse = Vector2.ZERO
+				u.blast_impulse = velocity.bounce(body_normal) * 0.55
 			break
+		if collided: continue
 		u.p = candidate
 	u.blast_impulse *= exp(-3.5 * dt)
 	if u.blast_impulse.length() < 1.0: u.blast_impulse = Vector2.ZERO
@@ -1860,7 +1889,7 @@ func release_pattern(u: Dictionary) -> void:
 	var skill: String = u.active_skill
 	var data: Dictionary = Tactics.MAGIC[skill]
 	if skill in Tactics.AREAS:
-		u.blast_impulse = (u.blast_impulse - Vector2.from_angle(u.lock_angle) * 800.0).limit_length(4200.0)
+		u.blast_impulse = (u.blast_impulse - Vector2.from_angle(u.lock_angle) * 600.0).limit_length(3150.0)
 		u.blast_lock = 0.22
 	else:
 		add_impulse(u, -Vector2.from_angle(u.lock_angle) * (115.0 if skill in Tactics.LINES else 80.0))
@@ -1900,7 +1929,7 @@ func resolve_hazards(dt: float, damage: Array) -> void:
 				else:
 					var away: Vector2 = (u.p - h.p).normalized()
 					if away.is_zero_approx(): away = Vector2.from_angle(u.angle + PI)
-					u.blast_impulse = (u.blast_impulse + away * (3400.0 if h.get("skill", "") == "烈焰爆破" else 2900.0)).limit_length(4200.0)
+					u.blast_impulse = (u.blast_impulse + away * (2550.0 if h.get("skill", "") == "烈焰爆破" else 2175.0)).limit_length(3150.0)
 				u.blast_lock = 0.22
 				damage[i] += maxf(0, h.damage - (6 if u.guard > 0 and not h.get("true_damage", h.kind == "beam") else 0))
 				hits += 1
@@ -2515,18 +2544,18 @@ func run_blast_push_tests() -> void:
 		units[2].p = Vector2(280, 320)
 		hazards.append({"kind": "area", "skill": skill, "p": units[2].p - Vector2(20, 0), "origin": units[0].p, "radius": pattern_radius(skill), "left": 0.0, "damage": 18.0, "team": 0, "source": 0})
 		update_bullets(STEP)
-		assert(units[2].blast_impulse.length() >= 2900)
+		assert(units[2].blast_impulse.length() >= 2175)
 		var path_length := 0.0
 		for tick in range(120):
 			var before: Vector2 = units[2].p
 			apply_forced_motion(units[2], STEP)
 			path_length += before.distance_to(units[2].p)
 			assert(valid_arena_position(units[2].p))
-		assert(path_length > 400 and units[2].hp == MAX_HP - 18)
+		assert(path_length > 350 and units[2].hp == MAX_HP - 18)
 		pattern_fixture()
 		begin_shot(units[0], 2, skill)
 		update_attack(units[0], Tactics.MAGIC[skill].cast + 0.01)
-		assert(units[0].blast_impulse.length() >= 799)
+		assert(units[0].blast_impulse.length() >= 599)
 	# Wall faces reflect their normal component, keeping the tangent component.
 	pattern_fixture()
 	units[0].p = Vector2(240, 160)
@@ -2543,4 +2572,37 @@ func run_blast_push_tests() -> void:
 		clock = ROUND_TIME - elapsed
 		assert(safe_rect() == Rect2(Vector2.ZERO, Vector2(SIZE, SIZE)))
 	assert(walls[0].size.x <= 64.0 / 3)
-	print("BLAST PUSH PASSED: 10x victim impulse, 10x caster recoil, swept wall/border bounce, tangential motion, no shrinking, thin walls")
+	print("BLAST PUSH PASSED: reduced victim impulse and caster recoil, swept wall/border bounce, tangential motion, no shrinking, thin walls")
+
+func run_body_bounce_tests() -> void:
+	for ally in [false, true]:
+		pattern_fixture()
+		units[0].p = Vector2(180, 320)
+		units[2].p = Vector2(240, 320)
+		if ally: units[2].team = 0
+		for u in units:
+			u.phase = "收招"; u.timer = 10
+		units[0].blast_impulse = Vector2(900, 0)
+		var bounced := false
+		var transferred := false
+		for tick in range(20):
+			simulate(STEP)
+			bounced = bounced or units[0].blast_impulse.x < 0
+			transferred = transferred or units[2].blast_impulse.x > 0
+			assert(units[0].p.distance_to(units[2].p) >= RADIUS * 2)
+		assert(bounced and transferred and units[2].p.x > 250)
+		assert(units[0].hp == MAX_HP and units[2].hp == MAX_HP, "Body collision does not add damage")
+	# High-speed head-on proposals must rebound without crossing or overlapping.
+	pattern_fixture()
+	units[0].p = Vector2(180, 320); units[2].p = Vector2(260, 320)
+	for u in units:
+		u.phase = "收招"; u.timer = 10
+	units[0].blast_impulse = Vector2(1800, 0)
+	units[2].blast_impulse = Vector2(-1800, 0)
+	var head_on_bounced := false
+	for tick in range(20):
+		simulate(STEP)
+		head_on_bounced = head_on_bounced or (units[0].blast_impulse.x < 0 and units[2].blast_impulse.x > 0)
+		assert(units[0].p.x < units[2].p.x and units[0].p.distance_to(units[2].p) >= RADIUS * 2)
+	assert(head_on_bounced)
+	print("BODY BOUNCE PASSED: ally/enemy rebound, receiver displacement, head-on high speed, no overlap/crossing/extra damage")
