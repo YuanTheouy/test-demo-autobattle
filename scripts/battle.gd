@@ -110,8 +110,8 @@ func _ready() -> void:
 	setup_loadouts()
 	setup_ui()
 	reset_round()
-	if "--ultimate-queue-test" in OS.get_cmdline_user_args():
-		run_ultimate_queue_tests()
+	if "--ultimate-debt-test" in OS.get_cmdline_user_args():
+		run_ultimate_debt_tests()
 		get_tree().quit()
 		return
 	if "--strategy-view-test" in OS.get_cmdline_user_args():
@@ -456,7 +456,7 @@ func reset_round() -> void:
 		var attack: bool = (team == 0) == blue_attacks
 		for member in range(2):
 			var p: Vector2 = Vector2(120, 200 + member * 240) if attack else Vector2(520, 200 + member * 240)
-			units.append({"trace_base_pp": "未检查", "trace_base": ["未检查", "未检查", "未检查", "未检查"], "trace_ap": ["未检查", "未检查", "未检查", "未检查"], "trace_pp": ["未检查", "未检查", "未检查", "未检查"], "energy": 100.0, "ult_pending": false, "ult_charge": 0.0, "ult_angle": 0.0, "uid": team * 2 + member, "team": team, "member": member, "attack": attack, "p": p,
+			units.append({"trace_base_pp": "未检查", "trace_base": ["未检查", "未检查", "未检查", "未检查"], "trace_ap": ["未检查", "未检查", "未检查", "未检查"], "trace_pp": ["未检查", "未检查", "未检查", "未检查"], "energy": 100.0, "ult_charge": 0.0, "ult_angle": 0.0, "uid": team * 2 + member, "team": team, "member": member, "attack": attack, "p": p,
 				"blast_impulse": Vector2.ZERO, "blast_lock": 0.0, "impulse": Vector2.ZERO, "evade_source": -1, "counter_left": 0.0, "thorns": 0.0, "thorn_tick": 0.0, "hurt_recent": 0.0, "hit_flash": 0.0, "heal_flash": 0.0, "reason": "基础作战就绪", "rule_kind": "", "rule_slot": -1, "slow": 0.0, "shield": 0.0, "shield_time": 0.0, "patrol": 0, "dash_recovery": false, "avoid_left": 0.0, "avoid_dir": Vector2.ZERO, "active_skill": "点射", "rule": "待机", "rule_flash": 0.0, "fire_flash": 0.0, "marked": 0.0, "guard": 0.0, "skill_cds": {}, "action_left": 0.0, "action_goal": p,
 				"intent": "待机", "retreat": 0.0, "retreat_cd": 0.0, "hp": MAX_HP, "phase": "移动", "timer": 0.0, "cooldown": 0.0,
 				"angle": 0.0 if attack else PI, "target": -1, "path": PackedVector2Array(),
@@ -648,23 +648,6 @@ func simulate(dt: float) -> void:
 				u.phase = "移动"
 				u.action_left = 0.0
 				u.repath = 0.0
-			continue
-		# Manual aiming/queued cast reserves resources instead of competing with auto fire.
-		if ultimate_aim == u.uid or u.ult_pending:
-			if u.phase in ["吟唱", "瞄准", "点射", "收招"]:
-				update_attack(u, dt)
-			elif u.phase in ["回春", "灵木护佑", "掩护队友", "架枪防御"] and u.action_left > 0:
-				u.action_left = maxf(0, u.action_left - dt)
-				if u.action_left <= 0: u.phase = "准备大招"
-			elif u.ult_pending and can_start_ultimate(u):
-				start_ultimate(u)
-			else:
-				u.phase = "准备大招"
-				u.intent = "保留精力"
-				u.reason = "手动大招优先；等待精力与公共CD恢复"
-				u.rule_kind = "ultimate"
-				u.rule_slot = -1
-				u.action_left = 0
 			continue
 		var can_evade: bool = u.phase not in ["吟唱", "点射", "收招", "架枪防御", "回春", "灵木护佑", "掩护队友"] and not (u.phase == "瞄准" and u.shot_count > 0)
 		if can_evade:
@@ -2778,9 +2761,6 @@ func ultimate_name(uid: int) -> String:
 func begin_ultimate_aim(uid: int) -> void:
 	if uid < 0 or uid >= 2 or not started: return
 	var u: Dictionary = units[uid]
-	if u.ult_pending:
-		u.ult_pending = false
-		return
 	if u.hp <= 0 or u.ult_charge < 100 or u.phase == "大招蓄力": return
 	ultimate_aim = -1 if ultimate_aim == uid else uid
 	ultimate_cursor = u.p + Vector2.from_angle(u.angle) * 250
@@ -2814,17 +2794,11 @@ func confirm_ultimate(point: Vector2) -> bool:
 		return false
 	if not Rect2(Vector2.ZERO, Vector2(SIZE, SIZE)).has_point(point) or point.distance_to(u.p) < 12: return false
 	u.ult_angle = (point - u.p).angle()
-	u.ult_pending = true
 	ultimate_aim = -1
-	if can_start_ultimate(u): start_ultimate(u)
-	else: log_event("蓝%d 大招已排队，恢复后释放；再点头像取消" % [u.member + 1])
+	start_ultimate(u)
 	return true
 
-func can_start_ultimate(u: Dictionary) -> bool:
-	return u.hp > 0 and u.ult_charge >= 100 and can_use_skill(u, ultimate_name(u.uid)) and u.dodge <= 0 and u.phase not in ["吟唱", "瞄准", "点射", "收招", "大招蓄力", "回春", "灵木护佑", "掩护队友", "架枪防御"]
-
 func start_ultimate(u: Dictionary) -> void:
-	u.ult_pending = false
 	u.energy -= energy_cost(ultimate_name(u.uid))
 	u.ult_charge = 0.0
 	u.angle = u.ult_angle
@@ -2941,7 +2915,7 @@ func uses_public_cd(skill: String) -> bool:
 	return skill not in ["绕侧", "后撤", "短冲刺", "侧闪", "架枪防御", "留空"]
 
 func can_use_skill(u: Dictionary, skill: String) -> bool:
-	return u.energy + 0.00001 >= energy_cost(skill) and float(u.skill_cds.get(skill, 0)) <= 0 and (not uses_public_cd(skill) or u.cooldown <= 0)
+	return (energy_cost(skill) == 0 or u.energy + 0.00001 >= energy_cost(skill)) and float(u.skill_cds.get(skill, 0)) <= 0 and (not uses_public_cd(skill) or u.cooldown <= 0)
 
 func finish_spell(u: Dictionary, skill: String) -> void:
 	var duration := 1.8 if skill == "点射" else (4.0 if skill in ["天穹贯穿", "星火轰炸"] else (3.0 if energy_cost(skill) >= 45 else 2.3))
@@ -2995,13 +2969,7 @@ func run_resource_tests() -> void:
 	units[0].ult_charge = 100
 	units[0].energy = 69
 	begin_ultimate_aim(0)
-	assert(confirm_ultimate(Vector2(300, 300)) and units[0].ult_pending and units[0].ult_charge == 100)
-	units[0].energy = 100
-	units[0].cooldown = 1
-	assert(not can_start_ultimate(units[0]))
-	units[0].cooldown = 0
-	start_ultimate(units[0])
-	assert(units[0].energy == 30)
+	assert(confirm_ultimate(Vector2(300, 300)) and units[0].energy == -1 and units[0].ult_charge == 0)
 	release_ultimate(units[0])
 	assert(units[0].cooldown == 4)
 	reset_round()
@@ -3077,26 +3045,34 @@ func run_strategy_view_tests() -> void:
 	print("STRATEGY VIEW PASSED: actual priority traces, skipped lower slots, persistent execution/recovery highlight, basic movement/search/attack, PP ownership, death, 8 editable + 5 locked rows")
 
 
-func run_ultimate_queue_tests() -> void:
+func run_ultimate_debt_tests() -> void:
+	for starting_energy in [30.0, 0.0, -20.0]:
+		reset_round()
+		started = true
+		finished = true
+		units[0].energy = starting_energy
+		units[0].ult_charge = 100
+		units[0].cooldown = 3
+		units[0].phase = "收招"
+		units[0].timer = 1
+		begin_ultimate_aim(0)
+		assert(confirm_ultimate(Vector2(300, 300)))
+		assert(units[0].energy == starting_energy - 70 and units[0].ult_charge == 0)
+		assert(units[0].phase == "大招蓄力" and ultimate_aim == -1)
+		assert(is_equal_approx(energy_speed(units[0]), 0.55))
+		assert(can_use_skill(units[0], "后撤") and not can_use_skill(units[0], "点射"))
+		for i in [1, 2, 3]: units[i].hp = 0
+		for tick in range(70): simulate(STEP)
+		assert(shots == 1)
+		var debt: float = units[0].energy
+		for tick in range(60): simulate(STEP)
+		assert(absf(units[0].energy - debt - 12.0) < 0.01)
 	reset_round()
 	started = true
-	finished = true
-	units[0].energy = 20
 	units[0].ult_charge = 100
-	units[0].cooldown = 2
-	for i in [1, 2, 3]: units[i].hp = 0
+	units[0].energy = 30
 	begin_ultimate_aim(0)
-	assert(ultimate_aim == 0, "Post-match aiming remains available")
-	assert(confirm_ultimate(Vector2(320, 320)))
-	assert(ultimate_aim == -1 and units[0].ult_pending and units[0].ult_charge == 100)
-	for tick in range(330): simulate(STEP)
-	assert(not units[0].ult_pending and units[0].ult_charge < 20 and shots == 1, "Queued ult must fire despite an aggressive loadout and low starting energy")
-	reset_round()
-	started = true
-	units[0].energy = 0
-	units[0].ult_charge = 100
+	assert(not confirm_ultimate(Vector2(-1, -1)))
 	begin_ultimate_aim(0)
-	confirm_ultimate(Vector2(300, 300))
-	begin_ultimate_aim(0)
-	assert(not units[0].ult_pending and units[0].ult_charge == 100)
-	print("ULTIMATE QUEUE PASSED: post-match use, resource reservation, auto-fire cannot steal energy, normal-speed waiting, cancellation without charge loss")
+	assert(ultimate_aim == -1 and units[0].energy == 30 and units[0].ult_charge == 100)
+	print("ULTIMATE DEBT PASSED: immediate cast during GCD/recovery, 30 -> -40, zero/negative energy, post-match use, debt regeneration, free movement, invalid click/cancel")

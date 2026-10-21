@@ -11,7 +11,7 @@ func _process(_delta: float) -> void:
 	if game == null or game.units.size() <= uid: return
 	var u: Dictionary = game.units[uid]
 	disabled = not game.started or u.hp <= 0 or u.ult_charge < 100 or u.phase == "大招蓄力"
-	tooltip_text = game.ultimate_name(uid) + ("：45伤害，宽幅光束，墙体可挡。" if uid == 0 else "：沿方向三连轰炸，每枚22伤害，可越过墙体。") + "每12秒充满，释放需70精力且公共CD结束；点击头像后慢放瞄准，左键确认，恢复未就绪则排队并保留精力；再次点击头像取消排队。右键/Esc取消瞄准。"
+	tooltip_text = game.ultimate_name(uid) + ("：45伤害，宽幅光束，墙体可挡。" if uid == 0 else "：沿方向三连轰炸，每枚22伤害，可越过墙体。") + "每12秒充满；大招无视精力和公共CD，扣70精力，可透支。点击头像慢放瞄准，左键释放，右键/Esc取消。"
 	queue_redraw()
 
 func _draw() -> void:
@@ -28,6 +28,6 @@ func _draw() -> void:
 	draw_arc(p, 32, -PI / 2, TAU - PI / 2, 64, Color("273b4b"), 4, true)
 	if u.ult_charge > 0: draw_arc(p, 32, -PI / 2, -PI / 2 + TAU * u.ult_charge / 100, 64, color, 4, true)
 	if game.ultimate_aim == uid or (is_hovered() and ready): draw_arc(p, 37, 0, TAU, 64, Color("f5d78b"), 2, true)
-	var status: String = "已倒下" if u.hp <= 0 else ("已排队" if u.ult_pending else ("瞄准中" if game.ultimate_aim == uid else ("点击释放" if ready else "%d%%" % u.ult_charge)))
+	var status: String = "已倒下" if u.hp <= 0 else ("瞄准中" if game.ultimate_aim == uid else ("点击释放" if ready else "%d%%" % u.ult_charge))
 	draw_string(game.font, Vector2(16, 82), "蓝%d · %s" % [uid + 1, status], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, color)
 	draw_string(game.font, Vector2(18, 99), game.ultimate_name(uid), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("c9e6f3"))
