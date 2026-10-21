@@ -1,2 +1,5 @@
 .godot/
 .DS_Store
+
+# Preview is a generated screenshot, not a game asset.
+/preview.png.import

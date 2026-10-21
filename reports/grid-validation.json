@@ -1,0 +1,128 @@
+[
+	{
+		"blue": 5,
+		"blue_left": false,
+		"hits": 15,
+		"red": 0,
+		"seconds": 14.5333333333325,
+		"shots": 26,
+		"winner": 0
+	},
+	{
+		"blue": 5,
+		"blue_left": true,
+		"hits": 18,
+		"red": 0,
+		"seconds": 16.3166666666657,
+		"shots": 33,
+		"winner": 1
+	},
+	{
+		"blue": 5,
+		"blue_left": false,
+		"hits": 12,
+		"red": 1,
+		"seconds": 13.5499999999992,
+		"shots": 23,
+		"winner": 0
+	},
+	{
+		"blue": 5,
+		"blue_left": true,
+		"hits": 15,
+		"red": 1,
+		"seconds": 16.7833333333324,
+		"shots": 28,
+		"winner": 1
+	},
+	{
+		"blue": 5,
+		"blue_left": false,
+		"hits": 15,
+		"red": 2,
+		"seconds": 18.5666666666656,
+		"shots": 34,
+		"winner": 0
+	},
+	{
+		"blue": 5,
+		"blue_left": true,
+		"hits": 10,
+		"red": 2,
+		"seconds": 10.1166666666661,
+		"shots": 19,
+		"winner": 0
+	},
+	{
+		"blue": 5,
+		"blue_left": false,
+		"hits": 12,
+		"red": 3,
+		"seconds": 13.4499999999992,
+		"shots": 25,
+		"winner": 0
+	},
+	{
+		"blue": 5,
+		"blue_left": true,
+		"hits": 17,
+		"red": 3,
+		"seconds": 13.9333333333325,
+		"shots": 30,
+		"winner": 0
+	},
+	{
+		"blue": 5,
+		"blue_left": false,
+		"hits": 24,
+		"red": 4,
+		"seconds": 22.5999999999987,
+		"shots": 41,
+		"winner": 0
+	},
+	{
+		"blue": 5,
+		"blue_left": true,
+		"hits": 12,
+		"red": 4,
+		"seconds": 10.4333333333327,
+		"shots": 18,
+		"winner": 1
+	},
+	{
+		"blue": 5,
+		"blue_left": false,
+		"hits": 19,
+		"red": 5,
+		"seconds": 14.9333333333325,
+		"shots": 34,
+		"winner": 0
+	},
+	{
+		"blue": 5,
+		"blue_left": true,
+		"hits": 15,
+		"red": 5,
+		"seconds": 10.5333333333327,
+		"shots": 23,
+		"winner": 1
+	},
+	{
+		"blue": 5,
+		"blue_left": false,
+		"hits": 13,
+		"red": 6,
+		"seconds": 11.9999999999993,
+		"shots": 25,
+		"winner": 1
+	},
+	{
+		"blue": 5,
+		"blue_left": true,
+		"hits": 16,
+		"red": 6,
+		"seconds": 15.0333333333325,
+		"shots": 32,
+		"winner": 1
+	}
+]

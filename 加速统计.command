@@ -7,9 +7,7 @@ if [[ ! -x "$godot_binary" ]]; then
   read -r '?按回车关闭。'
   exit 1
 fi
-sample_count="${1:-10}"
-echo "示范两队生成 ${sample_count} 个部署样本，各交换出生侧再打一局。"
-echo '使用原来的 1/60 秒模拟步长，跳过画面和真实等待；不改变战斗规则。'
-"$godot_binary" --headless --path "$PWD" -- --batch-test "--samples=$sample_count"
-echo '完成。汇总：reports/rules-batch.json（每次覆盖）。'
+echo '格子版：炮击压制对照七套配置，交换出生侧，共14场。'
+"$godot_binary" --headless --path "$PWD" -- --batch-test
+echo '完成。汇总：reports/grid-validation.json（每次覆盖）。'
 read -r '?按回车关闭。'
