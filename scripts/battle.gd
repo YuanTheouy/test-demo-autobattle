@@ -7,10 +7,13 @@ const RADIUS := 24.0
 const MAX_HP := 50.0
 const MOVE_SPEED := 87.0
 const ENGAGE_SPEED := 126.0
-const COMBAT_STEP_SPEED := 40.0
+const COMBAT_STEP_SPEED := 48.0
+const DODGE_SPEED := 240.0
+const DODGE_DISTANCE := 80.0
 const SHOT_RANGE := 270.0
 const SIGHT_RANGE := 410.0
 const BULLET_SPEED := 1400.0
+const BASIC_BULLET_SPEED := 1300.0
 const ROCK_SPEED := 360.0
 const SHOTGUN_SPEED := 340.0
 const ROUND_TIME := 60.0
@@ -500,7 +503,7 @@ func simulate(dt: float) -> void:
 		if u.dodge > 0:
 			u.dodge = maxf(0, u.dodge - dt)
 			u.phase = "侧闪"
-			var next: Vector2 = u.p + u.dodge_dir * 200.0 * dt
+			var next: Vector2 = u.p + u.dodge_dir * DODGE_SPEED * dt
 			if movement_is_free(u, next) and not blocked(u.p, next): u.p = next
 			if u.dodge <= 0:
 				u.phase = "移动"
@@ -648,7 +651,8 @@ func choose_goal(u: Dictionary, visible: Array) -> Vector2:
 
 func unit_move_speed(u: Dictionary) -> float:
 	var base_speed := ENGAGE_SPEED if u.intent in ["基础接敌", "搜索"] else MOVE_SPEED
-	return base_speed * (0.6 if u.slow > 0 else 1.0) * (2.0 if u.intent == "短冲刺" else 1.0)
+	var skill_multiplier := 2.4 if u.intent == "短冲刺" else (1.2 if u.intent in ["绕侧", "后撤"] else 1.0)
+	return base_speed * (0.6 if u.slow > 0 else 1.0) * skill_multiplier
 
 func baseline_action(u: Dictionary, visible: Array) -> void:
 	u.rule_kind = ""
@@ -821,7 +825,7 @@ func update_attack(u: Dictionary, dt: float) -> void:
 			return
 		if u.timer > 0: return
 		var direction := Vector2.from_angle(u.angle)
-		var projectile_speed := ROCK_SPEED if u.active_skill in ["落岩", "震山"] else BULLET_SPEED
+		var projectile_speed := ROCK_SPEED if u.active_skill in ["落岩", "震山"] else (BASIC_BULLET_SPEED if u.active_skill == "点射" else BULLET_SPEED)
 		bullets.append({"p": u.p + direction * (RADIUS + 4), "v": direction * projectile_speed, "team": u.team, "life": SHOT_RANGE / projectile_speed, "true_damage": magic_element(u.active_skill) == "火", "element": magic_element(u.active_skill), "thorns": u.active_skill == "荆棘", "damage": shot_damage(u.active_skill), "source": u.uid, "skill": u.active_skill, "mark": u.active_skill == "标记弹", "heavy": u.active_skill == "强力射击", "slow": u.active_skill == "压制射击"})
 		shots += 1
 		u.shot_count += 1
@@ -1356,13 +1360,13 @@ func try_reaction(u: Dictionary, visible: Array, defensive_only := false) -> boo
 		if target < 0: continue
 		if skill == "侧闪":
 			var dangers := perceived_dangers(u, visible)
-			var choice := escape_destination(u, dangers, 200.0, true)
+			var choice := escape_destination(u, dangers, DODGE_SPEED, true)
 			# Dodge a committed trajectory or published telegraph, not mere targeting.
 			if choice.is_empty(): continue
 			var lateral: Vector2 = (choice.point - u.p).normalized()
 			u.evade_source = choice.source
 			u.counter_left = 3.0
-			u.dodge = 0.4
+			u.dodge = DODGE_DISTANCE / DODGE_SPEED
 			u.dodge_dir = lateral
 			u.phase = "侧闪"
 			u.skill_cds[skill] = 2.8
@@ -1689,7 +1693,7 @@ func run_readability_tests() -> void:
 			assert(units[0].phase == "侧闪", "Incoming bullet can cancel pre-shot aiming")
 		for tick in range(45):
 			if evade and units[0].dodge > 0:
-				units[0].p += units[0].dodge_dir * 200 * STEP
+				units[0].p += units[0].dodge_dir * DODGE_SPEED * STEP
 				units[0].dodge -= STEP
 			update_bullets(STEP)
 		health.append(units[0].hp)
@@ -1938,7 +1942,7 @@ func escape_destination(u: Dictionary, dangers: Array, move_speed: float, fixed_
 	if relevant.is_empty(): return {}
 	var best := {}
 	var best_score := INF
-	var distances: Array = [80.0] if fixed_distance else [40.0, 60.0, 80.0, 100.0, 120.0, 140.0]
+	var distances: Array = [DODGE_DISTANCE] if fixed_distance else [40.0, 60.0, 80.0, 100.0, 120.0, 140.0]
 	for distance in distances:
 		for i in range(24):
 			var direction := Vector2.from_angle(i * TAU / 24)
@@ -2144,7 +2148,7 @@ func run_arena_tests() -> void:
 
 func draw_move_path(u: Dictionary) -> void:
 	if u.dodge <= 0 and u.action_left <= 0 and u.intent != "规避预警": return
-	var destination: Vector2 = u.p + u.dodge_dir * 200 * u.dodge if u.dodge > 0 else u.action_goal
+	var destination: Vector2 = u.p + u.dodge_dir * DODGE_SPEED * u.dodge if u.dodge > 0 else u.action_goal
 	if u.p.distance_to(destination) <= 10: return
 	var points: Array = [u.p]
 	if u.dodge <= 0 and u.intent != "规避预警":
@@ -2233,7 +2237,7 @@ func run_defense_tests() -> void:
 	assert(try_reaction(units[2], [0]))
 	for tick in range(36):
 		if units[2].dodge > 0:
-			units[2].p += units[2].dodge_dir * 200 * STEP
+			units[2].p += units[2].dodge_dir * DODGE_SPEED * STEP
 			units[2].dodge -= STEP
 		update_bullets(STEP)
 	assert(units[2].hp == MAX_HP)
