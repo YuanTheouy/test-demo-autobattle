@@ -10,7 +10,9 @@ const ENGAGE_SPEED := 126.0
 const COMBAT_STEP_SPEED := 40.0
 const SHOT_RANGE := 270.0
 const SIGHT_RANGE := 410.0
-const BULLET_SPEED := 280.0
+const BULLET_SPEED := 480.0
+const ROCK_SPEED := 360.0
+const SHOTGUN_SPEED := 340.0
 const ROUND_TIME := 60.0
 const SHRINK_START := 18.0
 const SHRINK_END := 42.0
@@ -90,6 +92,10 @@ func _ready() -> void:
 	setup_loadouts()
 	setup_ui()
 	reset_round()
+	if "--defense-test" in OS.get_cmdline_user_args():
+		run_defense_tests()
+		get_tree().quit()
+		return
 	if "--tempo-test" in OS.get_cmdline_user_args():
 		run_tempo_tests()
 		get_tree().quit()
@@ -806,7 +812,8 @@ func update_attack(u: Dictionary, dt: float) -> void:
 			return
 		if u.timer > 0: return
 		var direction := Vector2.from_angle(u.angle)
-		bullets.append({"p": u.p + direction * (RADIUS + 4), "v": direction * BULLET_SPEED, "team": u.team, "life": SHOT_RANGE / BULLET_SPEED, "true_damage": magic_element(u.active_skill) == "火", "element": magic_element(u.active_skill), "thorns": u.active_skill == "荆棘", "damage": shot_damage(u.active_skill), "source": u.uid, "skill": u.active_skill, "mark": u.active_skill == "标记弹", "heavy": u.active_skill == "强力射击", "slow": u.active_skill == "压制射击"})
+		var projectile_speed := ROCK_SPEED if u.active_skill in ["落岩", "震山"] else BULLET_SPEED
+		bullets.append({"p": u.p + direction * (RADIUS + 4), "v": direction * projectile_speed, "team": u.team, "life": SHOT_RANGE / projectile_speed, "true_damage": magic_element(u.active_skill) == "火", "element": magic_element(u.active_skill), "thorns": u.active_skill == "荆棘", "damage": shot_damage(u.active_skill), "source": u.uid, "skill": u.active_skill, "mark": u.active_skill == "标记弹", "heavy": u.active_skill == "强力射击", "slow": u.active_skill == "压制射击"})
 		shots += 1
 		u.shot_count += 1
 		u.fire_flash = 0.18
@@ -897,6 +904,11 @@ func refresh_ui() -> void:
 	subtitle.text = "蓝：%s    vs    红：%s  ·  基础作战 + 技能策略" % [Tactics.NAMES[team_presets[0]], Tactics.NAMES[team_presets[1]]]
 	var u: Dictionary = units[editor_unit]
 	info_label.text = "%s%d · HP %d · %s\n%s\n标记 %.1fs / 减速 %.1fs / 荆棘 %.1fs / 护盾 %d" % ["蓝" if u.team == 0 else "红", u.member + 1, u.hp, u.phase if u.hp > 0 else "已倒下", u.reason, u.marked, u.slow, u.thorns, u.shield]
+	for rule in loadouts[editor_unit].reaction:
+		if rule[0] == "侧闪":
+			var remaining := float(u.skill_cds.get("侧闪", 0.0))
+			info_label.text += "\n侧闪：" + ("冷却 %.1f秒" % remaining if remaining > 0 else "就绪（开火、吟唱与收招中不能发动）")
+			break
 	for row in editor_rows:
 		var active: bool = u.hp > 0 and u.rule_flash > 0 and row.kind == u.rule_kind and row.slot == u.rule_slot
 		row.row.modulate = Color(1.0, 0.87, 0.4) if active else Color.WHITE
@@ -1303,19 +1315,11 @@ func try_reaction(u: Dictionary, visible: Array, defensive_only := false) -> boo
 		if skill == "侧闪":
 			var dangers := perceived_dangers(u, visible)
 			var choice := escape_destination(u, dangers, 200.0, true)
-			var lateral: Vector2
-			if not dangers.is_empty():
-				if choice.is_empty(): continue
-				lateral = (choice.point - u.p).normalized()
-				u.evade_source = choice.source
-				u.counter_left = 3.0
-			else:
-				# Ordinary tracking attacks have no locked telegraph yet.
-				if units[target].active_skill in ["蓄能贯穿", "霰弹", "抛射轰击"]: continue
-				lateral = (u.p - units[target].p).normalized().orthogonal()
-				if u.member == 1: lateral = -lateral
-				if not dodge_path_free(u, lateral): lateral = -lateral
-				if not dodge_path_free(u, lateral): continue
+			# Dodge a committed trajectory or published telegraph, not mere targeting.
+			if choice.is_empty(): continue
+			var lateral: Vector2 = (choice.point - u.p).normalized()
+			u.evade_source = choice.source
+			u.counter_left = 3.0
 			u.dodge = 0.4
 			u.dodge_dir = lateral
 			u.phase = "侧闪"
@@ -1372,6 +1376,8 @@ func run_rules_tests() -> void:
 	units[2].phase = "瞄准"
 	units[2].target = 0
 	loadouts[0].reaction = [["侧闪", "无", "无"]]
+	assert(not try_reaction(units[0], [2, 3]), "Targeting alone must not spend dodge")
+	bullets.append({"p": Vector2(220, 300), "v": Vector2(-360, 0), "life": 1.0, "team": 1, "source": 2, "damage": 1.0})
 	assert(try_reaction(units[0], [2, 3]))
 	assert(units[0].dodge > 0)
 	assert(not try_reaction(units[0], [2, 3]), "Cooldown must prevent repeated dodge; guard HP gate must reject")
@@ -1691,7 +1697,7 @@ func release_pattern(u: Dictionary) -> void:
 	else:
 		for angle in [-0.36, -0.18, 0.0, 0.18, 0.36]:
 			var direction := Vector2.from_angle(u.lock_angle + angle)
-			bullets.append({"p": u.p + direction * (RADIUS + 4), "v": direction * 250, "life": 200.0 / 250, "team": u.team, "source": u.uid, "skill": "霰弹", "element": "风", "damage": 1.0})
+			bullets.append({"p": u.p + direction * (RADIUS + 4), "v": direction * SHOTGUN_SPEED, "life": 200.0 / SHOTGUN_SPEED, "team": u.team, "source": u.uid, "skill": "霰弹", "element": "风", "damage": 1.0})
 
 # Overhead blasts use the full displayed disk, including when their center is on cover.
 func area_overlaps_body(center: Vector2, radius: float, point: Vector2, margin := 0.0) -> bool:
@@ -1835,11 +1841,11 @@ func perceived_dangers(u: Dictionary, visible: Array) -> Array:
 		var cast: float = Tactics.MAGIC.get(skill, {}).get("cast", 0.0)
 		if cast - enemy.timer < 0.12: continue # Small, deterministic observation delay.
 		if skill == "蓄能贯穿":
-			dangers.append({"kind": "line", "p": enemy.p, "end": beam_end(enemy.p, enemy.lock_angle), "radius": 7.0, "eta": enemy.timer, "source": index})
+			dangers.append({"kind": "line", "p": enemy.p, "end": beam_end(enemy.p, enemy.lock_angle), "radius": 7.0, "eta": enemy.timer, "source": index, "walk_evade": true})
 		elif skill == "霰弹":
 			for angle in [-0.36, -0.18, 0.0, 0.18, 0.36]:
 				var direction := Vector2.from_angle(enemy.lock_angle + angle)
-				dangers.append({"kind": "line", "p": enemy.p, "end": enemy.p + direction * 228, "radius": 0.0, "eta": enemy.timer + maxf(0, enemy.p.distance_to(u.p) - RADIUS) / 250, "source": index})
+				dangers.append({"kind": "line", "p": enemy.p, "end": enemy.p + direction * 228, "radius": 0.0, "eta": enemy.timer + maxf(0, enemy.p.distance_to(u.p) - RADIUS) / SHOTGUN_SPEED, "source": index})
 		elif skill == "抛射轰击":
 			for point in mortar_points(enemy.lock_point): dangers.append({"kind": "area", "p": point, "radius": BLAST_RADIUS, "eta": enemy.timer + BLAST_FLIGHT, "source": index})
 	for h in hazards:
@@ -1892,7 +1898,7 @@ func prepare_tactical_escape(u: Dictionary, visible: Array) -> bool:
 	var dangers := perceived_dangers(u, visible)
 	var threatened := false
 	for d in dangers:
-		if danger_contains(d, u.p): threatened = true; break
+		if (d.kind == "area" or d.get("walk_evade", false)) and danger_contains(d, u.p): threatened = true; break
 	if not threatened:
 		if u.intent == "规避预警": u.action_left = 0; u.phase = "移动"
 		return false
@@ -1911,7 +1917,7 @@ func prepare_tactical_escape(u: Dictionary, visible: Array) -> bool:
 	u.avoid_left = 0
 	u.evade_source = choice.source
 	u.counter_left = 3.0
-	u.reason = "避开实际命中范围，保留反击射位"
+	u.reason = "提前离开长蓄力或落点预警；普通弹道交给侧闪技能"
 	return true
 
 func counter_after_escape(u: Dictionary, visible: Array) -> bool:
@@ -2136,3 +2142,43 @@ func run_tempo_tests() -> void:
 	update_attack(units[0], 0.31)
 	assert(units[0].phase == "移动" and is_equal_approx(units[0].cooldown, 0.55))
 	print("TEMPO PASSED: continuous aimed footwork, ready attack and player AP preempt, cover safety, fast shotgun, committed laser")
+
+func run_defense_tests() -> void:
+	# At normal engagement ranges, slow footwork cannot reliably evade a quick shot.
+	for distance in [150.0, 200.0, 260.0]:
+		for use_dodge in [false, true]:
+			pattern_fixture()
+			units[2].p = Vector2(100 + distance, 320)
+			begin_shot(units[0], 2, "点射")
+			update_attack(units[0], STEP)
+			assert(bullets.size() == 1)
+			assert(not prepare_tactical_escape(units[2], [0]), "Baseline must not auto-dodge ordinary projectiles")
+			if use_dodge:
+				loadouts[2] = Tactics.build([], [["侧闪", "无", "无"]])
+				assert(try_reaction(units[2], [0]))
+				assert(is_equal_approx(units[2].skill_cds["侧闪"], 2.8))
+			for tick in range(36):
+				if use_dodge:
+					if units[2].dodge > 0:
+						units[2].p += units[2].dodge_dir * 200 * STEP
+						units[2].dodge -= STEP
+				else: units[2].p.y += COMBAT_STEP_SPEED * STEP
+				update_bullets(STEP)
+			assert(units[2].hp == (4 if use_dodge else 3), "Slow orbit should be hit; timely cooldown dodge should escape")
+			if use_dodge:
+				# A second real threat cannot retrigger the skill during cooldown.
+				bullets.append({"p": units[2].p - Vector2(120, 0), "v": Vector2(BULLET_SPEED, 0), "life": 1.0, "team": 0, "source": 0, "damage": 1.0})
+				assert(not try_reaction(units[2], [0]))
+	pattern_fixture()
+	loadouts[2] = Tactics.build([], [["侧闪", "无", "无"]])
+	begin_shot(units[0], 2, "点射")
+	assert(not try_reaction(units[2], [0]), "Do not waste dodge on tracking aim before commitment")
+	# Long charge and delayed area attacks still allow advance walking escape.
+	pattern_fixture()
+	begin_shot(units[0], 2, "蓄能贯穿")
+	units[0].timer = 0.8
+	assert(prepare_tactical_escape(units[2], [0]))
+	pattern_fixture()
+	hazards.append({"kind": "area", "p": units[2].p - Vector2(50, 0), "origin": units[0].p, "radius": 64.0, "team": 0, "source": 0, "left": 0.9, "damage": 1.0})
+	assert(prepare_tactical_escape(units[2], [0]))
+	print("DEFENSE PASSED: quick shots beat slow footwork at three ranges; timely dodge succeeds with cooldown; aim alone does not trigger; long telegraphs retain walking escape")
