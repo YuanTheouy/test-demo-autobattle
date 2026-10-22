@@ -20,6 +20,9 @@ func _ready() -> void:
 	arena_mode_button.pressed.connect(func(): get_tree().change_scene_to_file("res://beat_arena.tscn"))
 	for child in get_children():
 		if child is Label and child.text == "AUTOBATTLE / BEAT": child.text = "AUTOBATTLE / DUEL"
+	if "--duel-presets-demo" in OS.get_cmdline_user_args():
+		apply_preset(0, SOLDIER_PRESET + 1)
+		apply_preset(1, SOLDIER_PRESET + 2)
 	choose_editor_unit(0)
 	refresh_ui()
 	if "--small-arena-test" in OS.get_cmdline_user_args() or "--puzzle-test" in OS.get_cmdline_user_args():
@@ -111,11 +114,39 @@ func run_small_arena_checks() -> void:
 	assert(logic_frame == 46 and running and finished, "Free battle must continue past first shots and even the recorded match result")
 	for u in units:
 		if u.enabled: assert(OPEN_CELLS.has_point(u.cell))
+	validate_duel_presets()
 	var report := {"mode": "free_duel", "open_cells": 9, "blocked_cells": 55, "participants": PARTICIPANTS,
-		"checks": ["only two active bots", "all other cells blocked", "deployment survives reset", "both sides have editable soldier AP and PP", "four-step reaches endpoint4 past the first shots", "continuous playback reaches endpoint46 without puzzle pauses"]}
+		"checks": ["four selectable presets match benchmark ids 5/7/3/19 exactly; independent teams; no ultimates; full playback", "only two active bots", "all other cells blocked", "deployment survives reset", "both sides have editable soldier AP and PP", "four-step reaches endpoint4 past the first shots", "continuous playback reaches endpoint46 without puzzle pauses"]}
 	var report_file := FileAccess.open("res://reports/small-arena-validation.json", FileAccess.WRITE)
 	report_file.store_string(JSON.stringify(report, "\t"))
 	print("SMALL ARENA PASSED: 3x3/1v1, equal editable loadouts, no first-shot stop, continuous playback through endpoint46")
+
+func validate_duel_presets() -> void:
+	var benchmark = JSON.parse_string(FileAccess.get_file_as_string("res://reports/duel-strategy-benchmark.json"))
+	var candidate_ids := [5, 7, 3, 19]
+	for offset in range(candidate_ids.size()):
+		var preset_index := SOLDIER_PRESET + 1 + offset
+		assert(preset_menus[0].item_count == preset_names().size())
+		var pair := preset_loadouts(preset_index)
+		assert(pair[0] == benchmark.candidates[candidate_ids[offset]].rules)
+		pair[0].active[0][1] = "自己HP≤2"
+		assert(pair[1] == benchmark.candidates[candidate_ids[offset]].rules, "Preset members must own separate rules")
+		var red_before: Dictionary = loadouts[2].duplicate(true)
+		preset_menus[0].item_selected.emit(preset_index)
+		assert(loadouts[0] == benchmark.candidates[candidate_ids[offset]].rules and loadouts[2] == red_before)
+		preset_menus[1].item_selected.emit(SOLDIER_PRESET + 1 + (offset + 1) % candidate_ids.size())
+		assert(preset_menus[0].selected == preset_index)
+		assert(units.filter(func(u): return u.enabled and u.hp > 0).size() == 2)
+		assert(units[0].cell == DUEL_SPAWNS[0] and units[2].cell == DUEL_SPAWNS[2])
+		started = true
+		units[0].ult_charge = 100
+		assert(not beat_ultimate_available(0))
+		step_forward(12)
+		advance_playback(10)
+		assert(logic_frame == 4 and not segment_active)
+	apply_preset(0, SOLDIER_PRESET)
+	apply_preset(1, SOLDIER_PRESET)
+	print("DUEL PRESETS PASSED: exact benchmark rules, independent teams, no ultimate, complete beat playback")
 
 func capture_puzzle_preview() -> void:
 	await RenderingServer.frame_post_draw

@@ -3,6 +3,14 @@ extends "res://scripts/battle.gd"
 const Beat = preload("res://scripts/beat_simulation.gd")
 const BASE_PLAYBACK_RATE := 0.5
 const SOLDIER_PRESET := 9
+# Exact configurations from the 3x3 strategy benchmark (ids 5, 7, 3, 19).
+const DUEL_PRESET_NAMES := ["吊射→远敌＋侧闪", "接敌→吊射＋侧闪", "吊射→接敌＋侧闪", "近身远敌→吊射＋侧闪"]
+const DUEL_PRESET_AP := [
+	[["普通攻击", "无", "无"], ["远敌", "无", "无"]],
+	[["接敌", "无", "无"], ["普通攻击", "无", "无"]],
+	[["普通攻击", "无", "无"], ["接敌", "无", "无"]],
+	[["远敌", "敌人距离≤2格", "无"], ["普通攻击", "无", "无"]]
+]
 var soldier_hint: Label
 var arena_mode_button: Button
 var beat_sim = Beat.new()
@@ -57,9 +65,12 @@ func make_arena_view():
 	return preload("res://scripts/beat_view.gd").new()
 
 func preset_names() -> Array:
-	return Tactics.NAMES + ["普通士兵"]
+	return Tactics.NAMES + ["普通士兵"] + DUEL_PRESET_NAMES
 
 func preset_loadouts(index: int) -> Array:
+	if index > SOLDIER_PRESET and index <= SOLDIER_PRESET + DUEL_PRESET_NAMES.size():
+		var profile := {"active": DUEL_PRESET_AP[index - SOLDIER_PRESET - 1], "reaction": [["侧闪", "无", "无"]]}
+		return [profile.duplicate(true), profile.duplicate(true)]
 	if index != SOLDIER_PRESET: return super.preset_loadouts(index)
 	var soldier := {
 		"active": [["普通攻击", "优先队友目标", "无"], ["接敌", "无", "无"]],
@@ -87,6 +98,7 @@ func add_stand_rule(loadout: Dictionary) -> void:
 			return
 
 func apply_preset(team: int, index: int) -> void:
+	if team < preset_menus.size(): preset_menus[team].select(index)
 	super.apply_preset(team, index)
 	for member in range(2): add_stand_rule(loadouts[team * 2 + member])
 	rebuild_editor()
@@ -101,6 +113,13 @@ func setup_ui() -> void:
 		if node.text.begins_with("速度 "): node.tooltip_text = "新基准：1倍速每拍0.5秒；0.5倍每拍1秒；2倍每拍0.25秒。"
 	for node in get_children():
 		if node is Label and node.text == "AUTOBATTLE": node.text = "AUTOBATTLE / BEAT"
+	for picker in preset_menus:
+		picker.tooltip_text = "切换会重开战斗并保留布阵。末尾四套为3×3实测策略；AP从上到下检查，PP均为侧闪。"
+		for offset in range(DUEL_PRESET_NAMES.size()):
+			var lines: Array[String] = []
+			for rule in DUEL_PRESET_AP[offset]:
+				lines.append(rule[0] + ("〔" + rule[1] + "〕" if rule[1] != "无" else ""))
+			picker.get_popup().set_item_tooltip(SOLDIER_PRESET + 1 + offset, "AP：" + " → ".join(lines) + "\nPP：侧闪〔无条件〕\n实测克制与出生位置有关，不保证每局获胜。")
 	update_beat_menus()
 	soldier_hint = text_label(self, "普通士兵对练\n5血 · 单格吊射1伤害\n射程4格 · 射击3拍 · 独立CD6拍\n无大招", 14)
 	soldier_hint.position = Vector2(700, 35)
@@ -317,11 +336,11 @@ func refresh_ui() -> void:
 		upcoming_action = upcoming.phase if upcoming.hp > 0 else "无（已倒下）"
 	info_label.text = "所在格 %s · 端点姿态：%s · 生命%d/%d · 精力%d/100\n刚完成：%s → 下一拍：%s\n%s\n%s" % [Beat.name_of(u.cell), Beat.posture_label(u), u.hp, Beat.MAX_HP, u.energy, action_state_label(u), upcoming_action, u.reason, u.last_cancel]
 
-	skill_help.text = ("普通士兵 · 5血 · 普攻1伤害 · 无大招。" if team_presets[u.team] == SOLDIER_PRESET else "5血 · 普攻1 · 重击2 · 大招2–3 · 敌方碰撞各扣1血。") + "\n移动2拍/格；换向先站立1拍；直走不断速。侧闪1拍。"
+	skill_help.text = ("普通士兵 · 5血 · 普攻1伤害 · 无大招。" if team_presets[u.team] >= SOLDIER_PRESET else "5血 · 普攻1 · 重击2 · 大招2–3 · 敌方碰撞各扣1血。") + "\n移动2拍/格；换向先站立1拍；直走不断速。侧闪1拍。"
 	for child in get_children():
 		if child.get_script() == preload("res://scripts/ultimate_portrait.gd"):
-			child.visible = team_presets[0] != SOLDIER_PRESET
-	if soldier_hint != null: soldier_hint.visible = team_presets[0] == SOLDIER_PRESET
+			child.visible = team_presets[0] < SOLDIER_PRESET
+	if soldier_hint != null: soldier_hint.visible = team_presets[0] >= SOLDIER_PRESET
 	for uid in range(roster_buttons.size()):
 		var bot: Dictionary = units[uid]
 		roster_buttons[uid].text = "%s %d · %s\nHP %d/%d · 盾%d · EN %d" % ["蓝方" if uid < 2 else "红方", uid % 2 + 1, bot.phase if bot.hp > 0 else "倒下", bot.hp, Beat.MAX_HP, bot.shield, bot.energy]
@@ -331,7 +350,7 @@ func refresh_ui() -> void:
 
 func beat_ultimate_available(uid: int) -> bool:
 	var u: Dictionary = units[uid]
-	return team_presets[u.team] != SOLDIER_PRESET and started and u.hp > 0 and u.ult_charge >= 100 and u.pose == "站稳" and u.energy >= 70
+	return team_presets[u.team] < SOLDIER_PRESET and started and u.hp > 0 and u.ult_charge >= 100 and u.pose == "站稳" and u.energy >= 70
 
 func beat_ultimate_tooltip(uid: int) -> String:
 	return ultimate_name(uid) + "：%d伤害，站稳、70精力、充能满后可瞄准，下一合法节拍起手。按整数格预览，前摇侧闪取消会退还精力和充能。" % beat_sim.damage_of(ultimate_name(uid))

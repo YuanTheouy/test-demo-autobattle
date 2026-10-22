@@ -1,6 +1,7 @@
 {
 	"blocked_cells": 55,
 	"checks": [
+		"four selectable presets match benchmark ids 5/7/3/19 exactly; independent teams; no ultimates; full playback",
 		"only two active bots",
 		"all other cells blocked",
 		"deployment survives reset",
