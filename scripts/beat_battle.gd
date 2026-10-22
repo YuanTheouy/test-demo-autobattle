@@ -8,6 +8,9 @@ var beat_sim = Beat.new()
 var presentation = preload("res://scripts/beat_presentation.gd").new()
 var settle_visual := 0.0
 var animation_preview_caption := ""
+var segment_active := false
+var steps_remaining := 0
+var segment_preview: Dictionary = {}
 
 func _ready() -> void:
 	team_presets = [SOLDIER_PRESET, SOLDIER_PRESET]
@@ -89,8 +92,8 @@ func setup_ui() -> void:
 	super.setup_ui()
 	for node in find_children("*", "Button", true, false):
 		if node.text == "单帧 [N]":
-			node.text = "单拍 [N]"
-			node.tooltip_text = "N前进1拍；Shift+N前进4拍。新基准1倍速每拍0.5秒；0.5倍每拍1秒，2倍每拍0.25秒。"
+			node.text = "下一拍 [N]"
+			node.tooltip_text = "N完整播放1拍并在交点结算后暂停；Shift+N播放4拍。新基准1倍速每拍0.5秒；0.5倍每拍1秒，2倍每拍0.25秒。"
 		if node.text.begins_with("速度 "): node.tooltip_text = "新基准：1倍速每拍0.5秒；0.5倍每拍1秒；2倍每拍0.25秒。"
 	for node in get_children():
 		if node is Label and node.text == "AUTOBATTLE": node.text = "AUTOBATTLE / BEAT"
@@ -172,6 +175,9 @@ func reset_round() -> void:
 	units.assign(beat_sim.units)
 	presentation.reset(units)
 	settle_visual = 0.0
+	segment_active = false
+	steps_remaining = 0
+	segment_preview.clear()
 	refresh_ui()
 
 func place_unit(uid: int, cell: Vector2i) -> bool:
@@ -184,7 +190,7 @@ func place_unit(uid: int, cell: Vector2i) -> bool:
 	return true
 
 func _process(delta: float) -> void:
-	if running:
+	if running or steps_remaining > 0:
 		settle_visual = 0.0
 		advance_playback(delta)
 	elif settle_visual > 0:
@@ -205,38 +211,56 @@ func advance_visuals(delta: float) -> void:
 	for impact in impacts: impact.life -= delta
 	impacts = impacts.filter(func(e): return e.life > 0)
 
+func begin_segment() -> void:
+	beat_sim.loadouts = loadouts
+	segment_preview = beat_sim.preview_segment()
+	presentation.begin(units, segment_preview.units, beat_sim, segment_preview)
+	segment_active = true
+
 func advance_playback(delta: float) -> void:
 	var remaining := delta * playback_rate()
-	while remaining > 0.00000001 and running:
+	while remaining > 0.00000001 and (running or steps_remaining > 0):
+		if not segment_active: begin_segment()
 		var slice := minf(remaining, Beat.SECONDS - accumulator)
 		advance_visuals(slice)
 		accumulator += slice
 		remaining -= slice
 		if accumulator + 0.00000001 >= Beat.SECONDS:
 			accumulator = 0.0
-			simulate(Beat.SECONDS)
+			simulate(Beat.SECONDS, false)
+			segment_active = false
+			segment_preview.clear()
+			if steps_remaining > 0: steps_remaining -= 1
+	refresh_ui()
 
 func playback_rate() -> float:
 	return BASE_PLAYBACK_RATE * speed * (ULTIMATE_SLOW if ultimate_aim >= 0 else 1.0)
 
+func toggle_running() -> void:
+	steps_remaining = 0
+	super.toggle_running()
+
 func step_forward(frame_count := 1) -> void:
+	if steps_remaining > 0: return # Repeated presses cannot silently queue extra beats.
 	running = false
 	started = true
 	deployment_drag = -1
-	accumulator = 0.0
-	for tick in range(4 if frame_count == 12 else frame_count): simulate(Beat.SECONDS)
-	settle_visual = 0.65
+	steps_remaining = 4 if frame_count == 12 else frame_count
+	settle_visual = 0.0
+	if not segment_active: begin_segment()
 	refresh_ui()
 	queue_redraw()
 
-func simulate(_dt: float) -> void:
+func simulate(_dt: float, animate_after := true) -> void:
+	# Headless checks may step instantly; live playback commits only after animation.
 	var before: Array = units.duplicate(true)
 	var hp_before: Array = []
 	for u in beat_sim.units: hp_before.append(u.hp)
 	beat_sim.loadouts = loadouts
 	beat_sim.tick()
 	units.assign(beat_sim.units)
-	presentation.begin(before, units, beat_sim)
+	if animate_after: presentation.begin(before, units, beat_sim)
+	else: presentation.finish_segment(before, units)
 	logic_frame = beat_sim.beat
 	clock = ROUND_TIME - logic_frame * Beat.SECONDS
 	shots = beat_sim.shots
@@ -246,9 +270,7 @@ func simulate(_dt: float) -> void:
 		if u.hp < hp_before[u.uid]: impacts.append({"p": u.p, "life": 0.65, "amount": hp_before[u.uid] - u.hp, "team": u.team})
 		elif u.hp > hp_before[u.uid]: impacts.append({"p": u.p, "life": 0.65, "amount": u.hp - hp_before[u.uid], "team": u.team, "healing": true})
 	for event in beat_sim.events: log_event(event)
-	if beat_sim.finished and not finished:
-		end_round(beat_sim.winner, beat_sim.result)
-		settle_visual = 0.65
+	if beat_sim.finished and not finished: end_round(beat_sim.winner, beat_sim.result)
 
 func log_event(message: String) -> void:
 	logs.push_front("拍%03d  %s" % [logic_frame, message])
@@ -278,6 +300,7 @@ func refresh_ui() -> void:
 	super.refresh_ui()
 	if units.is_empty() or not units[0].has("pose"): return
 	status_label.text = "第 %03d 拍  ·  %.1f倍速 · 每拍%.2f秒  |  同步回合 · 整格判定" % [logic_frame, speed, Beat.SECONDS / playback_rate()]
+	if segment_active: status_label.text = "第 %03d → %03d 拍 · 播放中 %.0f%% · 到交点才结算" % [logic_frame, logic_frame + 1, accumulator / Beat.SECONDS * 100]
 	if not started: status_label.text = "开局布阵  ·  8×8 节拍战斗  |  N 单拍 / Shift+N 四拍"
 	var u: Dictionary = units[editor_unit]
 	character_label.text = "%s%d · %s格 · %s · %s · HP %d/%d · 盾%d" % ["蓝" if u.team == 0 else "红", u.member + 1, Beat.name_of(u.cell), Beat.posture(u), action_state_label(u), u.hp, Beat.MAX_HP, u.shield]
@@ -363,16 +386,17 @@ func capture_shooting_preview() -> void:
 	beat_sim = preload("res://scripts/beat_validation.gd").fixture(self)
 	beat_sim.units[2].cell = Vector2i(4, 3)
 	beat_sim.units[2].p = Beat.center(Vector2i(4, 3))
+	beat_sim.units[2].hp = 1
 	beat_sim.loadouts[0].active = [["普通攻击", "无", "无"]]
 	loadouts = beat_sim.loadouts
 	units.assign(beat_sim.units)
 	presentation.reset(units)
 	started = true
 	for row in range(3):
-		simulate(Beat.SECONDS)
+		step_forward()
 		for column in range(4):
-			if column > 0: advance_visuals(Beat.SECONDS / 3.0)
-			animation_preview_caption = "%s / %.0f ms" % [["第1拍·瞄准预警", "第2拍·目标格结算", "第3拍·后摇结束站立"][row], column * Beat.SECONDS / 3.0 * 1000.0]
+			if column > 0: advance_playback(Beat.SECONDS / 3.0 / playback_rate())
+			animation_preview_caption = "%s / %.0f ms" % [["第1拍·瞄准预警", "第2拍·弹道到达才结算", "第3拍·后摇结束站立"][row], column * Beat.SECONDS / 3.0 * 1000.0] + " / HP %d / 已结算%d拍" % [units[2].hp, logic_frame]
 			queue_redraw()
 			await RenderingServer.frame_post_draw
 			var frame := get_viewport().get_texture().get_image().get_region(Rect2i(20, 145, 890, 590))

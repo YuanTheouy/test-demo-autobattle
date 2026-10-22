@@ -242,8 +242,11 @@ static func run(game) -> void:
 	assert(snapshots[0] == snapshots[1] and snapshots[1] == snapshots[2])
 	game.reset_round()
 	game.step_forward()
+	assert(game.logic_frame == 0)
+	game.advance_playback(Beat.SECONDS / game.playback_rate())
 	assert(game.logic_frame == 1)
 	game.step_forward(12)
+	game.advance_playback(4 * Beat.SECONDS / game.playback_rate())
 	assert(game.logic_frame == 5)
 	game.reset_round()
 	assert(game.place_unit(0, Vector2i(7, 7)))
@@ -261,6 +264,7 @@ static func run(game) -> void:
 	report.shooting = validate_shooting(game)
 	report.shot_postures = validate_shot_postures(game)
 	report.boundary = validate_boundaries(game)
+	report.animate_then_settle = validate_live_steps(game)
 	report.soldier = validate_soldier(game)
 	report.movement_lock = validate_movement_lock(game)
 	report.motion = validate_motion(game)
@@ -269,6 +273,72 @@ static func run(game) -> void:
 	var file := FileAccess.open("res://reports/beat-validation.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(report, "\t"))
 	print("BEAT PASSED: soldier preset, 9-beat straight route/12-beat zigzag, turn-standing, smooth braking, two-beat committed movement, one-beat PP dodge, six symmetric cases, nine legacy presets and editor")
+
+static func validate_live_steps(game) -> Dictionary:
+	var checks: Array = []
+	var sim = fixture(game)
+	ap(sim, 0, "向右移动")
+	game.beat_sim = sim
+	game.loadouts = sim.loadouts
+	game.units.assign(sim.units)
+	game.presentation.reset(game.units)
+	game.speed = 1.0
+	var origin: Vector2 = game.units[0].p
+	game.step_forward()
+	game.step_forward() # Duplicate presses must not queue an unseen extra beat.
+	assert(game.logic_frame == 0 and game.units[0].cell == Vector2i(2, 3))
+	game.advance_playback(0.25)
+	assert(game.logic_frame == 0 and game.units[0].cell == Vector2i(2, 3))
+	game.toggle_running() # Switch from single-step to continuous, then pause mid-segment.
+	game.toggle_running()
+	var paused: float = game.presentation.time
+	game._process(2.0)
+	assert(game.presentation.time == paused and game.logic_frame == 0)
+	game.step_forward() # Finish the same in-progress segment, without restarting it.
+
+	assert(game.presentation.position(game.units[0]).distance_to(origin) > 0)
+	game.advance_playback(10.0)
+	assert(game.logic_frame == 1 and game.steps_remaining == 0 and not game.running)
+	var frozen: float = game.presentation.time
+	game._process(5.0)
+	assert(game.logic_frame == 1 and game.presentation.time == frozen)
+	game.step_forward()
+	game.advance_playback(0.49)
+	assert(game.logic_frame == 1 and game.units[0].cell == Vector2i(2, 3))
+	game.advance_playback(0.01)
+	assert(game.logic_frame == 2 and game.units[0].cell == Vector2i(3, 3))
+	checks.append("N animates before settling; logical cell stays put during the segment, one press commits one endpoint, then both clocks freeze")
+	# A lethal ordinary bullet must arrive before the real HP/death/result is published.
+	sim = fixture(game)
+	sim.units[2].cell = Vector2i(4, 3)
+	sim.units[2].p = Beat.center(sim.units[2].cell)
+	sim.units[2].hp = 1
+	ap(sim, 0, "普通攻击")
+	game.beat_sim = sim
+	game.loadouts = sim.loadouts
+	game.units.assign(sim.units)
+	game.presentation.reset(game.units)
+	game.step_forward()
+	assert(not preload("res://scripts/beat_telegraph.gd").cells(sim, 0.0, game.segment_preview).is_empty())
+	game.advance_playback(0.5)
+	assert(game.logic_frame == 1 and game.units[2].hp == 1)
+	game.step_forward()
+	assert(game.units[2].hp == 1 and game.presentation.flights.size() == 1)
+	assert(is_equal_approx(game.presentation.flights[0].duration, Beat.SECONDS))
+	game.advance_playback(0.49)
+	assert(game.logic_frame == 1 and sim.beat == 1 and game.units[2].hp == 1 and sim.shots == 0 and not game.finished)
+	assert(not game.presentation.flights.is_empty() and game.presentation.bursts.all(func(b): return b.age < 0))
+	game.advance_playback(0.01)
+	assert(game.logic_frame == 2 and game.units[2].hp == 0 and sim.shots == 1 and game.finished)
+	assert(game.presentation.flights.is_empty() and game.presentation.bursts.any(func(b): return b.age >= -0.00001))
+	checks.append("lethal bullet takes the full firing segment; HP, death and victory change only on arrival; impact remains visible at the paused endpoint")
+	# Explicit four-beat playback stops at its fourth endpoint, even with a large frame.
+	game.reset_round()
+	game.step_forward(12)
+	game.advance_playback(10.0)
+	assert(game.logic_frame == 4 and game.steps_remaining == 0 and not game.segment_active)
+	game.reset_round()
+	return {"checks": checks, "real_seconds_per_step": 0.5}
 
 static func validate_boundaries(game) -> Dictionary:
 	var checks: Array = []
@@ -696,7 +766,8 @@ static func validate_presentation(game) -> void:
 	var beat: int = game.logic_frame
 	game._process(0.1)
 	assert(game.units == state and game.logic_frame == beat, "Single-step animates without advancing another beat")
-	game.settle_visual = 0.0
+	game.advance_playback(Beat.SECONDS / game.playback_rate())
+	assert(game.steps_remaining == 0 and game.logic_frame == beat + 1)
 	var frozen: float = game.presentation.time
 	game._process(0.1)
 	assert(game.presentation.time == frozen, "Pause freezes the visual clock")
@@ -769,9 +840,9 @@ static func validate_playback_baseline(game) -> Array:
 	game.speed = 1.0
 	game.step_forward()
 	game._process(0.25)
-	assert(is_equal_approx(game.presentation.beat_age, 0.125) and game.logic_frame == 1)
+	assert(is_equal_approx(game.presentation.beat_age, 0.125) and game.logic_frame == 0)
 	game._process(0.25)
-	assert(is_equal_approx(game.presentation.beat_age, 0.25) and game.logic_frame == 1, "Single-step animation must take half a real second at the new baseline")
+	assert(is_equal_approx(game.presentation.beat_age, 0.0) and game.logic_frame == 1, "Single-step animation must take half a real second at the new baseline")
 	game.reset_round()
 	return ["new default 1x equals previous 0.5x", "0.5x/1x/2x use 1.0/0.5/0.25 real seconds per beat", "single-step animation follows the same new baseline"]
 

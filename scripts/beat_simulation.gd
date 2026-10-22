@@ -723,6 +723,22 @@ func choose_next_segment() -> void:
 	manual = saved_manual
 	activations = saved_activations
 
+func preview_segment() -> Dictionary:
+	# Preview only trajectories and due effects; no HP, cell or decision is committed.
+	if next_segment.is_empty() or next_segment.key != boundary_key(): choose_next_segment()
+	var projected: Array = next_segment.units.duplicate(true)
+	var saved_events: Array[String] = events
+	events = []
+	resolve_moves(units, projected, next_segment.moves, [0, 0, 0, 0])
+	events = saved_events
+	for u in projected:
+		u.p = center(u.cell)
+		u.hp = units[u.uid].hp
+	var due: Array = []
+	for strike in strikes + next_segment.strikes:
+		if strike.at == beat + 1: due.append(strike.duplicate(true))
+	return {"units": projected, "strikes": next_segment.strikes.duplicate(true), "effects": due, "beat": beat + 1}
+
 func tick() -> void:
 	# Only initial deployment or an explicit edit needs a plan at the starting point.
 	if next_segment.is_empty() or next_segment.key != boundary_key(): choose_next_segment()

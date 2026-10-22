@@ -1,4 +1,11 @@
 {
+	"animate_then_settle": {
+		"checks": [
+			"N animates before settling; logical cell stays put during the segment, one press commits one endpoint, then both clocks freeze",
+			"lethal bullet takes the full firing segment; HP, death and victory change only on arrival; impact remains visible at the paused endpoint"
+		],
+		"real_seconds_per_step": 0.5
+	},
 	"balance": {
 		"attack_results": [
 			{

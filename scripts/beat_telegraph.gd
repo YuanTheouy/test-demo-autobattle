@@ -7,7 +7,7 @@ static func divisions(total_beats: int) -> Array[float]:
 	for boundary in range(1, total_beats): cuts.append(float(boundary) / total_beats)
 	return cuts
 
-static func cells(sim, elapsed: float) -> Array:
+static func cells(sim, elapsed: float, preview: Dictionary = {}) -> Array:
 	var incoming: Array = []
 	for strike in sim.strikes:
 		incoming.append({"cells": strike.cells, "due": strike.at, "start": strike.get("warn_from", strike.at - maxi(1, Beat.flight_delay(strike.skill))), "team": strike.team})
@@ -18,6 +18,11 @@ static func cells(sim, elapsed: float) -> Array:
 		# Only the next not-yet-released shot matters; later shots share its cells.
 		if count > 0:
 			incoming.append({"cells": u.lock_cells, "due": due, "start": u.attack_started, "team": u.team})
+	# Show lock-on as soon as an aiming segment starts, without publishing future HP/cells.
+	for u in preview.get("units", []):
+		if u.hp <= 0 or u.phase != "前摇" or sim.units[u.uid].mode in ["前摇", "释放硬直"]: continue
+		var due: int = preview.beat + (u.left if u.mode == "前摇" else 0) + 1 + Beat.flight_delay(u.active_skill)
+		incoming.append({"cells": u.lock_cells, "due": due, "start": u.attack_started, "team": u.team})
 	var nearest: Dictionary = {}
 	for attack in incoming:
 		if attack.due <= sim.beat: continue

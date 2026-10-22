@@ -7,6 +7,7 @@ var flights: Array = []
 var bursts: Array = []
 var time := 0.0
 var beat_age := 0.0
+var segment_units: Array = []
 
 func destination(u: Dictionary) -> Vector2:
 	if u.mode == "碰撞":
@@ -26,6 +27,7 @@ func moving_lag(u: Dictionary) -> Vector2:
 	return Vector2(u.trend) * cruise * DURATION * 0.5
 
 func reset(units: Array) -> void:
+	segment_units.clear()
 	tracks.clear()
 	flights.clear()
 	bursts.clear()
@@ -63,7 +65,9 @@ func angle(u: Dictionary) -> float:
 	var track: Dictionary = tracks[u.uid]
 	return lerp_angle(track.angle_from, track.angle_to, smoothstep(0.0, 1.0, clampf(track.age / DURATION, 0.0, 1.0)))
 
-func begin(before: Array, after: Array, sim) -> void:
+func begin(before: Array, after: Array, sim, upcoming: Dictionary = {}) -> void:
+	var deferred := not upcoming.is_empty()
+	segment_units = after.duplicate(true) if deferred else []
 	if tracks.is_empty(): reset(before)
 	beat_age = 0.0
 	for u in after:
@@ -84,23 +88,35 @@ func begin(before: Array, after: Array, sim) -> void:
 		track.guide = movement_guide(old, u)
 		track.dodge = u.phase == "侧闪跨格"
 		if u.phase == "释放硬直": track.flash = 0.18
-		if u.hp < old.hp: track.hurt = 0.2
-		if u.hp > old.hp: track.heal = 0.5
+		if not deferred and u.hp < old.hp: track.hurt = 0.2
+		if not deferred and u.hp > old.hp: track.heal = 0.5
 	# New attacks only. Flight endpoints are locked integer cells, never homing.
-	for strike in sim.strikes:
-		var delay: int = strike.at - sim.beat
+	for strike in upcoming.get("strikes", sim.strikes):
+		var delay: int = strike.at - int(upcoming.get("beat", sim.beat))
 		var source: Dictionary = after[strike.source]
+		if deferred and delay == 0: continue # Immediate attacks are drawn once by the due-effect path.
 		if source.phase != "释放硬直" or delay != sim.flight_delay(strike.skill): continue
 		for cell in strike.cells:
-			flights.append({"from": position(source), "to": sim.center(cell), "age": 0.0, "duration": maxf(DURATION, delay * DURATION), "team": strike.team, "arc": delay >= 2})
-	for effect in sim.effects:
+			flights.append({"from": position(source), "to": sim.center(cell), "age": 0.0, "duration": maxf(DURATION, (delay + (1 if deferred else 0)) * DURATION), "team": strike.team, "arc": delay >= 2})
+	for effect in upcoming.get("effects", sim.effects):
 		var ordinary: bool = effect.skill in ["点射", "普通攻击"]
-		var flight_time := DURATION * 0.6 if ordinary else 0.0
+		var flight_time := DURATION if deferred else (DURATION * 0.6 if ordinary else 0.0)
 		for cell in effect.cells:
 			bursts.append({"p": sim.center(cell), "age": -flight_time, "team": effect.team, "total_beats": maxi(1, effect.at - effect.get("warn_from", effect.at - maxi(1, sim.flight_delay(effect.skill))))})
 		if sim.flight_delay(effect.skill) == 0:
 			for cell in effect.cells:
-				flights.append({"from": position(after[effect.source]), "to": sim.center(cell), "age": 0.0, "duration": flight_time if ordinary else 0.16, "team": effect.team, "arc": false, "beam": not ordinary})
+				flights.append({"from": position(after[effect.source]), "to": sim.center(cell), "age": 0.0, "duration": flight_time if ordinary or deferred else 0.16, "team": effect.team, "arc": false, "beam": not ordinary})
+
+func finish_segment(before: Array, after: Array) -> void:
+	# Arrival has been shown; now reveal HP changes and impact feedback at the endpoint.
+	segment_units.clear()
+	beat_age = 0.0
+	flights = flights.filter(func(f): return f.age < f.duration - 0.000001)
+	for burst in bursts:
+		if burst.age > -0.000001: burst.age = maxf(0, burst.age)
+	for u in after:
+		if u.hp < before[u.uid].hp: tracks[u.uid].hurt = 0.2
+		if u.hp > before[u.uid].hp: tracks[u.uid].heal = 0.5
 
 func advance(delta: float) -> void:
 	time += delta
@@ -115,6 +131,9 @@ func advance(delta: float) -> void:
 
 func visual(u: Dictionary) -> Dictionary:
 	var copy := u.duplicate()
+	if not segment_units.is_empty():
+		for key in ["phase", "mode", "active_skill", "left", "intent", "timer", "action_stage"]:
+			copy[key] = segment_units[u.uid][key]
 	if not tracks.has(u.uid): return copy
 	var track: Dictionary = tracks[u.uid]
 	copy.p = position(u)

@@ -3,7 +3,7 @@ var warnings: Array = []
 var occupants: Array = []
 
 func render(game) -> void:
-	warnings = preload("res://scripts/beat_telegraph.gd").cells(game.beat_sim, game.presentation.beat_age) if game.show_aim else []
+	warnings = preload("res://scripts/beat_telegraph.gd").cells(game.beat_sim, game.presentation.beat_age, game.segment_preview) if game.show_aim else []
 	occupants = preload("res://scripts/beat_occupancy.gd").markers(game.units)
 	super.render(game)
 	if not g.animation_preview_caption.is_empty():
@@ -170,18 +170,19 @@ func draw_wall(state: Dictionary, alpha: float) -> void:
 func visual_unit(u: Dictionary) -> Dictionary:
 	var visual: Dictionary = g.presentation.visual(u)
 	visual.hide_action_label = true
-	visual.intent = g.action_state_label(u)
+	visual.intent = g.action_state_label(visual)
 	return visual
 
 func display_position(u: Dictionary) -> Vector2:
 	return g.presentation.position(u)
 
 func robot(u: Dictionary) -> void:
-	super.robot(visual_unit(u))
-	if u.hp > 0 and u.phase == "前摇":
+	var shown := visual_unit(u)
+	super.robot(shown)
+	if shown.hp > 0 and shown.phase == "前摇":
 		var track: Dictionary = g.presentation.tracks[u.uid]
-		var total: float = maxf(1.0, g.beat_sim.windup(u.active_skill))
-		var remaining: float = u.left if u.mode == "前摇" else 0.0
+		var total: float = maxf(1.0, g.beat_sim.windup(shown.active_skill))
+		var remaining: float = shown.left if shown.mode == "前摇" else 0.0
 		var progress := clampf((total - remaining - 1.0 + track.age / 0.25) / total, 0.0, 1.0)
 		var color: Color = g.BLUE if u.team == 0 else g.RED
 		ring(display_position(u), 33, Color(color, 0.35), 2)
