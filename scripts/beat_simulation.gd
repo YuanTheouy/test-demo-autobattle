@@ -233,6 +233,7 @@ func condition(u: Dictionary, target: int, text: String, snapshot: Array) -> boo
 				return target >= 0 and (distance(u.cell, snapshot[target].cell) <= int(amount) if comparison == "≤" else distance(u.cell, snapshot[target].cell) >= int(amount))
 	match text:
 		"有射位": return target >= 0 and ranged(u, snapshot[target], "点射")
+		"敌人处于站立姿态": return target >= 0 and posture(snapshot[target]) == "站立姿态"
 		"站稳姿态": return posture(u) == "站立姿态"
 		"移动姿态": return posture(u) == "移动姿态"
 		"敌人处于移动姿态", "沿移动方向预判1格": return target >= 0 and posture(snapshot[target]) == "移动姿态" and snapshot[target].trend in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]

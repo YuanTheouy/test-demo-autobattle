@@ -3,6 +3,7 @@ extends "res://scripts/battle.gd"
 const Beat = preload("res://scripts/beat_simulation.gd")
 const BASE_PLAYBACK_RATE := 0.5
 const SOLDIER_PRESET := 9
+const SIMPLE_CONDITIONS := ["无", "自己HP≤2", "敌人处于站立姿态", "敌人处于移动姿态", "敌人距离≤2格", "敌人距离≥3格", "沿移动方向预判1格"]
 # AP priorities from earlier benchmark, now without dodge; fifth demonstrates prediction.
 const DUEL_PRESET_NAMES := ["吊射→远敌", "接敌→吊射", "吊射→接敌", "近身远敌→吊射", "预判吊射→接敌"]
 const DUEL_PRESET_AP := [
@@ -77,7 +78,7 @@ func preset_loadouts(index: int) -> Array:
 		for profile in pair: profile.reaction = profile.reaction.filter(func(rule): return rule[0] != "侧闪")
 		return pair
 	var soldier := {
-		"active": [["普通攻击", "优先队友目标", "无"], ["接敌", "无", "无"]],
+		"active": [["普通攻击", "无", "无"], ["接敌", "无", "无"]],
 		"reaction": []
 	}
 	return [soldier.duplicate(true), soldier.duplicate(true)]
@@ -87,7 +88,9 @@ func basic_loadout() -> Dictionary:
 
 func setup_loadouts() -> void:
 	super.setup_loadouts()
-	for loadout in loadouts: add_stand_rule(loadout)
+	for loadout in loadouts:
+		add_stand_rule(loadout)
+		simplify_loadout(loadout)
 
 func reset_walls() -> void:
 	walls.assign([Rect2(240, 80, 80, 160), Rect2(320, 400, 80, 160)])
@@ -98,7 +101,7 @@ func reset_walls() -> void:
 func add_stand_rule(loadout: Dictionary) -> void:
 	for rule in loadout.active:
 		if rule[0] in Beat.HIGH:
-			loadout.active.push_front(["站稳", "移动姿态", "有射位"])
+			loadout.active.push_front(["站稳", "无", "无"])
 			return
 
 func apply_preset(team: int, index: int) -> void:
@@ -133,10 +136,7 @@ func setup_ui() -> void:
 
 func rebuild_editor() -> void:
 	# The legacy editor removes conditions it does not know; preserve beat-only ones.
-	for loadout in loadouts:
-		for kind in ["active", "reaction"]:
-			for rule in loadout[kind]:
-				for column in [1, 2]: rule[column] = small_hp_condition(rule[column])
+	for loadout in loadouts: simplify_loadout(loadout)
 	var saved := loadouts.duplicate(true)
 	super.rebuild_editor()
 	for uid in range(saved.size()): loadouts[uid] = saved[uid]
@@ -145,38 +145,62 @@ func rebuild_editor() -> void:
 func small_hp_condition(text: String) -> String:
 	return text.replace("HP≤50", "HP≤2").replace("敌人距离≤2米", "敌人距离≤2格").replace("敌人距离≥3米", "敌人距离≥3格")
 
+func conditions_for_skill(skill: String) -> Array:
+	if skill == "留空": return ["无"]
+	if skill == "站稳" or skill in Beat.SUPPORT: return ["无", "自己HP≤2"]
+	var allowed := SIMPLE_CONDITIONS.duplicate()
+	if skill not in ["普通攻击", "点射"]: allowed.erase("沿移动方向预判1格")
+	return allowed
+
+func simplify_loadout(loadout: Dictionary) -> void:
+	for kind in ["active", "reaction"]:
+		for rule in loadout[kind]:
+			var allowed := conditions_for_skill(rule[0])
+			for column in [1, 2]:
+				rule[column] = small_hp_condition(rule[column])
+				if rule[column] not in allowed: rule[column] = "无"
+
 func update_beat_menus() -> void:
 	var entries := editor_entries()
 	for index in range(editor_rows.size()):
 		var menus: Array = editor_rows[index].menus
+		var occupied := index < entries.size()
+		var rule: Array = entries[index].rule if occupied else ["留空", "无", "无"]
 		for column in range(3):
 			var menu: OptionButton = menus[column]
-			if column > 0:
-				menu.add_theme_font_size_override("font_size", 13)
-				for item in range(menu.item_count): menu.set_item_text(item, small_hp_condition(menu.get_item_text(item)))
-			var additions: Array = ["站稳", "接敌", "远敌", "向左移动", "向右移动", "向上移动", "向下移动"] if column == 0 else ["敌人处于移动姿态", "沿移动方向预判1格", "站稳姿态", "移动姿态", "动作姿态", "僵直姿态", "有射位", "敌人距离≤1格", "敌人距离≤2格", "敌人距离≤3格", "敌人距离≤4格", "敌人距离≥1格", "敌人距离≥2格", "敌人距离≥3格", "敌人距离≥4格"]
-			for label in additions:
-				var found := false
-				for item in range(menu.item_count):
-					if menu.get_item_text(item) == label: found = true
-				if not found: menu.add_item(label)
-			if index < entries.size():
-				for item in range(menu.item_count):
-					if menu.get_item_text(item) == entries[index].rule[column]: menu.select(item)
 			if column == 0:
+				for label in ["站稳", "接敌", "远敌", "向左移动", "向右移动", "向上移动", "向下移动"]:
+					var found := false
+					for item in range(menu.item_count):
+						if menu.get_item_text(item) == label: found = true
+					if not found: menu.add_item(label)
 				for item in range(menu.item_count): menu.get_popup().set_item_tooltip(item, beat_help(menu.get_item_text(item)))
-				menu.tooltip_text = beat_help(entries[index].rule[0]) if index < entries.size() else beat_help("留空")
 			else:
-				for item in range(menu.item_count):
-					var option := menu.get_item_text(item)
-					if option == "沿移动方向预判1格": menu.get_popup().set_item_tooltip(item, "瞄准修饰，仅限普通吊射：按敌人公开的移动方向瞄前方1格。落点锁定、不追踪；出界、墙格或超射程则跳过本规则。")
-					elif option == "敌人处于移动姿态": menu.get_popup().set_item_tooltip(item, "目标筛选：只选择当前处于有方向移动姿态的敌人，不读取其下一拍动作。")
-				if index < entries.size(): menu.tooltip_text = entries[index].rule[column]
+				menu.clear()
+				menu.add_theme_font_size_override("font_size", 13)
+				for condition in conditions_for_skill(rule[0]):
+					menu.add_item(condition)
+					menu.get_popup().set_item_tooltip(menu.item_count - 1, condition_help(condition))
+				menu.disabled = not occupied
+			for item in range(menu.item_count):
+				if menu.get_item_text(item) == rule[column]: menu.select(item)
+			menu.tooltip_text = beat_help(rule[0]) if column == 0 else condition_help(rule[column])
+
+func condition_help(condition: String) -> String:
+	match condition:
+		"无": return "不添加额外限制。"
+		"自己HP≤2": return "自身条件：自己剩余2血或1血时执行。"
+		"敌人处于站立姿态": return "目标条件：只选择当前处于站立姿态的敌人。"
+		"敌人处于移动姿态": return "目标条件：只选择当前有移动方向的敌人，不读取其下一拍动作。"
+		"敌人距离≤2格": return "目标条件：与敌人的曼哈顿距离不超过2格。"
+		"敌人距离≥3格": return "目标条件：与敌人的曼哈顿距离至少3格。"
+		"沿移动方向预判1格": return "瞄准修饰，仅吊射可用：按敌人公开移动方向瞄前方1格。锁定后不追踪；无移动方向、墙格、出界或超射程则跳过规则。"
+	return condition
 
 func beat_help(skill: String) -> String:
 	if skill in ["接敌", "远敌", "后撤"]: return "%s：按地形路径代价选择一个相邻空格，%s。每次只移动一格（2拍）；同向可续走，转向先站立1拍。无内置停止距离，不检查是否已能攻击；是否执行由条件和优先级决定。无可改善距离的一步时检查下条规则。" % [skill, "降低到目标的路径距离" if skill == "接敌" else "增加到目标的路径距离"]
 	if skill in ["普通攻击", "点射"]: return "单格吊射：曼哈顿距离≤4格，允许斜向选格、越墙，只命中瞄准时锁定的1格，不追踪目标。可用条件“沿移动方向预判1格”改变锁定落点。需站立：非站立先花1拍站立，再瞄准预警1拍 → 目标格结算1拍 → 后摇1拍，结束恢复站立。瞄准可被侧闪取消；击发不可取消；后摇可取消，但侧闪后需重新站立。消耗15精力。独立CD6拍，从开火起算，与后摇重叠；没有公共CD。"
-	if skill == "站稳": return "耗1拍，移动姿态恢复站稳；不跨格。高级技能必须先站稳。预设附加有射位条件，可排序、改条件或删除。"
+	if skill == "站稳": return "耗1拍，移动姿态恢复站稳；不跨格。高级技能必须先站稳。已站稳时跳过，可排序、改条件或删除。"
 	if skill in Beat.MOVE or skill in ["向左移动", "向右移动", "向上移动", "向下移动"]: return "普通移动2拍一格；同方向可以连续走，换方向前自动站立1拍。移动硬直只能用PP侧闪取消；侧闪1拍一格，结束为有方向的移动姿态，同向可接普通移动，换向先站立1拍。减速时普通移动额外1拍。"
 	if skill == "侧闪": return "真实预警触发，1拍跨入安全相邻格，耗20精力。前摇取消退款，后摇取消不退款，释放硬直/碰撞中禁用；无安全格不触发。结束保留侧闪方向的移动姿态，同向接普通移动无需站立；转向或普攻须先站立。"
 	if skill == "回春": return "25精力；治疗1血，上限3血。自己或3格内队友刚受伤时触发；冷却32拍，后摇1拍。"

@@ -75,5 +75,29 @@ static func run(game) -> Array:
 		var menu: OptionButton = game.editor_rows[0].menus[column]
 		assert(menu.get_item_text(menu.selected) == game.loadouts[0].active[0][column])
 	checks.append("prediction demo preset and both condition columns survive editor rebuilding")
+	assert(game.SIMPLE_CONDITIONS.size() == 7)
+	for column in [1, 2]:
+		var menu: OptionButton = game.editor_rows[0].menus[column]
+		assert(menu.item_count == 7)
+		for item in range(menu.item_count): assert(menu.get_item_text(item) == game.SIMPLE_CONDITIONS[item])
+	game.edit_rule_cell(0, 0, "接敌")
+	assert(game.loadouts[0].active[0] == ["接敌", "敌人处于移动姿态", "无"])
+	for column in [1, 2]:
+		var menu: OptionButton = game.editor_rows[0].menus[column]
+		assert(menu.item_count == 6)
+		for item in range(menu.item_count): assert(menu.get_item_text(item) != "沿移动方向预判1格")
+	game.edit_rule_cell(0, 1, "敌人处于站立姿态")
+	game.rebuild_editor()
+	assert(game.loadouts[0].active[0][1] == "敌人处于站立姿态")
+	assert(game.conditions_for_skill("站稳") == ["无", "自己HP≤2"])
+	assert(game.conditions_for_skill("回春") == ["无", "自己HP≤2"])
+	var standing = fixture(game)
+	assert(not standing.condition(standing.units[0], 2, "敌人处于站立姿态", standing.units))
+	standing.units[2].pose = "站稳"
+	standing.units[2].trend = Vector2i.ZERO
+	assert(standing.condition(standing.units[0], 2, "敌人处于站立姿态", standing.units))
+	standing.units[2].mode = "后摇"
+	assert(not standing.condition(standing.units[0], 2, "敌人处于站立姿态", standing.units))
+	checks.append("seven-condition menu; skill-specific subsets; switching skills preserves valid filters and clears unsupported prediction; standing filter excludes recovery")
 	print("PREDICTION PASSED: straight-move hit, stop/turn/dodge counterplay, fixed telegraph, invalid fallback and editor persistence")
 	return checks
