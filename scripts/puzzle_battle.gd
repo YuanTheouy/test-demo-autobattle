@@ -91,7 +91,7 @@ func refresh_ui() -> void:
 	subtitle.text = "3×3 谜题工作台 · 1v1 · 只保留前方 F6—H8 九格"
 	if not started: status_label.text = "题目01：躲开第一枪  |  修改策略后按 N，完整播放一拍"
 	for uid in range(roster_buttons.size()): roster_buttons[uid].visible = uid in PARTICIPANTS
-	if soldier_hint != null: soldier_hint.text = "3×3 / 1v1\n5血 · 普攻1伤害\nN逐拍 · R重试"
+	if soldier_hint != null: soldier_hint.text = "3×3 / 1v1\n单格吊射 · 射程4\nN逐拍 · R重试"
 	if puzzle_hint != null:
 		puzzle_hint.text = "题目01 · 躲开第一枪\n目标：红方第一枪结算时，蓝方不受伤。\n蓝方策略留空；右侧选择技能和条件，修改后重开。\nN：播放一拍并暂停    R：重试" if puzzle_outcome.is_empty() else puzzle_outcome + "\n按 R 重试，或修改蓝方策略后再试。"
 

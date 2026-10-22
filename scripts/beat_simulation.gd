@@ -5,6 +5,7 @@ const SIZE := 8
 const CELL_SIZE := 80.0
 const SECONDS := 0.25
 const MOVE_BEATS := 2
+const NORMAL_RANGE := 4
 const MAX_HP := 5
 const COLLISION_DAMAGE := 1
 const HEAL := 1
@@ -213,9 +214,9 @@ func damage_of(skill: String) -> int:
 	return DAMAGE.get(skill, 0)
 
 func ranged(u: Dictionary, target: Dictionary, skill: String) -> bool:
-	if distance(u.cell, target.cell) > (2 if skill == "霰弹" else 4): return false
+	if distance(u.cell, target.cell) > (2 if skill == "霰弹" else (NORMAL_RANGE if skill in ["普通攻击", "点射"] else 4)): return false
 	if skill in ["蓄能贯穿", "裂地冲击", "天穹贯穿"] and target.cell not in coverage(u, skill, target.cell): return false
-	return skill in ["抛射轰击", "烈焰爆破", "星火轰炸"] or sight(u.cell, target.cell)
+	return skill in ["普通攻击", "点射", "抛射轰击", "烈焰爆破", "星火轰炸"] or sight(u.cell, target.cell)
 
 func ally_of(u: Dictionary, snapshot: Array) -> int:
 	for v in snapshot:

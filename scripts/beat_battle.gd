@@ -102,7 +102,7 @@ func setup_ui() -> void:
 	for node in get_children():
 		if node is Label and node.text == "AUTOBATTLE": node.text = "AUTOBATTLE / BEAT"
 	update_beat_menus()
-	soldier_hint = text_label(self, "普通士兵对练\n5血 · 普攻1伤害\n射击3拍 · 独立CD6拍\n无大招", 14)
+	soldier_hint = text_label(self, "普通士兵对练\n5血 · 单格吊射1伤害\n射程4格 · 射击3拍 · 独立CD6拍\n无大招", 14)
 	soldier_hint.position = Vector2(700, 35)
 	soldier_hint.modulate = Color("c8b997")
 	arena_mode_button = add_button(self, "3×3 谜题 →", func(): get_tree().change_scene_to_file("res://puzzle_arena.tscn"))
@@ -145,7 +145,7 @@ func update_beat_menus() -> void:
 			elif index < entries.size(): menu.tooltip_text = entries[index].rule[column]
 
 func beat_help(skill: String) -> String:
-	if skill in ["普通攻击", "点射"]: return "普通射击需站立：非站立先花1拍站立，再瞄准预警1拍 → 目标格结算1拍 → 后摇1拍，结束恢复站立。瞄准可被侧闪取消；击发不可取消；后摇可取消，但侧闪后需重新站立。消耗15精力。独立CD6拍，从开火起算，与后摇重叠；没有公共CD。"
+	if skill in ["普通攻击", "点射"]: return "单格吊射：曼哈顿距离≤4格，允许斜向选格、越墙，只命中瞄准时锁定的1格，不追踪目标。需站立：非站立先花1拍站立，再瞄准预警1拍 → 目标格结算1拍 → 后摇1拍，结束恢复站立。瞄准可被侧闪取消；击发不可取消；后摇可取消，但侧闪后需重新站立。消耗15精力。独立CD6拍，从开火起算，与后摇重叠；没有公共CD。"
 	if skill == "站稳": return "耗1拍，移动姿态恢复站稳；不跨格。高级技能必须先站稳。预设附加有射位条件，可排序、改条件或删除。"
 	if skill in Beat.MOVE or skill in ["向左移动", "向右移动", "向上移动", "向下移动"]: return "普通移动2拍一格；同方向可以连续走，换方向前自动站立1拍。移动硬直只能用PP侧闪取消；侧闪1拍一格，结束为有方向的移动姿态，同向可接普通移动，换向先站立1拍。减速时普通移动额外1拍。"
 	if skill == "侧闪": return "真实预警触发，1拍跨入安全相邻格，耗20精力。前摇取消退款，后摇取消不退款，释放硬直/碰撞中禁用；无安全格不触发。结束保留侧闪方向的移动姿态，同向接普通移动无需站立；转向或普攻须先站立。"

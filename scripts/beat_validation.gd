@@ -262,6 +262,7 @@ static func run(game) -> void:
 	report.balance = preload("res://scripts/beat_balance_validation.gd").run(game)
 	report.telegraphs = preload("res://scripts/beat_telegraph_validation.gd").run(game)
 	report.shooting = validate_shooting(game)
+	report.normal_lob = validate_normal_lob(game)
 	report.shot_postures = validate_shot_postures(game)
 	report.dodge_movement_pose = validate_dodge_pose(game)
 	report.boundary = validate_boundaries(game)
@@ -274,6 +275,34 @@ static func run(game) -> void:
 	var file := FileAccess.open("res://reports/beat-validation.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(report, "\t"))
 	print("BEAT PASSED: soldier preset, 9-beat straight route/12-beat zigzag, turn-standing, smooth braking, two-beat committed movement, one-beat PP dodge, six symmetric cases, nine legacy presets and editor")
+
+static func validate_normal_lob(game) -> Dictionary:
+	var sim = fixture(game)
+	sim.units[2].cell = Vector2i(4, 3)
+	sim.blocked_cells.append(Vector2i(3, 3))
+	assert(not sim.sight(sim.units[0].cell, sim.units[2].cell))
+	for skill in ["普通攻击", "点射"]:
+		assert(sim.ranged(sim.units[0], sim.units[2], skill))
+	assert(not sim.ranged(sim.units[0], sim.units[2], "火矢"))
+	sim.units[2].cell = Vector2i(4, 5) # Two across and two down: Manhattan 4, not Euclidean.
+	assert(sim.ranged(sim.units[0], sim.units[2], "普通攻击"))
+	sim.units[2].cell = Vector2i(5, 5)
+	assert(not sim.ranged(sim.units[0], sim.units[2], "普通攻击"))
+	sim.units[2].cell = Vector2i(4, 3)
+	sim.units[3].hp = 5
+	sim.units[3].cell = Vector2i(4, 4)
+	ap(sim, 0, "普通攻击")
+	sim.tick()
+	assert(sim.units[0].lock_cells == [Vector2i(4, 3)])
+	var preview: Dictionary = sim.preview_segment()
+	var display = preload("res://scripts/beat_presentation.gd").new()
+	display.reset(sim.units)
+	display.begin(sim.units, preview.units, sim, preview)
+	assert(display.flights.size() == 1 and display.flights[0].arc and display.flights[0].lobbed)
+	assert(display.flight_height(display.flights[0], 0.5) > 100 and is_equal_approx(display.flight_height(display.flights[0], 1.0), 4.0))
+	sim.tick()
+	assert(sim.units[2].hp == 4 and sim.units[3].hp == 5)
+	return {"range": Beat.NORMAL_RANGE, "metric": "Manhattan", "impact_cells": 1, "checks": ["ordinary aliases arc over cover; other direct shots remain blocked", "diagonal targets allowed at Manhattan4, excluded at5", "only locked cell is damaged; adjacent enemy is safe", "lob rises above walls and descends to ground at endpoint"]}
 
 static func validate_dodge_pose(game) -> Dictionary:
 	var checks: Array = []

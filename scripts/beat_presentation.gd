@@ -105,7 +105,11 @@ func begin(before: Array, after: Array, sim, upcoming: Dictionary = {}) -> void:
 			bursts.append({"p": sim.center(cell), "age": -flight_time, "team": effect.team, "total_beats": maxi(1, effect.at - effect.get("warn_from", effect.at - maxi(1, sim.flight_delay(effect.skill))))})
 		if sim.flight_delay(effect.skill) == 0:
 			for cell in effect.cells:
-				flights.append({"from": position(after[effect.source]), "to": sim.center(cell), "age": 0.0, "duration": flight_time if ordinary or deferred else 0.16, "team": effect.team, "arc": false, "beam": not ordinary})
+				flights.append({"from": position(after[effect.source]), "to": sim.center(cell), "age": 0.0, "duration": flight_time if ordinary or deferred else 0.16, "team": effect.team, "arc": ordinary, "lobbed": ordinary, "beam": not ordinary})
+
+static func flight_height(flight: Dictionary, progress: float) -> float:
+	var base := lerpf(28.0, 4.0, progress) if flight.get("lobbed", false) else 28.0
+	return base + (sin(progress * PI) * 100.0 if flight.arc else 0.0)
 
 func finish_segment(before: Array, after: Array) -> void:
 	# Arrival has been shown; now reveal HP changes and impact feedback at the endpoint.

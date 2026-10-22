@@ -212,111 +212,111 @@
 	},
 	"matches": [
 		{
-			"beats": 78,
-			"final_hp": [
-				2,
-				1,
-				0,
-				0
-			],
-			"opponent": 0,
-			"shots": 40,
-			"winner": 0
-		},
-		{
-			"beats": 166,
-			"final_hp": [
-				2,
-				4,
-				0,
-				0
-			],
-			"opponent": 1,
-			"shots": 70,
-			"winner": 0
-		},
-		{
-			"beats": 121,
-			"final_hp": [
-				1,
-				0,
-				0,
-				0
-			],
-			"opponent": 2,
-			"shots": 47,
-			"winner": 0
-		},
-		{
-			"beats": 15,
-			"final_hp": [
-				5,
-				5,
-				0,
-				0
-			],
-			"opponent": 3,
-			"shots": 12,
-			"winner": 0
-		},
-		{
-			"beats": 61,
-			"final_hp": [
-				5,
-				2,
-				0,
-				0
-			],
-			"opponent": 4,
-			"shots": 33,
-			"winner": 0
-		},
-		{
-			"beats": 77,
+			"beats": 88,
 			"final_hp": [
 				0,
 				0,
 				0,
 				2
 			],
-			"opponent": 5,
-			"shots": 35,
+			"opponent": 0,
+			"shots": 41,
 			"winner": 1
 		},
 		{
-			"beats": 91,
+			"beats": 173,
 			"final_hp": [
+				0,
+				0,
+				1,
+				3
+			],
+			"opponent": 1,
+			"shots": 71,
+			"winner": 1
+		},
+		{
+			"beats": 100,
+			"final_hp": [
+				0,
+				0,
+				1,
+				0
+			],
+			"opponent": 2,
+			"shots": 45,
+			"winner": 1
+		},
+		{
+			"beats": 42,
+			"final_hp": [
+				5,
 				3,
+				0,
+				0
+			],
+			"opponent": 3,
+			"shots": 26,
+			"winner": 0
+		},
+		{
+			"beats": 67,
+			"final_hp": [
+				4,
 				0,
 				0,
 				0
 			],
-			"opponent": 6,
-			"shots": 35,
+			"opponent": 4,
+			"shots": 36,
 			"winner": 0
 		},
 		{
-			"beats": 64,
+			"beats": 54,
 			"final_hp": [
 				0,
 				0,
-				0,
-				1
+				4,
+				0
 			],
-			"opponent": 7,
-			"shots": 36,
+			"opponent": 5,
+			"shots": 25,
 			"winner": 1
 		},
 		{
-			"beats": 85,
+			"beats": 80,
+			"final_hp": [
+				0,
+				0,
+				2,
+				5
+			],
+			"opponent": 6,
+			"shots": 40,
+			"winner": 1
+		},
+		{
+			"beats": 58,
+			"final_hp": [
+				3,
+				1,
+				0,
+				0
+			],
+			"opponent": 7,
+			"shots": 39,
+			"winner": 0
+		},
+		{
+			"beats": 55,
 			"final_hp": [
 				0,
 				0,
 				0,
-				4
+				3
 			],
 			"opponent": 8,
-			"shots": 31,
+			"shots": 24,
 			"winner": 1
 		}
 	],
@@ -334,6 +334,17 @@
 		"unaffordable, cooling or unsafe dodge leaves the original movement committed",
 		"slow adds one beat to walking but never to the one-beat dodge"
 	],
+	"normal_lob": {
+		"checks": [
+			"ordinary aliases arc over cover; other direct shots remain blocked",
+			"diagonal targets allowed at Manhattan4, excluded at5",
+			"only locked cell is damaged; adjacent enemy is safe",
+			"lob rises above walls and descends to ground at endpoint"
+		],
+		"impact_cells": 1,
+		"metric": "Manhattan",
+		"range": 4
+	},
 	"occupancy": [
 		"markers remain in the source cell during the first move beat and switch on arrival, independent of body interpolation",
 		"standing/mobile pose is explicit, including attacking in mobile pose",
@@ -382,8 +393,8 @@
 			"default soldier preset uses only standing, ordinary attack, engagement and PP dodge; no ultimate"
 		],
 		"match": {
-			"beats": 63,
-			"shots": 28,
+			"beats": 71,
+			"shots": 26,
 			"winner": -1
 		}
 	},

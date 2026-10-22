@@ -197,10 +197,10 @@ func air_effects() -> void:
 			line(flight.from, flight.to, Color(color, 1.0 - t), 4, 28)
 			continue
 		var p: Vector2 = Vector2(flight.from).lerp(flight.to, t)
-		var height := 28.0 + (sin(t * PI) * 100.0 if flight.arc else 0.0)
+		var height: float = g.presentation.flight_height(flight, t)
 		var tail_t := maxf(0.0, t - 0.12)
 		var tail: Vector2 = Vector2(flight.from).lerp(flight.to, tail_t)
-		var tail_h := 28.0 + (sin(tail_t * PI) * 100.0 if flight.arc else 0.0)
+		var tail_h: float = g.presentation.flight_height(flight, tail_t)
 		g.draw_line(project(tail, tail_h), project(p, height), Color(color, 0.3), 10, true)
 		g.draw_line(project(tail, tail_h), project(p, height), color, 3, true)
 		g.draw_circle(project(p, height), 5 if flight.arc else 3, Color("fff5db"))
