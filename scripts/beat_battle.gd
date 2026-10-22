@@ -121,7 +121,7 @@ func setup_ui() -> void:
 				lines.append(rule[0] + ("〔" + rule[1] + "〕" if rule[1] != "无" else ""))
 			picker.get_popup().set_item_tooltip(SOLDIER_PRESET + 1 + offset, "AP：" + " → ".join(lines) + "\nPP：侧闪〔无条件〕\n实测克制与出生位置有关，不保证每局获胜。")
 	update_beat_menus()
-	soldier_hint = text_label(self, "普通士兵对练\n5血 · 单格吊射1伤害\n射程4格 · 射击3拍 · 独立CD6拍\n无大招", 14)
+	soldier_hint = text_label(self, "普通士兵对练\n2血 · 单格吊射1伤害\n射程4格 · 射击3拍 · 独立CD6拍\n无大招", 14)
 	soldier_hint.position = Vector2(700, 35)
 	soldier_hint.modulate = Color("c8b997")
 	arena_mode_button = add_button(self, "3×3 自由对战 →", func(): get_tree().change_scene_to_file("res://puzzle_arena.tscn"))
@@ -169,7 +169,7 @@ func beat_help(skill: String) -> String:
 	if skill == "站稳": return "耗1拍，移动姿态恢复站稳；不跨格。高级技能必须先站稳。预设附加有射位条件，可排序、改条件或删除。"
 	if skill in Beat.MOVE or skill in ["向左移动", "向右移动", "向上移动", "向下移动"]: return "普通移动2拍一格；同方向可以连续走，换方向前自动站立1拍。移动硬直只能用PP侧闪取消；侧闪1拍一格，结束为有方向的移动姿态，同向可接普通移动，换向先站立1拍。减速时普通移动额外1拍。"
 	if skill == "侧闪": return "真实预警触发，1拍跨入安全相邻格，耗20精力。前摇取消退款，后摇取消不退款，释放硬直/碰撞中禁用；无安全格不触发。结束保留侧闪方向的移动姿态，同向接普通移动无需站立；转向或普攻须先站立。"
-	if skill == "回春": return "25精力；治疗1血，上限5血。自己或3格内队友刚受伤时触发；冷却32拍，后摇1拍。"
+	if skill == "回春": return "25精力；治疗1血，上限2血。自己或3格内队友刚受伤时触发；冷却32拍，后摇1拍。"
 	if skill == "灵木护佑": return "25精力；治疗1血并获得1盾，盾持续8拍。自己或3格内队友刚受伤时触发；冷却36拍，后摇1拍。"
 	if skill == "掩护队友": return "25精力；为3格内被威胁的队友提供2盾，持续8拍；护盾取较高值，不累加。冷却24拍，后摇1拍。"
 	if skill == "架枪防御": return "10精力；4拍内每次物理直击减伤1，最低0；不减真实伤害、碰撞或持续伤害。冷却20拍，后摇1拍。"
@@ -336,7 +336,7 @@ func refresh_ui() -> void:
 		upcoming_action = upcoming.phase if upcoming.hp > 0 else "无（已倒下）"
 	info_label.text = "所在格 %s · 端点姿态：%s · 生命%d/%d · 精力%d/100\n刚完成：%s → 下一拍：%s\n%s\n%s" % [Beat.name_of(u.cell), Beat.posture_label(u), u.hp, Beat.MAX_HP, u.energy, action_state_label(u), upcoming_action, u.reason, u.last_cancel]
 
-	skill_help.text = ("普通士兵 · 5血 · 普攻1伤害 · 无大招。" if team_presets[u.team] >= SOLDIER_PRESET else "5血 · 普攻1 · 重击2 · 大招2–3 · 敌方碰撞各扣1血。") + "\n移动2拍/格；换向先站立1拍；直走不断速。侧闪1拍。"
+	skill_help.text = ("普通士兵 · 2血 · 普攻1伤害 · 无大招。" if team_presets[u.team] >= SOLDIER_PRESET else "2血 · 普攻1 · 重击2 · 大招2–3 · 敌方碰撞各扣1血。") + "\n移动2拍/格；换向先站立1拍；直走不断速。侧闪1拍。"
 	for child in get_children():
 		if child.get_script() == preload("res://scripts/ultimate_portrait.gd"):
 			child.visible = team_presets[0] < SOLDIER_PRESET

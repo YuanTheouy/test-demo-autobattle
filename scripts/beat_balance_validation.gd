@@ -28,48 +28,48 @@ static func run(game) -> Dictionary:
 		report.attack_results.append({"skill": skill, "hits": count, "total_damage": expected, "remaining_hp": sim.units[2].hp})
 	report.checks.append("every attack uses real phases; integer HP/shields; burst totals and two thorn ticks")
 	var sim = fixture(game)
-	for hit in range(5):
+	for hit in range(Beat.MAX_HP):
 		strike(sim, 2, "点射")
 		sim.tick()
-		assert(sim.units[2].hp == 4 - hit)
-		assert(sim.finished == (hit == 4))
+		assert(sim.units[2].hp == Beat.MAX_HP - 1 - hit)
+		assert(sim.finished == (hit == Beat.MAX_HP - 1))
 	assert(sim.winner == 0)
-	report.checks.append("exactly five ordinary hits kill a full-health bot")
+	report.checks.append("exactly two ordinary hits kill a full-health bot")
 	for skill in ["点射", "落岩", "火矢", "蓄能贯穿"]:
 		sim = fixture(game)
 		sim.units[2].guard = 1.0
 		strike(sim, 2, skill)
 		sim.tick()
 		var reduction := 0 if skill in ["火矢", "蓄能贯穿"] else Beat.GUARD_REDUCTION
-		assert(sim.units[2].hp == 5 - maxi(0, sim.damage_of(skill) - reduction))
+		assert(sim.units[2].hp == maxi(0, Beat.MAX_HP - maxi(0, sim.damage_of(skill) - reduction)))
 		sim = fixture(game)
 		sim.units[2].shield = 1
 		sim.units[2].shield_time = 2.0
 		strike(sim, 2, skill)
 		sim.tick()
-		assert(sim.units[2].hp == 5 - maxi(0, sim.damage_of(skill) - 1) and sim.units[2].shield == 0)
+		assert(sim.units[2].hp == maxi(0, Beat.MAX_HP - maxi(0, sim.damage_of(skill) - 1)) and sim.units[2].shield == 0)
 	sim = fixture(game)
 	sim.units[2].marked = 5.0
 	strike(sim, 2, "强力射击")
 	sim.tick()
-	assert(sim.units[2].hp == 2)
+	assert(sim.units[2].hp == maxi(0, Beat.MAX_HP - 3))
 	report.checks.append("guard subtracts one per physical hit; true damage bypasses guard; shield absorbs both; mark adds one")
 	for skill in ["回春", "灵木护佑"]:
 		sim = fixture(game)
-		sim.units[0].hp = 4
+		sim.units[0].hp = Beat.MAX_HP - 1
 		sim.units[0].hurt_recent = 1.0
 		sim.loadouts[0].reaction = [[skill, "无", "无"]]
 		sim.tick()
-		assert(sim.units[0].hp == 5 and sim.units[0].frame_triggers == 1)
+		assert(sim.units[0].hp == Beat.MAX_HP and sim.units[0].frame_triggers == 1)
 		assert(sim.units[0].shield == (1 if skill == "灵木护佑" else 0))
 		# Full-health recipients must not consume a healing action.
 		sim = fixture(game)
 		sim.units[0].hurt_recent = 1.0
 		sim.loadouts[0].reaction = [[skill, "无", "无"]]
 		sim.tick()
-		assert(sim.units[0].hp == 5 and sim.units[0].frame_triggers == 0)
+		assert(sim.units[0].hp == Beat.MAX_HP and sim.units[0].frame_triggers == 0)
 	sim = fixture(game)
-	sim.units[1].hp = 5
+	sim.units[1].hp = Beat.MAX_HP
 	sim.units[1].cell = Vector2i(2, 4)
 	sim.units[1].p = Beat.center(sim.units[1].cell)
 	sim.units[1].shield = 1
@@ -80,10 +80,10 @@ static func run(game) -> Dictionary:
 	assert(sim.units[1].shield == 2 and sim.units[0].frame_triggers == 1)
 	sim.tick()
 	sim.tick()
-	assert(sim.units[1].hp == 5 and sim.units[1].shield == 0)
-	report.checks.append("healing caps at five; wood grants one shield; ally cover replaces one shield with two and absorbs a heavy hit")
+	assert(sim.units[1].hp == Beat.MAX_HP and sim.units[1].shield == 0)
+	report.checks.append("healing caps at two; wood grants one shield; ally cover replaces one shield with two and absorbs a heavy hit")
 	sim = fixture(game)
-	for hp in range(1, 6):
+	for hp in range(1, Beat.MAX_HP + 1):
 		sim.units[0].hp = hp
 		assert(sim.condition(sim.units[0], 2, "自己HP≤2", sim.units) == (hp <= 2))
 	game.team_presets = [0, 4]

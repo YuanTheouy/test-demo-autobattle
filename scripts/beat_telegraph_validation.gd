@@ -7,7 +7,7 @@ static func fixture(game):
 	var source: Array = game.units.duplicate(true)
 	var rules: Array = []
 	for u in source:
-		u.hp = 5 if u.uid in [0, 2] else 0
+		u.hp = Beat.MAX_HP if u.uid in [0, 2] else 0
 		u.p = Beat.center(Vector2i(2, 3) if u.uid == 0 else Vector2i(4, 3))
 		rules.append({"active": [], "reaction": []})
 	var sim = Beat.new()

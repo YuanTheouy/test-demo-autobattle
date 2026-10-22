@@ -85,7 +85,7 @@ static func run(game) -> void:
 	sim.tick()
 	assert(sim.units[0].mode == "后摇" and sim.shots == 1)
 	sim.tick()
-	assert(sim.units[2].hp == 4 and sim.units[0].frame_triggers == 0)
+	assert(sim.units[2].hp == Beat.MAX_HP - 1 and sim.units[0].frame_triggers == 0)
 	report.checks.append("low-tier magic allowed while mobile; ordinary gun has its own standing requirement; no AP on recovery completion beat")
 
 	sim = fixture(game)
@@ -95,7 +95,7 @@ static func run(game) -> void:
 	warning(sim, sim.units[0].cell, 1)
 	sim.tick()
 	assert(sim.units[0].cell != Vector2i(2, 3) and sim.units[0].energy == 80)
-	assert(sim.units[0].hp == 5 and sim.units[0].mode.is_empty() and sim.units[0].frame_triggers == 1)
+	assert(sim.units[0].hp == Beat.MAX_HP and sim.units[0].mode.is_empty() and sim.units[0].frame_triggers == 1)
 	assert(not sim.units[0].skill_cds.has("蓄能贯穿"))
 	sim = fixture(game)
 	sim.units[2].cell = Vector2i(4, 3)
@@ -104,8 +104,9 @@ static func run(game) -> void:
 	sim.units[0].mode = "释放硬直"
 	sim.units[0].left = 1
 	warning(sim, sim.units[0].cell, 1)
+	sim.strikes[-1].damage = 1
 	sim.tick()
-	assert(sim.units[0].cell == Vector2i(2, 3) and sim.units[0].hp == 3 and sim.units[0].energy == 75)
+	assert(sim.units[0].cell == Vector2i(2, 3) and sim.units[0].hp == Beat.MAX_HP - 1 and sim.units[0].energy == 75)
 	warning(sim, sim.units[0].cell, 2)
 	sim.tick()
 	assert(sim.units[0].cell != Vector2i(2, 3) and sim.units[0].energy == 55)
@@ -120,7 +121,7 @@ static func run(game) -> void:
 	sim.tick()
 	sim.tick()
 	assert(sim.units[0].cell == Vector2i(3, 3) and sim.units[2].cell == Vector2i(3, 3))
-	assert(sim.units[0].hp == 4 and sim.units[2].hp == 4 and sim.units[0].mode == "碰撞")
+	assert(sim.units[0].hp == Beat.MAX_HP - 1 and sim.units[2].hp == Beat.MAX_HP - 1 and sim.units[0].mode == "碰撞")
 	sim.units[1].hp = Beat.MAX_HP
 	sim.units[1].cell = Vector2i(1, 3)
 	sim.units[1].pose = "移动"
@@ -134,7 +135,7 @@ static func run(game) -> void:
 	sim.units[1].action_goal = Beat.center(Vector2i(2, 3))
 	sim.tick()
 	assert(sim.units[0].cell == Vector2i(2, 3) and sim.units[2].cell == Vector2i(4, 3))
-	assert(sim.units[0].hp == 4 and sim.units[0].frame_triggers == 0)
+	assert(sim.units[0].hp == Beat.MAX_HP - 1 and sim.units[0].frame_triggers == 0)
 	assert(sim.units[1].cell == Vector2i(1, 3), "Collision return cell stays reserved")
 	report.checks.append("simultaneous hostile collision once for 1HP, shared collision cell, next-beat forced return, reserved origins")
 
@@ -148,7 +149,7 @@ static func run(game) -> void:
 		sim.tick()
 		sim.tick()
 		assert(sim.units[0].cell == Vector2i(2, 3) and sim.units[2].cell == Vector2i(3, 3), "Head-on swaps collide on the edge")
-		assert(sim.units[0].hp == (5 if friendly else 4) and sim.units[0].mode == "碰撞")
+		assert(sim.units[0].hp == (Beat.MAX_HP if friendly else Beat.MAX_HP - 1) and sim.units[0].mode == "碰撞")
 	report.checks.append("head-on exchange cannot cross bodies; friendly collision has no damage")
 	sim = fixture(game)
 	sim.units[0].cell = Vector2i(2, 3)
@@ -160,7 +161,7 @@ static func run(game) -> void:
 	ap(sim, 1, "向下移动")
 	sim.tick()
 	sim.tick()
-	for uid in [0, 1, 2]: assert(sim.units[uid].hp == 4 and sim.units[uid].cell == Vector2i(3, 3))
+	for uid in [0, 1, 2]: assert(sim.units[uid].hp == Beat.MAX_HP - 1 and sim.units[uid].cell == Vector2i(3, 3))
 	sim.tick()
 	assert(sim.units[0].cell == Vector2i(2, 3) and sim.units[1].cell == Vector2i(3, 2) and sim.units[2].cell == Vector2i(4, 3))
 	report.checks.append("three-way collision is one 1HP event per bot, not pairwise multiplied damage")
@@ -171,7 +172,7 @@ static func run(game) -> void:
 		var second := {"cells": [sim.units[2].cell], "at": 1, "team": 0, "source": 1, "skill": "强力射击", "damage": sim.damage_of("强力射击")}
 		sim.strikes.assign([second, first] if reverse else [first, second])
 		sim.tick()
-		assert(sim.units[2].hp == 2 and sim.units[2].marked == 5, "Same-beat marking becomes active after all damage is collected")
+		assert(sim.units[2].hp == maxi(0, Beat.MAX_HP - 3) and sim.units[2].marked == 5, "Same-beat marking becomes active after all damage is collected")
 	report.checks.append("same-beat status/damage independent of projectile iteration order")
 
 	sim = fixture(game)
@@ -360,7 +361,7 @@ static func validate_normal_lob(game) -> Dictionary:
 	sim.units[2].cell = Vector2i(5, 5)
 	assert(not sim.ranged(sim.units[0], sim.units[2], "普通攻击"))
 	sim.units[2].cell = Vector2i(4, 3)
-	sim.units[3].hp = 5
+	sim.units[3].hp = Beat.MAX_HP
 	sim.units[3].cell = Vector2i(4, 4)
 	ap(sim, 0, "普通攻击")
 	sim.tick()
@@ -372,7 +373,7 @@ static func validate_normal_lob(game) -> Dictionary:
 	assert(display.flights.size() == 1 and display.flights[0].arc and display.flights[0].lobbed)
 	assert(display.flight_height(display.flights[0], 0.5) > 100 and is_equal_approx(display.flight_height(display.flights[0], 1.0), 4.0))
 	sim.tick()
-	assert(sim.units[2].hp == 4 and sim.units[3].hp == 5)
+	assert(sim.units[2].hp == Beat.MAX_HP - 1 and sim.units[3].hp == Beat.MAX_HP)
 	return {"range": Beat.NORMAL_RANGE, "metric": "Manhattan", "impact_cells": 1, "checks": ["ordinary aliases arc over cover; other direct shots remain blocked", "diagonal targets allowed at Manhattan4, excluded at5", "only locked cell is damaged; adjacent enemy is safe", "lob rises above walls and descends to ground at endpoint"]}
 
 static func validate_dodge_pose(game) -> Dictionary:
@@ -478,23 +479,24 @@ static func validate_boundaries(game) -> Dictionary:
 	sim.loadouts[2].reaction = [["侧闪", "无", "无"]]
 	sim.tick()
 	assert(sim.boundary_stages == ["格子更新", "攻击结算", "姿态更新", "下一拍决策"])
-	assert(sim.units[2].cell == Vector2i(4, 3) and sim.units[2].hp == 5 and sim.shots == 0)
+	assert(sim.units[2].cell == Vector2i(4, 3) and sim.units[2].hp == Beat.MAX_HP and sim.shots == 0)
 	assert(sim.next_segment.units[2].phase == "侧闪跨格" and sim.next_segment.units[0].phase == "释放硬直")
 	assert(Beat.posture(sim.units[0]) == "僵直姿态")
 	sim.tick()
-	assert(sim.units[2].cell != Vector2i(4, 3) and sim.units[2].hp == 5 and sim.shots == 1)
+	assert(sim.units[2].cell != Vector2i(4, 3) and sim.units[2].hp == Beat.MAX_HP and sim.shots == 1)
 	assert(Beat.posture(sim.units[0]) == "动作姿态")
 	checks.append("boundary1 detects aim and chooses defender dodge for segment1-2; boundary2 moves defender first then resolves the locked shot")
 	# A fresh hit can select a healing PP only for the following segment.
 	sim = fixture(game)
 	sim.loadouts[0].reaction = [["回春", "无", "无"]]
 	warning(sim, sim.units[0].cell, 1)
+	sim.strikes[-1].damage = 1
 	sim.tick()
-	assert(sim.units[0].hp == 3 and sim.units[0].energy == 100)
+	assert(sim.units[0].hp == Beat.MAX_HP - 1 and sim.units[0].energy == 100)
 	assert(sim.next_segment.units[0].active_skill == "回春" and sim.next_segment.supports.size() == 1)
 	assert(sim.next_segment.key == sim.boundary_key(), "Normal ticks consume the decision already made at the preceding endpoint")
 	sim.tick()
-	assert(sim.units[0].hp == 4 and sim.units[0].energy == 75)
+	assert(sim.units[0].hp == Beat.MAX_HP and sim.units[0].energy == 75)
 	checks.append("next PP sees damage at this endpoint; planning itself cannot heal, spend energy or undo the hit")
 	# Dead units get no next action, but simultaneous completed shots both land.
 	sim = fixture(game)
@@ -535,6 +537,7 @@ static func validate_shot_postures(game) -> Dictionary:
 	sim.loadouts[0].reaction = [["侧闪", "无", "无"]]
 	sim.tick()
 	warning(sim, sim.units[0].cell, 2)
+	sim.strikes[-1].damage = 1 # Keep this cancellation fixture alive at 2HP.
 	sim.tick()
 	assert(sim.shots == 1 and sim.units[0].cell == Vector2i(2, 3) and Beat.posture(sim.units[0]) == "动作姿态")
 	# Recovery can be dodged without undoing the shot, its paid cost or own CD.
@@ -560,12 +563,12 @@ static func validate_shooting(game) -> Dictionary:
 	sim.units[2].p = Beat.center(sim.units[2].cell)
 	ap(sim, 0, "普通攻击")
 	sim.tick()
-	assert(sim.beat == 1 and sim.shots == 0 and sim.units[2].hp == 5)
+	assert(sim.beat == 1 and sim.shots == 0 and sim.units[2].hp == Beat.MAX_HP)
 	assert(sim.units[0].phase == "前摇" and sim.units[0].energy == 85 and sim.units[0].cooldown == 0 and not sim.units[0].skill_cds.has("点射"))
 	var warnings: Array = Telegraph.cells(sim, 0.0)
 	assert(warnings.size() == 1 and warnings[0].cell == Vector2i(4, 3) and warnings[0].due == 2 and warnings[0].total_beats == 1)
 	sim.tick()
-	assert(sim.beat == 2 and sim.shots == 1 and sim.units[2].hp == 4)
+	assert(sim.beat == 2 and sim.shots == 1 and sim.units[2].hp == Beat.MAX_HP - 1)
 	assert(sim.units[0].phase == "释放硬直" and sim.units[0].mode == "后摇" and sim.units[0].left == 1)
 	assert(sim.strikes.is_empty() and sim.effects.size() == 1 and Telegraph.cells(sim, 0.0).is_empty())
 	assert(sim.units[0].skill_cds["点射"] == 6 * Beat.SECONDS and sim.units[0].cooldown == 0)
@@ -576,7 +579,7 @@ static func validate_shooting(game) -> Dictionary:
 	while sim.beat < 9: sim.tick()
 	assert(sim.shots == 1 and sim.units[0].skill_cds["点射"] == 0 and sim.units[0].phase == "前摇" and sim.units[0].frame_triggers == 1)
 	sim.tick()
-	assert(sim.beat == 10 and sim.shots == 2 and sim.units[2].hp == 3)
+	assert(sim.beat == 10 and sim.shots == 2 and sim.units[2].hp == maxi(0, Beat.MAX_HP - 2))
 	checks.append("independent CD6 starts on firing and overlaps recovery; no public CD, CD ready at endpoint8, next aim ends at9 and impact at10")
 	# Another ready skill can start the very next beat after recovery.
 	sim = fixture(game)
@@ -599,7 +602,7 @@ static func validate_shooting(game) -> Dictionary:
 	sim.tick()
 	assert(sim.units[0].phase == "前摇" and sim.units[0].energy == 85)
 	sim.tick()
-	assert(sim.shots == 1 and sim.units[2].hp == 4)
+	assert(sim.shots == 1 and sim.units[2].hp == Beat.MAX_HP - 1)
 	sim.tick()
 	assert(sim.units[0].pose == "站稳" and sim.units[0].mode.is_empty() and sim.units[0].frame_triggers == 0)
 	checks.append("mobile shot automatically spends a separate standing beat even with the standing rule removed; no premature cost/CD/warning")
@@ -610,7 +613,7 @@ static func validate_shooting(game) -> Dictionary:
 	ap(sim, 2, "向下移动")
 	sim.tick()
 	sim.tick()
-	assert(sim.units[2].cell == Vector2i(4, 4) and sim.units[2].hp == 5 and sim.effects[0].cells == [Vector2i(4, 3)])
+	assert(sim.units[2].cell == Vector2i(4, 4) and sim.units[2].hp == Beat.MAX_HP and sim.effects[0].cells == [Vector2i(4, 3)])
 	checks.append("shot resolves against the locked grid after simultaneous movement, with no homing or body-radius check")
 	# Visual flight finishes inside the firing beat, instead of becoming an instant laser.
 	sim = fixture(game)
@@ -784,7 +787,7 @@ static func validate_movement_lock(game) -> Array:
 	sim.tick()
 	var escaped: Vector2i = sim.units[0].cell
 	assert(escaped != Vector2i(2, 3) and escaped != old_goal and Beat.distance(escaped, Vector2i(2, 3)) == 1)
-	assert(sim.units[0].mode.is_empty() and sim.units[0].phase == "侧闪跨格" and sim.units[0].energy == 80 and sim.units[0].hp == 5 and sim.units[0].frame_triggers == 1)
+	assert(sim.units[0].mode.is_empty() and sim.units[0].phase == "侧闪跨格" and sim.units[0].energy == 80 and sim.units[0].hp == Beat.MAX_HP and sim.units[0].frame_triggers == 1)
 	assert(sim.units[0].skill_cds["侧闪"] > 0 and sim.units[0].last_cancel.begins_with("移动硬直取消"))
 	sim.loadouts[0].active.clear()
 	sim.tick()
@@ -1008,7 +1011,7 @@ static func validate_occupancy(game) -> Array:
 	assert(not Markers.markers(sim.units)[0].stationary)
 	# Collision occupants each retain a stable identity and their own label lane.
 	sim = fixture(game)
-	sim.units[1].hp = 5
+	sim.units[1].hp = Beat.MAX_HP
 	for uid in [0, 1, 2]: sim.units[uid].cell = Vector2i(3, 3)
 	var shared := Markers.markers(sim.units)
 	assert(shared.size() == 3)

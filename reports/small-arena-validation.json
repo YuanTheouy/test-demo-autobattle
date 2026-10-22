@@ -9,6 +9,7 @@
 		"four-step reaches endpoint4 past the first shots",
 		"continuous playback reaches endpoint46 without puzzle pauses"
 	],
+	"max_hp": 2,
 	"mode": "free_duel",
 	"open_cells": 9,
 	"participants": [

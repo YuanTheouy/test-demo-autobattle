@@ -223,8 +223,9 @@ func label(u: Dictionary) -> void:
 		var bar := project(visual.p, 57) + Vector2(-31, -8)
 		g.draw_rect(Rect2(bar, Vector2(62, 7)), Color("0b1520"))
 		var color: Color = g.BLUE if u.team == 0 else g.RED
+		var pip_width := 60.0 / health_capacity()
 		for pip in range(health_capacity()):
-			g.draw_rect(Rect2(bar + Vector2(1 + pip * 12, 1), Vector2(10, 5)), color if pip < u.hp else Color("304052"))
+			g.draw_rect(Rect2(bar + Vector2(1 + pip * pip_width, 1), Vector2(pip_width - 2, 5)), color if pip < u.hp else Color("304052"))
 		if u.shield > 0:
 			g.draw_string(g.font, project(visual.p, 57) + Vector2(34, -14), "盾%d" % u.shield, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("a5efff"))
 		g.draw_string(g.font, project(visual.p, 83) + Vector2(-28, 0), g.action_state_label(u), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("e9d69e"))

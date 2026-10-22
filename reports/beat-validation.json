@@ -10,139 +10,139 @@
 		"attack_results": [
 			{
 				"hits": 1,
-				"remaining_hp": 4,
+				"remaining_hp": 1,
 				"skill": "点射",
 				"total_damage": 1
 			},
 			{
 				"hits": 1,
-				"remaining_hp": 4,
+				"remaining_hp": 1,
 				"skill": "普通攻击",
 				"total_damage": 1
 			},
 			{
 				"hits": 1,
-				"remaining_hp": 4,
+				"remaining_hp": 1,
 				"skill": "标记弹",
 				"total_damage": 1
 			},
 			{
 				"hits": 1,
-				"remaining_hp": 3,
+				"remaining_hp": 0,
 				"skill": "强力射击",
 				"total_damage": 2
 			},
 			{
 				"hits": 1,
-				"remaining_hp": 4,
+				"remaining_hp": 1,
 				"skill": "压制射击",
 				"total_damage": 1
 			},
 			{
 				"hits": 1,
-				"remaining_hp": 4,
+				"remaining_hp": 1,
 				"skill": "协同追击",
 				"total_damage": 1
 			},
 			{
 				"hits": 2,
-				"remaining_hp": 3,
+				"remaining_hp": 0,
 				"skill": "风刃",
 				"total_damage": 2
 			},
 			{
 				"hits": 2,
-				"remaining_hp": 3,
+				"remaining_hp": 0,
 				"skill": "追风",
 				"total_damage": 2
 			},
 			{
 				"hits": 1,
-				"remaining_hp": 4,
+				"remaining_hp": 1,
 				"skill": "火矢",
 				"total_damage": 1
 			},
 			{
 				"hits": 1,
-				"remaining_hp": 4,
+				"remaining_hp": 1,
 				"skill": "焰返",
 				"total_damage": 1
 			},
 			{
 				"hits": 1,
-				"remaining_hp": 3,
+				"remaining_hp": 0,
 				"skill": "落岩",
 				"total_damage": 2
 			},
 			{
 				"hits": 1,
-				"remaining_hp": 3,
+				"remaining_hp": 0,
 				"skill": "震山",
 				"total_damage": 2
 			},
 			{
 				"hits": 1,
-				"remaining_hp": 3,
+				"remaining_hp": 0,
 				"skill": "荆棘",
 				"total_damage": 2
 			},
 			{
 				"hits": 1,
-				"remaining_hp": 3,
+				"remaining_hp": 0,
 				"skill": "蓄能贯穿",
 				"total_damage": 2
 			},
 			{
 				"hits": 1,
-				"remaining_hp": 4,
+				"remaining_hp": 1,
 				"skill": "霰弹",
 				"total_damage": 1
 			},
 			{
 				"hits": 1,
-				"remaining_hp": 3,
+				"remaining_hp": 0,
 				"skill": "抛射轰击",
 				"total_damage": 2
 			},
 			{
 				"hits": 3,
-				"remaining_hp": 2,
+				"remaining_hp": 0,
 				"skill": "疾风连刃",
 				"total_damage": 3
 			},
 			{
 				"hits": 1,
-				"remaining_hp": 3,
+				"remaining_hp": 0,
 				"skill": "烈焰爆破",
 				"total_damage": 2
 			},
 			{
 				"hits": 1,
-				"remaining_hp": 3,
+				"remaining_hp": 0,
 				"skill": "裂地冲击",
 				"total_damage": 2
 			},
 			{
 				"hits": 1,
-				"remaining_hp": 2,
+				"remaining_hp": 0,
 				"skill": "天穹贯穿",
 				"total_damage": 3
 			},
 			{
 				"hits": 1,
-				"remaining_hp": 3,
+				"remaining_hp": 0,
 				"skill": "星火轰炸",
 				"total_damage": 2
 			}
 		],
 		"checks": [
 			"every attack uses real phases; integer HP/shields; burst totals and two thorn ticks",
-			"exactly five ordinary hits kill a full-health bot",
+			"exactly two ordinary hits kill a full-health bot",
 			"guard subtracts one per physical hit; true damage bypasses guard; shield absorbs both; mark adds one",
-			"healing caps at five; wood grants one shield; ally cover replaces one shield with two and absorbs a heavy hit",
+			"healing caps at two; wood grants one shield; ally cover replaces one shield with two and absorbs a heavy hit",
 			"low-health threshold is two; presets, editor persistence and menus use the new condition"
 		],
-		"max_hp": 5,
+		"max_hp": 2,
 		"skill_damage": {
 			"协同追击": 1,
 			"压制射击": 1,
@@ -212,112 +212,112 @@
 	},
 	"matches": [
 		{
-			"beats": 70,
+			"beats": 19,
 			"final_hp": [
 				0,
 				0,
-				3,
-				4
+				2,
+				1
 			],
 			"opponent": 0,
-			"shots": 38,
+			"shots": 15,
 			"winner": 1
 		},
 		{
-			"beats": 108,
+			"beats": 74,
 			"final_hp": [
-				4,
-				4,
 				0,
-				0
+				0,
+				0,
+				1
 			],
 			"opponent": 1,
-			"shots": 51,
-			"winner": 0
-		},
-		{
-			"beats": 91,
-			"final_hp": [
-				0,
-				0,
-				4,
-				2
-			],
-			"opponent": 2,
-			"shots": 41,
+			"shots": 32,
 			"winner": 1
 		},
 		{
-			"beats": 240,
-			"final_hp": [
-				1,
-				0,
-				4,
-				0
-			],
-			"opponent": 3,
-			"shots": 37,
-			"winner": -1
-		},
-		{
-			"beats": 51,
+			"beats": 29,
 			"final_hp": [
 				2,
 				1,
 				0,
 				0
 			],
-			"opponent": 4,
-			"shots": 31,
+			"opponent": 2,
+			"shots": 17,
 			"winner": 0
 		},
 		{
-			"beats": 69,
+			"beats": 18,
 			"final_hp": [
 				0,
 				0,
-				0,
-				4
+				2,
+				0
 			],
-			"opponent": 5,
-			"shots": 42,
+			"opponent": 3,
+			"shots": 15,
 			"winner": 1
 		},
 		{
-			"beats": 69,
-			"final_hp": [
-				1,
-				0,
-				0,
-				0
-			],
-			"opponent": 6,
-			"shots": 33,
-			"winner": 0
-		},
-		{
-			"beats": 79,
+			"beats": 15,
 			"final_hp": [
 				0,
 				0,
 				0,
 				2
 			],
-			"opponent": 7,
-			"shots": 42,
+			"opponent": 4,
+			"shots": 11,
 			"winner": 1
 		},
 		{
-			"beats": 240,
+			"beats": 22,
 			"final_hp": [
 				0,
-				3,
+				0,
+				0,
+				2
+			],
+			"opponent": 5,
+			"shots": 12,
+			"winner": 1
+		},
+		{
+			"beats": 20,
+			"final_hp": [
+				0,
+				0,
+				2,
+				0
+			],
+			"opponent": 6,
+			"shots": 12,
+			"winner": 1
+		},
+		{
+			"beats": 16,
+			"final_hp": [
+				0,
 				1,
+				0,
+				0
+			],
+			"opponent": 7,
+			"shots": 10,
+			"winner": 0
+		},
+		{
+			"beats": 25,
+			"final_hp": [
+				0,
+				2,
+				0,
 				0
 			],
 			"opponent": 8,
-			"shots": 25,
-			"winner": -1
+			"shots": 15,
+			"winner": 0
 		}
 	],
 	"motion": [
@@ -393,14 +393,14 @@
 			"default soldier preset uses only standing, ordinary attack, engagement and PP dodge; no ultimate"
 		],
 		"match": {
-			"beats": 38,
-			"shots": 20,
+			"beats": 14,
+			"shots": 8,
 			"winner": -1
 		}
 	},
 	"symmetry": [
 		{
-			"beats": 43,
+			"beats": 16,
 			"final": [
 				{
 					"cell": "(4, 3)",
@@ -433,12 +433,12 @@
 			],
 			"max_hp_difference": 0.0,
 			"result": "双方同时全灭",
-			"shots": 10,
+			"shots": 4,
 			"skill": "普通攻击",
 			"team_size": 1
 		},
 		{
-			"beats": 37,
+			"beats": 13,
 			"final": [
 				{
 					"cell": "(3, 2)",
@@ -471,18 +471,18 @@
 			],
 			"max_hp_difference": 0.0,
 			"result": "双方同时全灭",
-			"shots": 20,
+			"shots": 8,
 			"skill": "普通攻击",
 			"team_size": 2
 		},
 		{
-			"beats": 33,
+			"beats": 12,
 			"final": [
 				{
-					"cell": "(4, 4)",
+					"cell": "(4, 2)",
 					"hp": 0,
 					"mode": "后摇",
-					"pose": "动作",
+					"pose": "站稳",
 					"trend": "(0, 0)"
 				},
 				{
@@ -490,89 +490,13 @@
 					"hp": 0,
 					"mode": "",
 					"pose": "站稳",
-					"trend": "(0, 0)"
-				},
-				{
-					"cell": "(3, 3)",
-					"hp": 0,
-					"mode": "后摇",
-					"pose": "动作",
-					"trend": "(0, 0)"
-				},
-				{
-					"cell": "(6, 2)",
-					"hp": 0,
-					"mode": "",
-					"pose": "站稳",
-					"trend": "(0, 0)"
-				}
-			],
-			"max_hp_difference": 0.0,
-			"result": "双方同时全灭",
-			"shots": 8,
-			"skill": "落岩",
-			"team_size": 1
-		},
-		{
-			"beats": 29,
-			"final": [
-				{
-					"cell": "(3, 2)",
-					"hp": 0,
-					"mode": "后摇",
-					"pose": "动作",
 					"trend": "(0, 0)"
 				},
 				{
 					"cell": "(3, 5)",
 					"hp": 0,
 					"mode": "后摇",
-					"pose": "动作",
-					"trend": "(0, 0)"
-				},
-				{
-					"cell": "(4, 5)",
-					"hp": 0,
-					"mode": "后摇",
-					"pose": "动作",
-					"trend": "(0, 0)"
-				},
-				{
-					"cell": "(4, 2)",
-					"hp": 0,
-					"mode": "后摇",
-					"pose": "动作",
-					"trend": "(0, 0)"
-				}
-			],
-			"max_hp_difference": 0.0,
-			"result": "双方同时全灭",
-			"shots": 16,
-			"skill": "落岩",
-			"team_size": 2
-		},
-		{
-			"beats": 30,
-			"final": [
-				{
-					"cell": "(4, 3)",
-					"hp": 0,
-					"mode": "后摇",
-					"pose": "动作",
-					"trend": "(0, 0)"
-				},
-				{
-					"cell": "(1, 5)",
-					"hp": 0,
-					"mode": "",
 					"pose": "站稳",
-					"trend": "(0, 0)"
-				},
-				{
-					"cell": "(3, 4)",
-					"hp": 0,
-					"mode": "后摇",
-					"pose": "动作",
 					"trend": "(0, 0)"
 				},
 				{
@@ -585,45 +509,121 @@
 			],
 			"max_hp_difference": 0.0,
 			"result": "双方同时全灭",
-			"shots": 8,
+			"shots": 2,
+			"skill": "落岩",
+			"team_size": 1
+		},
+		{
+			"beats": 10,
+			"final": [
+				{
+					"cell": "(3, 2)",
+					"hp": 0,
+					"mode": "后摇",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				},
+				{
+					"cell": "(3, 5)",
+					"hp": 0,
+					"mode": "后摇",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				},
+				{
+					"cell": "(4, 5)",
+					"hp": 0,
+					"mode": "后摇",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				},
+				{
+					"cell": "(4, 2)",
+					"hp": 0,
+					"mode": "后摇",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				}
+			],
+			"max_hp_difference": 0.0,
+			"result": "双方同时全灭",
+			"shots": 4,
+			"skill": "落岩",
+			"team_size": 2
+		},
+		{
+			"beats": 10,
+			"final": [
+				{
+					"cell": "(3, 2)",
+					"hp": 0,
+					"mode": "",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				},
+				{
+					"cell": "(1, 5)",
+					"hp": 0,
+					"mode": "",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				},
+				{
+					"cell": "(4, 5)",
+					"hp": 0,
+					"mode": "",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				},
+				{
+					"cell": "(6, 2)",
+					"hp": 0,
+					"mode": "",
+					"pose": "站稳",
+					"trend": "(0, 0)"
+				}
+			],
+			"max_hp_difference": 0.0,
+			"result": "双方同时全灭",
+			"shots": 2,
 			"skill": "烈焰爆破",
 			"team_size": 1
 		},
 		{
-			"beats": 26,
+			"beats": 8,
 			"final": [
 				{
-					"cell": "(3, 2)",
+					"cell": "(2, 2)",
 					"hp": 0,
-					"mode": "后摇",
-					"pose": "动作",
+					"mode": "",
+					"pose": "站稳",
 					"trend": "(0, 0)"
 				},
 				{
-					"cell": "(3, 5)",
+					"cell": "(2, 5)",
 					"hp": 0,
-					"mode": "后摇",
-					"pose": "动作",
+					"mode": "",
+					"pose": "站稳",
 					"trend": "(0, 0)"
 				},
 				{
-					"cell": "(4, 5)",
+					"cell": "(5, 5)",
 					"hp": 0,
-					"mode": "后摇",
-					"pose": "动作",
+					"mode": "",
+					"pose": "站稳",
 					"trend": "(0, 0)"
 				},
 				{
-					"cell": "(4, 2)",
+					"cell": "(5, 2)",
 					"hp": 0,
-					"mode": "后摇",
-					"pose": "动作",
+					"mode": "",
+					"pose": "站稳",
 					"trend": "(0, 0)"
 				}
 			],
 			"max_hp_difference": 0.0,
 			"result": "双方同时全灭",
-			"shots": 16,
+			"shots": 4,
 			"skill": "烈焰爆破",
 			"team_size": 2
 		}

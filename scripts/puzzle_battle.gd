@@ -94,7 +94,7 @@ func run_small_arena_checks() -> void:
 	assert(beat_sim.blocked_cells.size() == 55)
 	for x in range(8):
 		for y in range(8): assert(beat_sim.legal(Vector2i(x, y)) == OPEN_CELLS.has_point(Vector2i(x, y)))
-	assert(units.filter(func(u): return u.enabled and u.hp > 0).size() == 2)
+	assert(units.filter(func(u): return u.enabled and u.hp == 2).size() == 2)
 	assert(not can_deploy(0, Vector2i(4, 6)) and can_deploy(0, Vector2i(5, 5)))
 	assert(place_unit(0, Vector2i(5, 5)))
 	reset_round()
@@ -104,18 +104,18 @@ func run_small_arena_checks() -> void:
 	assert(loadouts[0] == loadouts[2] and not loadouts[0].active.is_empty() and not loadouts[0].reaction.is_empty())
 	step_forward(12)
 	advance_playback(10)
-	assert(logic_frame == 4 and units[0].hp == 4 and units[2].hp == 4)
+	assert(logic_frame == 4 and units[0].hp == 1 and units[2].hp == 1)
 	assert(beat_sim.shots == 2 and steps_remaining == 0 and not segment_active)
 	reset_round()
 	toggle_running()
 	advance_playback(3.0)
-	assert(logic_frame == 6 and running and units[0].hp > 0 and units[2].hp > 0)
+	assert(logic_frame == 6 and running)
 	advance_playback(20.0)
 	assert(logic_frame == 46 and running and finished, "Free battle must continue past first shots and even the recorded match result")
 	for u in units:
 		if u.enabled: assert(OPEN_CELLS.has_point(u.cell))
 	validate_duel_presets()
-	var report := {"mode": "free_duel", "open_cells": 9, "blocked_cells": 55, "participants": PARTICIPANTS,
+	var report := {"mode": "free_duel", "max_hp": Beat.MAX_HP, "open_cells": 9, "blocked_cells": 55, "participants": PARTICIPANTS,
 		"checks": ["four selectable presets match benchmark ids 5/7/3/19 exactly; independent teams; no ultimates; full playback", "only two active bots", "all other cells blocked", "deployment survives reset", "both sides have editable soldier AP and PP", "four-step reaches endpoint4 past the first shots", "continuous playback reaches endpoint46 without puzzle pauses"]}
 	var report_file := FileAccess.open("res://reports/small-arena-validation.json", FileAccess.WRITE)
 	report_file.store_string(JSON.stringify(report, "\t"))
