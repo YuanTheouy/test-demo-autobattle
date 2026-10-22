@@ -37,18 +37,21 @@ static func run(game) -> void:
 	sim.tick()
 	assert(sim.units[0].cell == start + Vector2i.LEFT and sim.units[0].pose == "站稳" and sim.units[0].trend == Vector2i.ZERO)
 	assert(sim.units[0].frame_triggers == 1)
-	report.checks.append("T0 standing / T1 prepare / T2 adjacent cell / T3 standing")
+	report.checks.append("T0 standing / T1 committed move / T2 adjacent cell / T3 explicit standing")
 
 	sim = fixture(game)
 	ap(sim, 0, "向右移动")
-	for tick in range(3): sim.tick()
-	assert(sim.units[0].cell == Vector2i(4, 3), "Keeping direction crosses a second cell on beat three")
+	for tick in range(4):
+		sim.tick()
+		assert(sim.units[0].cell == Vector2i(2 + (tick + 1) / 2, 3), "Every ordinary crossing consumes two beats, including consecutive moves")
+	assert(sim.units[0].cell == Vector2i(4, 3))
 	ap(sim, 0, "向上移动")
 	sim.tick()
-	assert(sim.units[0].cell == Vector2i(4, 3), "Turning consumes a preparation beat")
+	assert(sim.units[0].cell == Vector2i(4, 3) and sim.units[0].mode == "移动硬直")
 	sim.tick()
 	assert(sim.units[0].cell == Vector2i(4, 2))
-	report.checks.append("one-beat momentum crossing; turning needs preparation; one selection per beat")
+	report.checks.append("ordinary movement always two beats; no same-direction acceleration or extra turning cost; one selection per action")
+
 	sim = fixture(game)
 	sim.units[2].cell = Vector2i(4, 3)
 	sim.loadouts[0].active = [["站稳", "移动姿态", "无"], ["向右移动", "无", "无"]]
@@ -121,6 +124,12 @@ static func run(game) -> void:
 	sim.units[1].pose = "移动"
 	sim.units[1].trend = Vector2i.RIGHT
 	ap(sim, 1, "向右移动")
+	sim.units[1].mode = "移动硬直"
+	sim.units[1].left = 1
+	sim.units[1].move_total = 2
+	sim.units[1].move_origin = Vector2i(1, 3)
+	sim.units[1].move_target = Vector2i(2, 3)
+	sim.units[1].action_goal = Beat.center(Vector2i(2, 3))
 	sim.tick()
 	assert(sim.units[0].cell == Vector2i(2, 3) and sim.units[2].cell == Vector2i(4, 3))
 	assert(sim.units[0].hp == 4 and sim.units[0].frame_triggers == 0)
@@ -247,12 +256,84 @@ static func run(game) -> void:
 	report.checks.append("nine presets complete; speed independence; single beat stepping; deployment/edit persistence")
 	report.balance = preload("res://scripts/beat_balance_validation.gd").run(game)
 	report.telegraphs = preload("res://scripts/beat_telegraph_validation.gd").run(game)
+	report.movement_lock = validate_movement_lock(game)
 	report.motion = validate_motion(game)
 	report.playback_baseline = validate_playback_baseline(game)
 	report.occupancy = validate_occupancy(game)
 	var file := FileAccess.open("res://reports/beat-validation.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(report, "\t"))
-	print("BEAT PASSED: three-beat movement, momentum/turning, standing gate, AP/PP exclusivity, dodge refunds, collisions/return reservation, six symmetric cases, nine presets, playback and editor")
+	print("BEAT PASSED: two-beat committed movement, one-beat PP dodge, cancellation gates, standing gate, AP/PP exclusivity, refunds, collisions/return reservation, six symmetric cases, nine presets, playback and editor")
+
+static func validate_movement_lock(game) -> Array:
+	var checks: Array = []
+	# Changing AP to stand, attack or turn cannot interrupt a committed crossing.
+	for replacement in ["站稳", "普通攻击", "向上移动"]:
+		var sim = fixture(game)
+		sim.units[2].cell = Vector2i(4, 3)
+		ap(sim, 0, "向右移动")
+		sim.tick()
+		assert(sim.units[0].mode == "移动硬直" and sim.units[0].left == 1 and sim.units[0].frame_triggers == 1)
+		ap(sim, 0, replacement)
+		sim.tick()
+		assert(sim.units[0].cell == Vector2i(3, 3) and sim.units[0].mode.is_empty() and sim.units[0].frame_triggers == 0 and sim.shots == 0)
+		sim.tick()
+		assert(sim.units[0].frame_triggers == 1, "New AP can start only on the beat after arrival")
+	checks.append("stand/attack/turn AP cannot interrupt or start on the arrival beat")
+	for skill in Beat.Tactics.REACTIONS + Beat.Tactics.BASIC_REACTIONS:
+		if skill in ["侧闪", "留空"]: continue
+		var sim = fixture(game)
+		ap(sim, 0, "向右移动")
+		sim.tick()
+		sim.loadouts[0].reaction = [[skill, "无", "无"]]
+		warning(sim, sim.units[0].cell, 2)
+		sim.tick()
+		assert(sim.units[0].cell == Vector2i(3, 3) and sim.units[0].frame_triggers == 0 and sim.units[0].trace_pp[0] == "当前动作只允许侧闪")
+	checks.append("walking evade, guard, healing, protection and offensive PP cannot cancel movement")
+	# Dodge redirects from the authoritative source cell and discards the old destination.
+	var sim = fixture(game)
+	ap(sim, 0, "向右移动")
+	sim.tick()
+	var old_goal: Vector2i = sim.units[0].move_target
+	sim.loadouts[0].reaction = [["侧闪", "无", "无"]]
+	warning(sim, Vector2i(2, 3), 2)
+	warning(sim, old_goal, 2)
+	sim.tick()
+	var escaped: Vector2i = sim.units[0].cell
+	assert(escaped != Vector2i(2, 3) and escaped != old_goal and Beat.distance(escaped, Vector2i(2, 3)) == 1)
+	assert(sim.units[0].mode.is_empty() and sim.units[0].phase == "侧闪跨格" and sim.units[0].energy == 80 and sim.units[0].hp == 5 and sim.units[0].frame_triggers == 1)
+	assert(sim.units[0].skill_cds["侧闪"] > 0 and sim.units[0].last_cancel.begins_with("移动硬直取消"))
+	sim.loadouts[0].active.clear()
+	sim.tick()
+	assert(sim.units[0].cell == escaped and sim.units[0].mode.is_empty(), "Cancelled movement must never resume its former destination")
+	checks.append("one-beat PP dodge cancels movement, costs 20, starts its CD and never resumes the old crossing")
+	for failure in ["energy", "cooldown", "no safe cell"]:
+		sim = fixture(game)
+		ap(sim, 0, "向右移动")
+		sim.tick()
+		sim.loadouts[0].reaction = [["侧闪", "无", "无"]]
+		if failure == "energy": sim.units[0].energy = 10
+		if failure == "cooldown": sim.units[0].skill_cds["侧闪"] = 2.0
+		warning(sim, sim.units[0].cell, 2)
+		if failure == "no safe cell":
+			for d in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]: warning(sim, sim.units[0].cell + d, 2)
+		sim.tick()
+		assert(sim.units[0].cell == Vector2i(3, 3) and sim.units[0].frame_triggers == 0 and sim.units[0].last_cancel.is_empty())
+	checks.append("unaffordable, cooling or unsafe dodge leaves the original movement committed")
+	# Slow preserves its existing one-extra-beat penalty; dodge remains one beat.
+	sim = fixture(game)
+	sim.units[0].slow = 2.5
+	ap(sim, 0, "向右移动")
+	for tick in range(3):
+		sim.tick()
+		assert(sim.units[0].cell == (Vector2i(2, 3) if tick < 2 else Vector2i(3, 3)))
+	sim = fixture(game)
+	sim.units[0].slow = 2.5
+	sim.loadouts[0].reaction = [["侧闪", "无", "无"]]
+	warning(sim, sim.units[0].cell, 1)
+	sim.tick()
+	assert(Beat.distance(sim.units[0].cell, Vector2i(2, 3)) == 1 and sim.units[0].frame_triggers == 1)
+	checks.append("slow adds one beat to walking but never to the one-beat dodge")
+	return checks
 
 static func validate_presentation(game) -> void:
 	var sim = fixture(game)
@@ -350,11 +431,11 @@ static func validate_motion(game) -> Array:
 		assert(display.position(sim.units[0]).is_equal_approx(p))
 		assert(display.velocity(sim.units[0]).is_equal_approx(v), "Beat boundaries must preserve velocity")
 		var guide: Dictionary = display.guide(sim.units[0])
-		var expected_target: Vector2 = Beat.center(sim.units[0].cell + Vector2i.RIGHT) if tick == 0 else sim.units[0].p
+		var expected_target: Vector2 = sim.units[0].action_goal if sim.units[0].mode == "移动硬直" else sim.units[0].p
 		assert(not guide.is_empty() and guide.to == expected_target)
 		for sample in range(20):
 			display.advance(Beat.SECONDS / 20)
-			if tick >= 2: assert(display.velocity(sim.units[0]).is_equal_approx(Vector2(320, 0)), "Consecutive same-direction crossings must not brake at each cell")
+			if tick >= 1: assert(display.velocity(sim.units[0]).is_equal_approx(Vector2(160, 0)), "Two-beat walking stays continuous at half the old cruise speed")
 		assert(display.position(sim.units[0]).is_equal_approx(display.destination(sim.units[0])))
 	# Braking remains inside the committed cell and finishes with zero velocity.
 	var before: Array = sim.units.duplicate(true)
@@ -390,7 +471,7 @@ static func validate_motion(game) -> Array:
 			assert(state[0] == expected[0] and state[1] == expected[1] and Vector2(state[2]).is_equal_approx(expected[2]) and Vector2(state[3]).is_equal_approx(expected[3]), "Render rate and playback speed must preserve the same combat and visual state")
 			assert(absf(game.presentation.beat_age - game.accumulator) < 0.00001, "Animation and combat must share the same clock")
 	game.reset_round()
-	return ["position and velocity continuous at beat boundaries", "same-direction crossings keep 320 px/s without per-cell braking", "standing brakes within its own cell and ends at rest", "movement guides show actual committed destinations", "30/60/144 FPS and 0.5/1/2x agree on logic, position, velocity and beat phase"]
+	return ["position and velocity continuous at beat boundaries", "two-beat crossings keep 160 logical px/s without per-cell braking", "standing brakes within its own cell and ends at rest", "movement guides show actual committed destinations", "30/60/144 FPS and 0.5/1/2x agree on logic, position, velocity and beat phase"]
 
 static func validate_playback_baseline(game) -> Array:
 	for setting in [[0.5, 1], [1.0, 2], [2.0, 4]]:
@@ -454,4 +535,4 @@ static func validate_occupancy(game) -> Array:
 	sim.units[1].hp = 0
 	assert(Markers.markers(sim.units).size() == 2)
 	game.reset_round()
-	return ["markers follow logical cells at preparation and crossing beats, independent of body interpolation", "standing/mobile pose is explicit, including attacking in mobile pose", "shared cells keep separate stable bot labels; dead bots release markers"]
+	return ["markers remain in the source cell during the first move beat and switch on arrival, independent of body interpolation", "standing/mobile pose is explicit, including attacking in mobile pose", "shared cells keep separate stable bot labels; dead bots release markers"]

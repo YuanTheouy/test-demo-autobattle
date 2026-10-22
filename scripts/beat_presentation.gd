@@ -1,8 +1,7 @@
 extends RefCounted
 ## Render-only state. Never writes back to the combat snapshot.
 const DURATION := 0.25
-const CRUISE_SPEED := 80.0 / DURATION
-const PREPARATION_LEAN := 14.0
+const CRUISE_SPEED := 80.0 / (2.0 * DURATION)
 var tracks: Dictionary = {}
 var flights: Array = []
 var bursts: Array = []
@@ -14,7 +13,10 @@ func destination(u: Dictionary) -> Vector2:
 		var direction := Vector2(u.return_cell - u.cell)
 		if direction == Vector2.ZERO: direction = Vector2.RIGHT if u.team == 0 else Vector2.LEFT
 		return u.p + direction.normalized() * 30
-	return u.p + Vector2(u.trend) * PREPARATION_LEAN if u.pose == "移动" else u.p
+	if u.mode == "移动硬直":
+		var progress: float = float(u.move_total - u.left) / u.move_total
+		return Vector2((Vector2(u.move_origin) + Vector2.ONE * 0.5) * 80).lerp(u.action_goal, progress)
+	return u.p
 
 func reset(units: Array) -> void:
 	tracks.clear()
@@ -44,7 +46,7 @@ func guide(u: Dictionary) -> Dictionary:
 
 func movement_guide(old: Dictionary, u: Dictionary) -> Dictionary:
 	if u.mode == "碰撞": return {"from": destination(u), "to": (Vector2(u.return_cell) + Vector2.ONE * 0.5) * 80, "text": "下拍弹回", "bounce": true}
-	if u.mode in ["移动准备", "减速等待"]: return {"from": u.p, "to": u.action_goal if u.mode == "移动准备" else (Vector2(u.move_delay_target) + Vector2.ONE * 0.5) * 80, "text": "下拍进入", "bounce": false}
+	if u.mode == "移动硬直": return {"from": u.p, "to": u.action_goal, "text": "移动余%d拍" % u.left, "bounce": false}
 	if u.phase in ["跨格", "侧闪跨格", "弹回"] and old.cell != u.cell:
 		return {"from": old.p, "to": u.p, "text": "侧闪" if u.phase == "侧闪跨格" else ("弹回" if u.phase == "弹回" else "跨格"), "bounce": u.phase == "弹回"}
 	return {}
@@ -70,8 +72,8 @@ func begin(before: Array, after: Array, sim) -> void:
 		track.age = 0.0
 		track.v0 = v.limit_length(CRUISE_SPEED * 1.5)
 		track.v1 = Vector2.ZERO
-		if u.phase == "跨格": track.v1 = Vector2(u.trend) * CRUISE_SPEED
-		elif u.mode == "移动准备": track.v1 = Vector2(u.trend) * (2.0 * PREPARATION_LEAN / DURATION)
+		if u.phase == "跨格" or u.mode == "移动硬直":
+			track.v1 = Vector2(u.trend) * (80.0 / (maxi(1, u.move_total) * DURATION))
 		track.guide = movement_guide(old, u)
 		track.dodge = u.phase == "侧闪跨格"
 		if u.phase == "释放硬直": track.flash = 0.18

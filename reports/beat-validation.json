@@ -163,8 +163,8 @@
 	"beat_seconds": 0.25,
 	"checks": [
 		"continuous presentation: movement/settling/collision/dodge, exact endpoints, no snapshot mutation, pause/step, frame-rate independence",
-		"T0 standing / T1 prepare / T2 adjacent cell / T3 standing",
-		"one-beat momentum crossing; turning needs preparation; one selection per beat",
+		"T0 standing / T1 committed move / T2 adjacent cell / T3 explicit standing",
+		"ordinary movement always two beats; no same-direction acceleration or extra turning cost; one selection per action",
 		"high skills require standing; standing cannot cast on the same beat",
 		"low skill allowed while mobile; locked-cell impact; no AP on recovery completion beat",
 		"windup dodge refunds; release lock prevents dodge; recovery cancellation keeps cooldown and cost",
@@ -179,82 +179,82 @@
 	"default_real_beat_seconds": 0.5,
 	"matches": [
 		{
-			"beats": 240,
+			"beats": 126,
 			"final_hp": [
+				3,
 				2,
 				0,
-				0,
-				3
+				0
 			],
 			"opponent": 0,
-			"shots": 56,
-			"winner": -1
+			"shots": 57,
+			"winner": 0
 		},
 		{
-			"beats": 240,
+			"beats": 180,
 			"final_hp": [
-				3,
-				5,
-				3,
-				1
+				2,
+				4,
+				0,
+				0
 			],
 			"opponent": 1,
-			"shots": 89,
-			"winner": -1
+			"shots": 69,
+			"winner": 0
 		},
 		{
-			"beats": 240,
+			"beats": 80,
 			"final_hp": [
+				5,
 				4,
-				1,
-				3,
-				1
+				0,
+				0
 			],
 			"opponent": 2,
-			"shots": 100,
-			"winner": -1
+			"shots": 33,
+			"winner": 0
 		},
 		{
-			"beats": 104,
+			"beats": 113,
 			"final_hp": [
-				4,
+				5,
 				3,
 				0,
 				0
 			],
 			"opponent": 3,
-			"shots": 44,
+			"shots": 47,
 			"winner": 0
 		},
 		{
-			"beats": 147,
+			"beats": 124,
 			"final_hp": [
-				4,
 				3,
+				2,
 				0,
 				0
 			],
 			"opponent": 4,
-			"shots": 54,
+			"shots": 45,
 			"winner": 0
 		},
 		{
-			"beats": 226,
+			"beats": 112,
 			"final_hp": [
-				1,
-				1,
+				3,
+				4,
 				0,
 				0
 			],
 			"opponent": 5,
-			"shots": 102,
+			"shots": 47,
 			"winner": 0
 		},
 		{
-			"beats": 198,
+			"beats": 190,
 			"final_hp": [
-				4,
-				4,
+				1,
+				5,
 				0,
 				0
 			],
@@ -263,39 +263,46 @@
 			"winner": 0
 		},
 		{
-			"beats": 76,
+			"beats": 56,
 			"final_hp": [
 				0,
 				0,
-				2,
+				3,
 				1
 			],
 			"opponent": 7,
-			"shots": 35,
+			"shots": 29,
 			"winner": 1
 		},
 		{
-			"beats": 169,
+			"beats": 240,
 			"final_hp": [
-				0,
-				0,
 				2,
-				3
+				3,
+				0,
+				2
 			],
 			"opponent": 8,
-			"shots": 64,
-			"winner": 1
+			"shots": 94,
+			"winner": -1
 		}
 	],
 	"motion": [
 		"position and velocity continuous at beat boundaries",
-		"same-direction crossings keep 320 px/s without per-cell braking",
+		"two-beat crossings keep 160 logical px/s without per-cell braking",
 		"standing brakes within its own cell and ends at rest",
 		"movement guides show actual committed destinations",
 		"30/60/144 FPS and 0.5/1/2x agree on logic, position, velocity and beat phase"
 	],
+	"movement_lock": [
+		"stand/attack/turn AP cannot interrupt or start on the arrival beat",
+		"walking evade, guard, healing, protection and offensive PP cannot cancel movement",
+		"one-beat PP dodge cancels movement, costs 20, starts its CD and never resumes the old crossing",
+		"unaffordable, cooling or unsafe dodge leaves the original movement committed",
+		"slow adds one beat to walking but never to the one-beat dodge"
+	],
 	"occupancy": [
-		"markers follow logical cells at preparation and crossing beats, independent of body interpolation",
+		"markers remain in the source cell during the first move beat and switch on arrival, independent of body interpolation",
 		"standing/mobile pose is explicit, including attacking in mobile pose",
 		"shared cells keep separate stable bot labels; dead bots release markers"
 	],
@@ -306,7 +313,7 @@
 	],
 	"symmetry": [
 		{
-			"beats": 88,
+			"beats": 89,
 			"final": [
 				{
 					"cell": "(5, 3)",
@@ -382,7 +389,7 @@
 			"team_size": 2
 		},
 		{
-			"beats": 46,
+			"beats": 47,
 			"final": [
 				{
 					"cell": "(5, 3)",
@@ -458,7 +465,7 @@
 			"team_size": 2
 		},
 		{
-			"beats": 50,
+			"beats": 51,
 			"final": [
 				{
 					"cell": "(5, 3)",

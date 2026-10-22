@@ -4,6 +4,7 @@ const Tactics = preload("res://scripts/tactics.gd")
 const SIZE := 8
 const CELL_SIZE := 80.0
 const SECONDS := 0.25
+const MOVE_BEATS := 2
 const MAX_HP := 5
 const COLLISION_DAMAGE := 1
 const HEAL := 1
@@ -90,7 +91,9 @@ func reset(source_units: Array, source_loadouts: Array, walls: Array) -> void:
 		u.collision_at = Vector2i(-1, -1)
 		u.last_blocked = Vector2i(-1, -1)
 		u.blocked_until = 0
-		u.move_delay_target = Vector2i(-1, -1)
+		u.move_target = u.cell
+		u.move_origin = u.cell
+		u.move_total = MOVE_BEATS
 		u.phase = "站稳"
 		u.intent = "等待决策"
 		u.action_stage = ""
@@ -321,26 +324,34 @@ func path_direction(u: Dictionary, target: int, skill: String, snapshot: Array) 
 
 func request_move(u: Dictionary, direction: Vector2i, proposals: Dictionary, immediate := false) -> bool:
 	if direction == Vector2i.ZERO or not legal(u.cell + direction): return false
-	if immediate or (u.pose == "移动" and u.trend == direction):
-		if not immediate and u.slow > 0 and u.move_delay_target != u.cell + direction:
-			u.move_delay_target = u.cell + direction
-			u.mode = "减速等待"
-			u.left = 1
-			u.phase = "减速等待"
-			return true
-		proposals[u.uid] = u.cell + direction
-		u.mode = ""
-		u.left = 0
-		u.move_delay_target = Vector2i(-1, -1)
-		u.phase = "侧闪跨格" if immediate else "跨格"
-	else:
-		u.phase = "移动准备"
-		u.mode = "移动准备"
-		u.left = 1
+	u.move_origin = u.cell
+	u.move_target = u.cell + direction
+	u.move_total = 1 if immediate else MOVE_BEATS + (1 if u.slow > 0 else 0)
 	u.pose = "移动"
 	u.trend = direction
-	u.action_goal = center(u.cell + direction)
+	u.action_goal = center(u.move_target)
+	if immediate:
+		# PP dodge commits exactly one adjacent-cell crossing this beat.
+		proposals[u.uid] = u.move_target
+		u.mode = ""
+		u.left = 0
+		u.phase = "侧闪跨格"
+	else:
+		# The selecting beat is the first beat of the move, for every direction.
+		u.mode = "移动硬直"
+		u.left = u.move_total - 1
+		u.phase = "移动硬直"
 	return true
+
+func advance_move(u: Dictionary, proposals: Dictionary) -> void:
+	u.left -= 1
+	if u.left > 0:
+		u.phase = "移动硬直"
+		return
+	proposals[u.uid] = u.move_target
+	u.mode = ""
+	u.left = 0
+	u.phase = "跨格"
 
 func threats(u: Dictionary, snapshot: Array, old_strikes: Array) -> Array:
 	var dangers: Array = []
@@ -380,6 +391,9 @@ func cancel(u: Dictionary) -> void:
 	u.paid = 0.0
 	u.left = 0
 	u.lock_cells = []
+	u.move_origin = u.cell
+	u.move_target = u.cell
+	u.move_total = MOVE_BEATS
 
 func start_attack(u: Dictionary, target: int, skill: String, target_cell: Vector2i) -> void:
 	u.attack_started = beat
@@ -630,7 +644,7 @@ func tick() -> void:
 			if u.thorn_tick <= 0: damage[u.uid] += THORN_DAMAGE; u.thorn_tick += 2.0
 		u.shield_time = maxf(0, u.shield_time - SECONDS)
 		if u.shield_time <= 0: u.shield = 0
-		if u.mode in ["", "移动准备", "减速等待"]: u.energy = minf(100, u.energy + 12 * SECONDS)
+		if u.mode in ["", "移动硬直"]: u.energy = minf(100, u.energy + 12 * SECONDS)
 		if u.mode == "碰撞":
 			u.cell = u.return_cell
 			u.mode = ""
@@ -640,10 +654,9 @@ func tick() -> void:
 			u.rule_slot = -1
 			continue
 		if try_pp(u, snapshot, old_strikes, proposals, supports): continue
-		if u.mode in ["移动准备", "减速等待"]:
-			u.mode = ""
-			u.frame_branch = "AP：继续移动"
-			request_move(u, u.trend, proposals)
+		if u.mode == "移动硬直":
+			u.frame_branch = ("PP" if u.rule_kind == "reaction" else "AP") + "：继续移动"
+			advance_move(u, proposals)
 			continue
 		if not u.mode.is_empty():
 			u.frame_branch = ("PP：" if u.rule_kind == "reaction" else "AP：") + u.mode
