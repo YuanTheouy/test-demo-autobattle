@@ -266,6 +266,7 @@ static func run(game) -> void:
 	report.normal_lob = validate_normal_lob(game)
 	report.shot_postures = validate_shot_postures(game)
 	report.dodge_movement_pose = validate_dodge_pose(game)
+	report.prediction = preload("res://scripts/beat_prediction_validation.gd").run(game)
 	report.tactical_movement = validate_tactical_movement(game)
 	report.boundary = validate_boundaries(game)
 	report.animate_then_settle = validate_live_steps(game)

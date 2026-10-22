@@ -235,6 +235,7 @@ func condition(u: Dictionary, target: int, text: String, snapshot: Array) -> boo
 		"有射位": return target >= 0 and ranged(u, snapshot[target], "点射")
 		"站稳姿态": return posture(u) == "站立姿态"
 		"移动姿态": return posture(u) == "移动姿态"
+		"敌人处于移动姿态", "沿移动方向预判1格": return target >= 0 and posture(snapshot[target]) == "移动姿态" and snapshot[target].trend in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]
 		"动作姿态": return posture(u) == "动作姿态"
 		"僵直姿态": return posture(u) == "僵直姿态"
 		"自己精力≥80": return u.energy >= 80
@@ -257,6 +258,15 @@ func condition(u: Dictionary, target: int, text: String, snapshot: Array) -> boo
 			return count >= 2
 	return true
 
+func aim_cell(u: Dictionary, target: Dictionary, rule: Array) -> Vector2i:
+	# Read only public endpoint posture/direction, never the opponent's planned action.
+	if "沿移动方向预判1格" not in rule: return target.cell
+	if rule[0] not in ["普通攻击", "点射"] or posture(target) != "移动姿态": return Vector2i(-1, -1)
+	if target.trend not in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]: return Vector2i(-1, -1)
+	var landing: Vector2i = target.cell + target.trend
+	if not legal(landing) or distance(u.cell, landing) > NORMAL_RANGE: return Vector2i(-1, -1)
+	return landing
+
 func target_for(u: Dictionary, rule: Array, snapshot: Array, shooting: bool, eligible: Array = []) -> int:
 	var candidates: Array = []
 	for v in snapshot:
@@ -264,6 +274,7 @@ func target_for(u: Dictionary, rule: Array, snapshot: Array, shooting: bool, eli
 		if not eligible.is_empty() and v.uid not in eligible: continue
 		if not condition(u, v.uid, rule[1], snapshot) or not condition(u, v.uid, rule[2], snapshot): continue
 		if shooting and not ranged(u, v, rule[0]): continue
+		if "沿移动方向预判1格" in rule and aim_cell(u, v, rule) == Vector2i(-1, -1): continue
 		candidates.append(v.uid)
 	var ally := ally_of(u, snapshot)
 	if "优先队友目标" in rule and ally >= 0 and snapshot[ally].target in candidates: return snapshot[ally].target
@@ -452,6 +463,8 @@ func escape(u: Dictionary, dangers: Array, snapshot: Array) -> Vector2i:
 	var threatened := false
 	for cells in dangers:
 		if u.cell in cells: threatened = true
+		# A public warning can cover the cell this bot is already committed to enter.
+		if u.mode == "移动硬直" and u.left <= 1 and u.move_target in cells: threatened = true
 	if not threatened: return Vector2i.ZERO
 	for d in directions(u):
 		var c: Vector2i = u.cell + d
@@ -641,7 +654,8 @@ func try_ap(u: Dictionary, snapshot: Array, proposals: Dictionary) -> void:
 			return
 		if skill == "留空": continue
 		select_rule(u, "active", slot, skill)
-		start_attack(u, target, actual, snapshot[target].cell)
+		start_attack(u, target, actual, aim_cell(u, snapshot[target], rule))
+		if "沿移动方向预判1格" in rule: u.reason += "；预判落点 " + name_of(u.lock_cells[0])
 		advance_attack(u)
 		return
 	u.phase = u.pose

@@ -23,6 +23,9 @@ func _ready() -> void:
 	if "--duel-presets-demo" in OS.get_cmdline_user_args():
 		apply_preset(0, SOLDIER_PRESET + 1)
 		apply_preset(1, SOLDIER_PRESET + 2)
+	if "--prediction-demo" in OS.get_cmdline_user_args():
+		apply_preset(0, SOLDIER_PRESET + 5)
+		apply_preset(1, SOLDIER_PRESET + 2)
 	choose_editor_unit(0)
 	refresh_ui()
 	if "--small-arena-test" in OS.get_cmdline_user_args() or "--puzzle-test" in OS.get_cmdline_user_args():

@@ -355,6 +355,14 @@
 		"0.5x/1x/2x use 1.0/0.5/0.25 real seconds per beat",
 		"single-step animation follows the same new baseline"
 	],
+	"prediction": [
+		"same two-beat straight movement: current-cell lob misses, one-cell prediction hits; identical cost/CD/timing and visible warning",
+		"stopping, turning and PP dodge can defeat the prediction; no lookahead into next_segment or homing",
+		"wall/outside/range/nonmoving/no-direction/unsupported-skill skip prediction and select ordinary fallback",
+		"modifier works in either condition column; invalid nearest target does not hide another valid moving target",
+		"prediction preserves mandatory standing preparation",
+		"prediction demo preset and both condition columns survive editor rebuilding"
+	],
 	"shooting": {
 		"checks": [
 			"standing shot: beat1 aim, beat2 impact, beat3 recovery completes standing",
