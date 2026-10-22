@@ -76,6 +76,7 @@ func reset(source_units: Array, source_loadouts: Array, walls: Array) -> void:
 	activations.clear()
 	for u in units:
 		u.hp = MAX_HP if u.hp > 0 else 0
+		u.cooldown = 0.0 # Compatibility with the shared legacy renderer; no public cooldown in beat combat.
 		u.shield = 0
 		u.cell = cell_of(u.p)
 		u.p = center(u.cell)
@@ -255,7 +256,6 @@ func ready(u: Dictionary, skill: String, refund := false) -> String:
 	if skill in HIGH and u.pose != "站稳": return "需要站稳"
 	var available: float = u.energy + (u.paid if refund and u.mode == "前摇" and not u.committed else 0.0)
 	if available < cost(skill): return "精力不足"
-	if skill not in MOVE and skill not in ["站稳", "侧闪", "架枪防御", "天穹贯穿", "星火轰炸"] and u.cooldown > 0: return "公共CD中"
 	if skill == "点射" and u.pose != "站稳": return "需要站稳"
 	return ""
 
@@ -452,10 +452,8 @@ func advance_attack(u: Dictionary) -> void:
 		u.fire_flash = SECONDS
 		u.left -= 1
 		if u.left == 0:
-			u.cooldown = 4.0 if skill in ["天穹贯穿", "星火轰炸"] else (3.0 if skill in HIGH else (1.8 if skill == "点射" else 2.3))
-			u.cooldown = ceilf(u.cooldown / SECONDS) * SECONDS
 			u.mode = "后摇"
-			u.left = 2 if skill in HIGH or skill in ["强力射击", "落岩", "震山"] else 1
+			u.left = 2 if skill in HIGH or skill in ["点射", "强力射击", "落岩", "震山"] else 1
 	elif u.mode == "后摇":
 		u.left -= 1
 		if u.left == 0:
@@ -504,7 +502,6 @@ func try_pp(u: Dictionary, snapshot: Array, old_strikes: Array, proposals: Dicti
 			select_rule(u, "reaction", slot, skill)
 			u.energy -= cost(skill)
 			u.skill_cds[skill] = skill_cd(skill)
-			if skill != "架枪防御": u.cooldown = 2.5
 			supports.append({"target": recipient, "skill": skill})
 			u.mode = "后摇"
 			u.left = 1
@@ -665,7 +662,6 @@ func tick() -> void:
 		u.frame_branch = "等待决策"
 		if u.hp <= 0: continue
 		u.ult_charge = minf(100, u.ult_charge + SECONDS * 100 / 12.0)
-		u.cooldown = maxf(0, u.cooldown - SECONDS)
 		for skill in u.skill_cds.keys(): u.skill_cds[skill] = maxf(0, u.skill_cds[skill] - SECONDS)
 		u.hurt_recent = maxf(0, u.hurt_recent - SECONDS)
 		u.marked = maxf(0, u.marked - SECONDS)

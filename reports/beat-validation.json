@@ -179,79 +179,79 @@
 	"default_real_beat_seconds": 0.5,
 	"matches": [
 		{
-			"beats": 148,
+			"beats": 89,
 			"final_hp": [
-				4,
-				1,
 				0,
-				0
+				0,
+				0,
+				1
 			],
 			"opponent": 0,
-			"shots": 55,
-			"winner": 0
+			"shots": 36,
+			"winner": 1
 		},
 		{
-			"beats": 181,
-			"final_hp": [
-				4,
-				5,
-				0,
-				0
-			],
-			"opponent": 1,
-			"shots": 64,
-			"winner": 0
-		},
-		{
-			"beats": 57,
-			"final_hp": [
-				5,
-				3,
-				0,
-				0
-			],
-			"opponent": 2,
-			"shots": 24,
-			"winner": 0
-		},
-		{
-			"beats": 44,
-			"final_hp": [
-				5,
-				4,
-				0,
-				0
-			],
-			"opponent": 3,
-			"shots": 18,
-			"winner": 0
-		},
-		{
-			"beats": 87,
-			"final_hp": [
-				5,
-				4,
-				0,
-				0
-			],
-			"opponent": 4,
-			"shots": 31,
-			"winner": 0
-		},
-		{
-			"beats": 154,
+			"beats": 185,
 			"final_hp": [
 				0,
 				0,
 				0,
 				4
 			],
-			"opponent": 5,
-			"shots": 52,
+			"opponent": 1,
+			"shots": 60,
 			"winner": 1
 		},
 		{
-			"beats": 174,
+			"beats": 88,
+			"final_hp": [
+				1,
+				1,
+				0,
+				0
+			],
+			"opponent": 2,
+			"shots": 45,
+			"winner": 0
+		},
+		{
+			"beats": 15,
+			"final_hp": [
+				5,
+				5,
+				0,
+				0
+			],
+			"opponent": 3,
+			"shots": 12,
+			"winner": 0
+		},
+		{
+			"beats": 58,
+			"final_hp": [
+				1,
+				4,
+				0,
+				0
+			],
+			"opponent": 4,
+			"shots": 29,
+			"winner": 0
+		},
+		{
+			"beats": 53,
+			"final_hp": [
+				0,
+				3,
+				0,
+				0
+			],
+			"opponent": 5,
+			"shots": 30,
+			"winner": 0
+		},
+		{
+			"beats": 87,
 			"final_hp": [
 				1,
 				0,
@@ -259,11 +259,11 @@
 				0
 			],
 			"opponent": 6,
-			"shots": 53,
+			"shots": 38,
 			"winner": 0
 		},
 		{
-			"beats": 200,
+			"beats": 69,
 			"final_hp": [
 				0,
 				1,
@@ -271,20 +271,20 @@
 				0
 			],
 			"opponent": 7,
-			"shots": 79,
+			"shots": 35,
 			"winner": 0
 		},
 		{
-			"beats": 168,
+			"beats": 58,
 			"final_hp": [
-				1,
 				0,
 				0,
-				0
+				0,
+				5
 			],
 			"opponent": 8,
-			"shots": 56,
-			"winner": 0
+			"shots": 30,
+			"winner": 1
 		}
 	],
 	"motion": [
@@ -313,16 +313,17 @@
 	],
 	"shooting": {
 		"checks": [
-			"standing shot: beat1 aim/locked warning, beat2 target-cell impact, beat3 recovery completes standing",
-			"independent CD6/public CD8 start together on firing and overlap recovery; next aim beat10 and impact beat11",
+			"standing shot: beat1 aim, beat2 impact, beats3-4 recovery; standing at end of beat4",
+			"independent CD6 starts on firing and overlaps recovery; no public CD, next aim beat8 and impact beat9",
+			"a different ready skill starts on beat5 immediately after recovery, despite the ordinary gun's independent cooldown",
 			"mobile shot automatically spends a separate standing beat even with the standing rule removed; no premature cost/CD/warning",
 			"shot resolves against the locked grid after simultaneous movement, with no homing or body-radius check",
 			"ordinary shot has a short visual projectile and a delayed impact flash within the same firing beat; animation never changes logic"
 		],
 		"independent_cd_beats": 6,
-		"mobile_action_beats": 4,
-		"public_cd_beats": 8,
-		"standing_action_beats": 3
+		"mobile_action_beats": 5,
+		"public_cd_beats": 0,
+		"standing_action_beats": 4
 	},
 	"soldier": {
 		"checks": [
@@ -335,14 +336,14 @@
 			"default soldier preset uses only standing, ordinary attack, engagement and PP dodge; no ultimate"
 		],
 		"match": {
-			"beats": 70,
+			"beats": 56,
 			"shots": 28,
 			"winner": -1
 		}
 	},
 	"symmetry": [
 		{
-			"beats": 43,
+			"beats": 35,
 			"final": [
 				{
 					"cell": "(3, 2)",
@@ -380,7 +381,7 @@
 			"team_size": 1
 		},
 		{
-			"beats": 41,
+			"beats": 33,
 			"final": [
 				{
 					"cell": "(2, 2)",
@@ -418,10 +419,10 @@
 			"team_size": 2
 		},
 		{
-			"beats": 48,
+			"beats": 29,
 			"final": [
 				{
-					"cell": "(5, 3)",
+					"cell": "(4, 2)",
 					"hp": 0,
 					"mode": "后摇",
 					"pose": "站稳",
@@ -435,7 +436,7 @@
 					"trend": "(0, 0)"
 				},
 				{
-					"cell": "(2, 4)",
+					"cell": "(3, 5)",
 					"hp": 0,
 					"mode": "后摇",
 					"pose": "站稳",
@@ -456,10 +457,10 @@
 			"team_size": 1
 		},
 		{
-			"beats": 53,
+			"beats": 27,
 			"final": [
 				{
-					"cell": "(3, 3)",
+					"cell": "(3, 2)",
 					"hp": 0,
 					"mode": "后摇",
 					"pose": "站稳",
@@ -473,7 +474,7 @@
 					"trend": "(0, 0)"
 				},
 				{
-					"cell": "(4, 4)",
+					"cell": "(4, 5)",
 					"hp": 0,
 					"mode": "后摇",
 					"pose": "站稳",
@@ -489,12 +490,12 @@
 			],
 			"max_hp_difference": 0.0,
 			"result": "双方同时全灭",
-			"shots": 18,
+			"shots": 16,
 			"skill": "落岩",
 			"team_size": 2
 		},
 		{
-			"beats": 39,
+			"beats": 26,
 			"final": [
 				{
 					"cell": "(3, 2)",
@@ -532,7 +533,7 @@
 			"team_size": 1
 		},
 		{
-			"beats": 37,
+			"beats": 24,
 			"final": [
 				{
 					"cell": "(2, 2)",
