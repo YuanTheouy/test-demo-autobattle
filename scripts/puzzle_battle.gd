@@ -3,6 +3,8 @@ extends "res://scripts/beat_battle.gd"
 const OPEN_CELLS := Rect2i(5, 5, 3, 3)
 const DUEL_SPAWNS := [Vector2i(5, 6), Vector2i(5, 5), Vector2i(7, 6), Vector2i(7, 7)]
 const PARTICIPANTS := [0, 2]
+const WATCHABLE_PRESETS := [14, 10]
+const WATCHABLE_SPAWNS := [Vector2i(5, 5), Vector2i(7, 7)]
 
 func _ready() -> void:
 	for arg in OS.get_cmdline_user_args():
@@ -24,10 +26,16 @@ func _ready() -> void:
 		apply_preset(0, SOLDIER_PRESET + 1)
 		apply_preset(1, SOLDIER_PRESET + 2)
 	if "--prediction-demo" in OS.get_cmdline_user_args():
-		apply_preset(0, SOLDIER_PRESET + 5)
-		apply_preset(1, SOLDIER_PRESET + 2)
+		load_prediction_demo()
+	var demo_button := add_button(self, "载入预判示范", load_prediction_demo)
+	demo_button.position = Vector2(650, 738)
+	demo_button.tooltip_text = "载入实测19拍对局：蓝F6预判/接敌，红H8吊射/远敌，双方侧闪。空格观看，N逐拍，R重播。"
 	choose_editor_unit(0)
 	refresh_ui()
+	if "--watchable-preview" in OS.get_cmdline_user_args():
+		set_process(false)
+		set_physics_process(false)
+		capture_watchable_preview.call_deferred()
 	if "--small-arena-test" in OS.get_cmdline_user_args() or "--puzzle-test" in OS.get_cmdline_user_args():
 		run_small_arena_checks()
 		get_tree().quit()
@@ -35,6 +43,15 @@ func _ready() -> void:
 		set_process(false)
 		set_physics_process(false)
 		capture_puzzle_preview.call_deferred()
+
+func load_prediction_demo() -> void:
+	blue_attacks = false
+	deployment_cells = DUEL_SPAWNS.duplicate()
+	deployment_cells[0] = WATCHABLE_SPAWNS[0]
+	deployment_cells[2] = WATCHABLE_SPAWNS[1]
+	apply_preset(0, WATCHABLE_PRESETS[0])
+	apply_preset(1, WATCHABLE_PRESETS[1])
+	choose_editor_unit(0)
 
 func make_arena_view():
 	return preload("res://scripts/puzzle_view.gd").new()
@@ -118,11 +135,32 @@ func run_small_arena_checks() -> void:
 	for u in units:
 		if u.enabled: assert(OPEN_CELLS.has_point(u.cell))
 	validate_duel_presets()
+	validate_watchable_demo()
 	var report := {"mode": "free_duel", "max_hp": Beat.MAX_HP, "open_cells": 9, "blocked_cells": 55, "participants": PARTICIPANTS,
-		"checks": ["four selectable presets match benchmark ids 5/7/3/19 exactly; independent teams; no ultimates; full playback", "only two active bots", "all other cells blocked", "deployment survives reset", "both sides have editable soldier AP and PP", "four-step reaches endpoint4 past the first shots", "continuous playback reaches endpoint46 without puzzle pauses"]}
+		"checks": ["four selectable presets match benchmark ids 5/7/3/19 exactly; independent teams; no ultimates; full playback", "selected demo: actual playback settles 19 beats with two dodges, prediction finish and replayable setup", "only two active bots", "all other cells blocked", "deployment survives reset", "both sides have editable soldier AP and PP", "four-step reaches endpoint4 past the first shots", "continuous playback reaches endpoint46 without puzzle pauses"]}
 	var report_file := FileAccess.open("res://reports/small-arena-validation.json", FileAccess.WRITE)
 	report_file.store_string(JSON.stringify(report, "\t"))
 	print("SMALL ARENA PASSED: 3x3/1v1, equal editable loadouts, no first-shot stop, continuous playback through endpoint46")
+
+func validate_watchable_demo() -> void:
+	load_prediction_demo()
+	assert(units[0].cell == WATCHABLE_SPAWNS[0] and units[2].cell == WATCHABLE_SPAWNS[1])
+	assert(team_presets == WATCHABLE_PRESETS)
+	var observed: Array = []
+	for endpoint in range(1, 20):
+		step_forward(1)
+		advance_playback(Beat.SECONDS / playback_rate())
+		assert(logic_frame == endpoint and not segment_active and not running)
+		if endpoint == 2: assert(units[0].hp == 1 and units[2].hp == 1)
+		if endpoint in [10, 13]:
+			var uid := 2 if endpoint == 10 else 0
+			assert(units[uid].phase == "侧闪跨格" and units[uid].hp == 1)
+			observed.append(endpoint)
+	assert(observed == [10, 13] and finished and beat_sim.winner == 0 and units[0].hp == 1 and units[2].hp == 0)
+	assert(units[2].skill_cds["侧闪"] == 3 * Beat.SECONDS and beat_sim.shots == 5)
+	reset_round()
+	assert(team_presets == WATCHABLE_PRESETS and units[0].cell == WATCHABLE_SPAWNS[0] and units[2].cell == WATCHABLE_SPAWNS[1])
+	print("WATCHABLE DEMO PASSED: full animated 19-beat replay, two dodges and prediction finish; reset preserves setup")
 
 func validate_duel_presets() -> void:
 	var benchmark = JSON.parse_string(FileAccess.get_file_as_string("res://reports/duel-strategy-benchmark.json"))
@@ -154,4 +192,15 @@ func validate_duel_presets() -> void:
 func capture_puzzle_preview() -> void:
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png("res://reports/puzzle-preview.png")
+	get_tree().quit()
+
+func capture_watchable_preview() -> void:
+	load_prediction_demo()
+	for endpoint in range(1, 20):
+		step_forward(1)
+		for frame in range(20):
+			advance_playback(Beat.SECONDS / playback_rate() / 20.0)
+			await RenderingServer.frame_post_draw
+		if endpoint in [10, 13, 18, 19]:
+			get_viewport().get_texture().get_image().save_png("res://reports/duel-demo-%02d.png" % endpoint)
 	get_tree().quit()
