@@ -15,8 +15,15 @@ func destination(u: Dictionary) -> Vector2:
 		return u.p + direction.normalized() * 30
 	if u.mode == "移动硬直":
 		var progress: float = float(u.move_total - u.left) / u.move_total
-		return Vector2((Vector2(u.move_origin) + Vector2.ONE * 0.5) * 80).lerp(u.action_goal, progress)
+		return Vector2((Vector2(u.move_origin) + Vector2.ONE * 0.5) * 80).lerp(u.action_goal, progress) - moving_lag(u)
+	if u.phase == "跨格" and u.pose == "移动": return u.p - moving_lag(u)
 	return u.p
+
+func moving_lag(u: Dictionary) -> Vector2:
+	# Keep half a beat of visual stopping distance. Straight strides remain linear;
+	# a standing beat then decelerates forward into the cell center, without reversal.
+	var cruise: float = 80.0 / (maxi(1, u.move_total) * DURATION)
+	return Vector2(u.trend) * cruise * DURATION * 0.5
 
 func reset(units: Array) -> void:
 	tracks.clear()

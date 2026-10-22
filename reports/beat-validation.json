@@ -164,7 +164,7 @@
 	"checks": [
 		"continuous presentation: movement/settling/collision/dodge, exact endpoints, no snapshot mutation, pause/step, frame-rate independence",
 		"T0 standing / T1 committed move / T2 adjacent cell / T3 explicit standing",
-		"ordinary movement always two beats; no same-direction acceleration or extra turning cost; one selection per action",
+		"ordinary crossing two beats; same direction continues; turning first consumes a separate standing beat",
 		"high skills require standing; standing cannot cast on the same beat",
 		"low skill allowed while mobile; locked-cell impact; no AP on recovery completion beat",
 		"windup dodge refunds; release lock prevents dodge; recovery cancellation keeps cooldown and cost",
@@ -179,31 +179,31 @@
 	"default_real_beat_seconds": 0.5,
 	"matches": [
 		{
-			"beats": 126,
+			"beats": 118,
 			"final_hp": [
-				3,
+				5,
 				2,
 				0,
 				0
 			],
 			"opponent": 0,
-			"shots": 57,
+			"shots": 53,
 			"winner": 0
 		},
 		{
-			"beats": 180,
+			"beats": 140,
 			"final_hp": [
-				2,
-				4,
+				5,
+				1,
 				0,
 				0
 			],
 			"opponent": 1,
-			"shots": 69,
+			"shots": 50,
 			"winner": 0
 		},
 		{
-			"beats": 80,
+			"beats": 78,
 			"final_hp": [
 				5,
 				4,
@@ -211,80 +211,80 @@
 				0
 			],
 			"opponent": 2,
-			"shots": 33,
+			"shots": 31,
 			"winner": 0
 		},
 		{
-			"beats": 113,
+			"beats": 59,
 			"final_hp": [
 				5,
-				3,
-				0,
-				0
-			],
-			"opponent": 3,
-			"shots": 47,
-			"winner": 0
-		},
-		{
-			"beats": 124,
-			"final_hp": [
-				3,
-				2,
-				0,
-				0
-			],
-			"opponent": 4,
-			"shots": 45,
-			"winner": 0
-		},
-		{
-			"beats": 112,
-			"final_hp": [
-				3,
 				4,
 				0,
 				0
 			],
-			"opponent": 5,
-			"shots": 47,
+			"opponent": 3,
+			"shots": 23,
 			"winner": 0
 		},
 		{
-			"beats": 190,
+			"beats": 98,
 			"final_hp": [
-				1,
 				5,
+				4,
 				0,
 				0
 			],
-			"opponent": 6,
-			"shots": 77,
+			"opponent": 4,
+			"shots": 35,
 			"winner": 0
 		},
 		{
-			"beats": 56,
+			"beats": 148,
 			"final_hp": [
 				0,
 				0,
-				3,
+				1,
 				1
 			],
-			"opponent": 7,
-			"shots": 29,
+			"opponent": 5,
+			"shots": 65,
 			"winner": 1
 		},
 		{
-			"beats": 240,
+			"beats": 172,
+			"final_hp": [
+				0,
+				0,
+				2,
+				3
+			],
+			"opponent": 6,
+			"shots": 58,
+			"winner": 1
+		},
+		{
+			"beats": 150,
 			"final_hp": [
 				2,
-				3,
+				2,
 				0,
-				2
+				0
+			],
+			"opponent": 7,
+			"shots": 63,
+			"winner": 0
+		},
+		{
+			"beats": 222,
+			"final_hp": [
+				0,
+				0,
+				3,
+				3
 			],
 			"opponent": 8,
-			"shots": 94,
-			"winner": -1
+			"shots": 70,
+			"winner": 1
 		}
 	],
 	"motion": [
@@ -311,6 +311,22 @@
 		"0.5x/1x/2x use 1.0/0.5/0.25 real seconds per beat",
 		"single-step animation follows the same new baseline"
 	],
+	"soldier": {
+		"checks": [
+			"straight four cells plus final stand takes exactly nine beats",
+			"four zigzag cells plus final stand takes exactly twelve beats",
+			"all sixteen direction pairs: same direction costs two; perpendicular and reverse direction cost standing plus two",
+			"mandatory turn-standing does not consume paid movement energy or CD",
+			"PP dodge changes direction immediately in one beat",
+			"turn animation brakes monotonically within the cell, reaches zero speed, then accelerates in the new direction",
+			"default soldier preset uses only standing, ordinary attack, engagement and PP dodge; no ultimate"
+		],
+		"match": {
+			"beats": 125,
+			"shots": 42,
+			"winner": -1
+		}
+	},
 	"symmetry": [
 		{
 			"beats": 89,
@@ -389,7 +405,7 @@
 			"team_size": 2
 		},
 		{
-			"beats": 47,
+			"beats": 48,
 			"final": [
 				{
 					"cell": "(5, 3)",
@@ -427,7 +443,7 @@
 			"team_size": 1
 		},
 		{
-			"beats": 75,
+			"beats": 76,
 			"final": [
 				{
 					"cell": "(4, 3)",

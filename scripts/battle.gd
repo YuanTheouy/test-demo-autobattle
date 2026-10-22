@@ -320,12 +320,21 @@ func text_label(parent: Node, text: String, size: int = 16) -> Label:
 	parent.add_child(l)
 	return l
 
+func preset_names() -> Array:
+	return Tactics.NAMES
+
+func preset_loadouts(index: int) -> Array:
+	return Tactics.preset(index)
+
+func basic_loadout() -> Dictionary:
+	return Tactics.basics()
+
 func setup_loadouts() -> void:
-	loadouts = Tactics.preset(team_presets[0]) + Tactics.preset(team_presets[1])
+	loadouts = preset_loadouts(team_presets[0]) + preset_loadouts(team_presets[1])
 
 func apply_preset(team: int, index: int) -> void:
 	team_presets[team] = index
-	var pair := Tactics.preset(index)
+	var pair := preset_loadouts(index)
 	for member in range(2): loadouts[team * 2 + member] = pair[member]
 	rebuild_editor()
 	reset_round()
@@ -462,7 +471,7 @@ func setup_ui() -> void:
 	caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	caption.modulate = GOLD
 	add_button(heading, "重置站位", func(): deployment_cells = DEFAULT_DEPLOYMENT.duplicate(); reset_round())
-	add_button(heading, "仅基础", func(): loadouts[editor_unit] = Tactics.basics(); rebuild_editor(); reset_round())
+	add_button(heading, "仅基础", func(): loadouts[editor_unit] = basic_loadout(); rebuild_editor(); reset_round())
 	add_button(heading, "清空", func(): loadouts[editor_unit] = Tactics.build([], []); rebuild_editor(); reset_round())
 	var presets := HBoxContainer.new()
 	panel.add_child(presets)
@@ -471,7 +480,7 @@ func setup_ui() -> void:
 		team_label.modulate = BLUE if team == 0 else RED
 		var picker := OptionButton.new()
 		picker.custom_minimum_size = Vector2(278, 30)
-		for name in Tactics.NAMES: picker.add_item(name)
+		for name in preset_names(): picker.add_item(name)
 		picker.select(team_presets[team])
 		picker.item_selected.connect(func(index: int): apply_preset(team, index))
 		presets.add_child(picker)
@@ -663,7 +672,7 @@ func reset_round() -> void:
 		u.dodge_frames = 0
 		u.frame_triggers = 0
 		u.frame_branch = "等待决策"
-	log_event("蓝：%s / 红：%s" % [Tactics.NAMES[team_presets[0]], Tactics.NAMES[team_presets[1]]])
+	log_event("蓝：%s / 红：%s" % [preset_names()[team_presets[0]], preset_names()[team_presets[1]]])
 	refresh_ui()
 	queue_redraw()
 
@@ -1587,7 +1596,7 @@ func refresh_ui() -> void:
 	start_button.text = "暂停  [空格]" if running else ("继续  [空格]" if started else "开始交战  [空格]")
 	result_label.text = result
 	log_label.text = "\n".join(logs)
-	subtitle.text = "蓝：%s    vs    红：%s  ·  基础作战 + 技能策略" % [Tactics.NAMES[team_presets[0]], Tactics.NAMES[team_presets[1]]]
+	subtitle.text = "蓝：%s    vs    红：%s  ·  基础作战 + 技能策略" % [preset_names()[team_presets[0]], preset_names()[team_presets[1]]]
 	var u: Dictionary = units[editor_unit]
 	character_label.text = "%s %d   /   HP %d · 精力 %d · %s" % ["蓝方" if u.team == 0 else "红方", u.member + 1, u.hp, u.energy, action_state_label(u) if u.hp > 0 else "已倒下"]
 	for uid in range(roster_buttons.size()):

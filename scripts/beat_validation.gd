@@ -47,10 +47,12 @@ static func run(game) -> void:
 	assert(sim.units[0].cell == Vector2i(4, 3))
 	ap(sim, 0, "向上移动")
 	sim.tick()
+	assert(sim.units[0].cell == Vector2i(4, 3) and sim.units[0].pose == "站稳" and sim.units[0].phase == "转向站立")
+	sim.tick()
 	assert(sim.units[0].cell == Vector2i(4, 3) and sim.units[0].mode == "移动硬直")
 	sim.tick()
 	assert(sim.units[0].cell == Vector2i(4, 2))
-	report.checks.append("ordinary movement always two beats; no same-direction acceleration or extra turning cost; one selection per action")
+	report.checks.append("ordinary crossing two beats; same direction continues; turning first consumes a separate standing beat")
 
 	sim = fixture(game)
 	sim.units[2].cell = Vector2i(4, 3)
@@ -256,13 +258,130 @@ static func run(game) -> void:
 	report.checks.append("nine presets complete; speed independence; single beat stepping; deployment/edit persistence")
 	report.balance = preload("res://scripts/beat_balance_validation.gd").run(game)
 	report.telegraphs = preload("res://scripts/beat_telegraph_validation.gd").run(game)
+	report.soldier = validate_soldier(game)
 	report.movement_lock = validate_movement_lock(game)
 	report.motion = validate_motion(game)
 	report.playback_baseline = validate_playback_baseline(game)
 	report.occupancy = validate_occupancy(game)
 	var file := FileAccess.open("res://reports/beat-validation.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(report, "\t"))
-	print("BEAT PASSED: two-beat committed movement, one-beat PP dodge, cancellation gates, standing gate, AP/PP exclusivity, refunds, collisions/return reservation, six symmetric cases, nine presets, playback and editor")
+	print("BEAT PASSED: soldier preset, 9-beat straight route/12-beat zigzag, turn-standing, smooth braking, two-beat committed movement, one-beat PP dodge, six symmetric cases, nine legacy presets and editor")
+
+static func validate_soldier(game) -> Dictionary:
+	var checks: Array = []
+	# Four straight crossings and one final standing beat: 2*4+1 = 9.
+	var sim = fixture(game)
+	sim.units[0].cell = Vector2i(1, 2)
+	sim.units[0].p = Beat.center(sim.units[0].cell)
+	ap(sim, 0, "向右移动")
+	for tick in range(8):
+		sim.tick()
+		assert(sim.units[0].cell == Vector2i(1 + (tick + 1) / 2, 2))
+		assert(sim.units[0].phase != "转向站立")
+	ap(sim, 0, "站稳")
+	sim.tick()
+	assert(sim.beat == 9 and sim.units[0].cell == Vector2i(5, 2) and sim.units[0].pose == "站稳")
+	checks.append("straight four cells plus final stand takes exactly nine beats")
+	# Four one-cell legs with three direction changes and a final stand: 12.
+	sim = fixture(game)
+	var route := [["向右移动", Vector2i.RIGHT], ["向上移动", Vector2i.UP], ["向右移动", Vector2i.RIGHT], ["向下移动", Vector2i.DOWN]]
+	for leg in range(route.size()):
+		var origin: Vector2i = sim.units[0].cell
+		ap(sim, 0, route[leg][0])
+		if leg > 0:
+			sim.tick()
+			assert(sim.units[0].cell == origin and sim.units[0].phase == "转向站立" and sim.units[0].pose == "站稳")
+		sim.tick()
+		assert(sim.units[0].cell == origin and sim.units[0].mode == "移动硬直")
+		sim.tick()
+		assert(sim.units[0].cell == origin + route[leg][1])
+	ap(sim, 0, "站稳")
+	sim.tick()
+	assert(sim.beat == 12 and sim.units[0].pose == "站稳")
+	checks.append("four zigzag cells plus final stand takes exactly twelve beats")
+	var directions := [["向右移动", Vector2i.RIGHT], ["向左移动", Vector2i.LEFT], ["向上移动", Vector2i.UP], ["向下移动", Vector2i.DOWN]]
+	for prior in directions:
+		for following in directions:
+			sim = fixture(game)
+			sim.units[0].pose = "移动"
+			sim.units[0].trend = prior[1]
+			ap(sim, 0, following[0])
+			var origin: Vector2i = sim.units[0].cell
+			var total := 2 if prior[1] == following[1] else 3
+			for tick in range(total):
+				sim.tick()
+				assert(sim.units[0].cell == (origin if tick < total - 1 else origin + following[1]))
+			assert(sim.beat == total)
+	checks.append("all sixteen direction pairs: same direction costs two; perpendicular and reverse direction cost standing plus two")
+	# Paid movement must not charge or start cooldown merely to stop for a turn.
+	sim = fixture(game)
+	sim.units[0].pose = "移动"
+	sim.units[0].trend = Vector2i.UP
+	sim.units[2].cell = Vector2i(5, 3)
+	ap(sim, 0, "短冲刺")
+	sim.tick()
+	assert(sim.units[0].phase == "转向站立" and sim.units[0].energy == 100 and not sim.units[0].skill_cds.has("短冲刺"))
+	sim.tick()
+	assert(sim.units[0].mode == "移动硬直" and sim.units[0].energy == 80 and sim.units[0].skill_cds["短冲刺"] > 0)
+	checks.append("mandatory turn-standing does not consume paid movement energy or CD")
+	# A dodge still bypasses the direction-change standing beat.
+	sim = fixture(game)
+	sim.units[0].pose = "移动"
+	sim.units[0].trend = Vector2i.LEFT
+	sim.loadouts[0].reaction = [["侧闪", "无", "无"]]
+	warning(sim, sim.units[0].cell, 1)
+	sim.tick()
+	assert(sim.units[0].cell == Vector2i(3, 3) and sim.units[0].phase == "侧闪跨格" and sim.units[0].energy == 80)
+	checks.append("PP dodge changes direction immediately in one beat")
+	# Direction changes decelerate forward, stop, and only then turn and accelerate.
+	sim = fixture(game)
+	var display = preload("res://scripts/beat_presentation.gd").new()
+	display.reset(sim.units)
+	ap(sim, 0, "向右移动")
+	for tick in range(2):
+		var before: Array = sim.units.duplicate(true)
+		sim.tick()
+		display.begin(before, sim.units, sim)
+		display.advance(Beat.SECONDS)
+	var origin: Vector2 = display.position(sim.units[0])
+	ap(sim, 0, "向上移动")
+	var before: Array = sim.units.duplicate(true)
+	sim.tick()
+	display.begin(before, sim.units, sim)
+	assert(display.position(sim.units[0]).is_equal_approx(origin) and sim.units[0].phase == "转向站立")
+	var previous := origin
+	for frame in range(20):
+		display.advance(Beat.SECONDS / 20)
+		var point: Vector2 = display.position(sim.units[0])
+		assert(point.x >= previous.x - 0.0001 and point.x <= sim.units[0].p.x + 0.0001 and is_equal_approx(point.y, sim.units[0].p.y), "Standing must brake forward without reversing or cutting the corner")
+		previous = point
+	assert(display.velocity(sim.units[0]).is_zero_approx() and display.position(sim.units[0]).is_equal_approx(sim.units[0].p))
+	before = sim.units.duplicate(true)
+	sim.tick()
+	display.begin(before, sim.units, sim)
+	assert(display.velocity(sim.units[0]).is_zero_approx())
+	display.advance(Beat.SECONDS)
+	assert(display.position(sim.units[0]).y < before[0].p.y and is_equal_approx(display.position(sim.units[0]).x, before[0].p.x))
+	checks.append("turn animation brakes monotonically within the cell, reaches zero speed, then accelerates in the new direction")
+	# Default UI preset is a plain soldier on both sides, without magic or ultimates.
+	game.team_presets = [game.SOLDIER_PRESET, game.SOLDIER_PRESET]
+	game.deployment_cells = game.DEFAULT_DEPLOYMENT.duplicate()
+	game.setup_loadouts()
+	game.rebuild_editor()
+	game.reset_round()
+	for loadout in game.loadouts:
+		for rule in loadout.active: assert(rule[0] in ["站稳", "普通攻击", "接敌"])
+		assert(loadout.reaction == [["侧闪", "无", "无"]])
+	assert(game.basic_loadout() == game.preset_loadouts(game.SOLDIER_PRESET)[0])
+	game.units[0].ult_charge = 100
+	game.started = true
+	assert(not game.beat_ultimate_available(0))
+	for tick in range(240):
+		if game.finished: break
+		game.simulate(Beat.SECONDS)
+	assert(game.finished and game.shots > 0)
+	checks.append("default soldier preset uses only standing, ordinary attack, engagement and PP dodge; no ultimate")
+	return {"checks": checks, "match": {"beats": game.logic_frame, "winner": game.winner_team, "shots": game.shots}}
 
 static func validate_movement_lock(game) -> Array:
 	var checks: Array = []

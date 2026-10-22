@@ -2,12 +2,15 @@ extends "res://scripts/battle.gd"
 ## UI adapter: the continuous prototype remains in main.tscn for comparison.
 const Beat = preload("res://scripts/beat_simulation.gd")
 const BASE_PLAYBACK_RATE := 0.5
+const SOLDIER_PRESET := 9
+var soldier_hint: Label
 var beat_sim = Beat.new()
 var presentation = preload("res://scripts/beat_presentation.gd").new()
 var settle_visual := 0.0
 var animation_preview_caption := ""
 
 func _ready() -> void:
+	team_presets = [SOLDIER_PRESET, SOLDIER_PRESET]
 	font = SystemFont.new()
 	font.font_names = PackedStringArray(["Microsoft YaHei", "PingFang SC", "Arial"])
 	arena_view = preload("res://scripts/beat_view.gd").new()
@@ -41,6 +44,20 @@ func _ready() -> void:
 		refresh_ui()
 		capture_beat_preview.call_deferred()
 
+func preset_names() -> Array:
+	return Tactics.NAMES + ["普通士兵"]
+
+func preset_loadouts(index: int) -> Array:
+	if index != SOLDIER_PRESET: return super.preset_loadouts(index)
+	var soldier := {
+		"active": [["站稳", "移动姿态", "有射位"], ["普通攻击", "优先队友目标", "无"], ["接敌", "无", "无"], ["站稳", "移动姿态", "无"]],
+		"reaction": [["侧闪", "无", "无"]]
+	}
+	return [soldier.duplicate(true), soldier.duplicate(true)]
+
+func basic_loadout() -> Dictionary:
+	return preset_loadouts(SOLDIER_PRESET)[0]
+
 func setup_loadouts() -> void:
 	super.setup_loadouts()
 	for loadout in loadouts: add_stand_rule(loadout)
@@ -73,6 +90,9 @@ func setup_ui() -> void:
 	for node in get_children():
 		if node is Label and node.text == "AUTOBATTLE": node.text = "AUTOBATTLE / BEAT"
 	update_beat_menus()
+	soldier_hint = text_label(self, "普通士兵对练\n5血 · 普攻1伤害\n无大招", 14)
+	soldier_hint.position = Vector2(700, 35)
+	soldier_hint.modulate = Color("c8b997")
 
 func rebuild_editor() -> void:
 	# The legacy editor removes conditions it does not know; preserve beat-only ones.
@@ -112,7 +132,7 @@ func update_beat_menus() -> void:
 
 func beat_help(skill: String) -> String:
 	if skill == "站稳": return "耗1拍，移动姿态恢复站稳；不跨格。高级技能必须先站稳。预设附加有射位条件，可排序、改条件或删除。"
-	if skill in Beat.MOVE or skill in ["向左移动", "向右移动", "向上移动", "向下移动"]: return "普通移动2拍一格，同向、转向和起步耗时相同；期间只有PP侧闪可取消。减速时额外1拍；移动后不自动站稳。"
+	if skill in Beat.MOVE or skill in ["向左移动", "向右移动", "向上移动", "向下移动"]: return "普通移动2拍一格；同方向可以连续走，换方向前自动站立1拍。移动硬直只能用PP侧闪取消；侧闪1拍一格。减速时普通移动额外1拍。"
 	if skill == "侧闪": return "真实预警触发，1拍跨入安全相邻格，耗20精力。前摇取消退款，后摇取消不退款，释放硬直/碰撞中禁用；无安全格不触发。"
 	if skill == "回春": return "25精力；治疗1血，上限5血。自己或3格内队友刚受伤时触发；冷却32拍，后摇1拍。"
 	if skill == "灵木护佑": return "25精力；治疗1血并获得1盾，盾持续8拍。自己或3格内队友刚受伤时触发；冷却36拍，后摇1拍。"
@@ -231,6 +251,7 @@ func log_event(message: String) -> void:
 func action_state_label(u: Dictionary) -> String:
 	if not u.has("pose"): return u.phase
 	if u.mode == "移动硬直": return "移动硬直·余%d拍" % u.left
+	if u.phase == "转向站立": return "转向站立·1拍"
 	if u.mode == "碰撞": return "碰撞·待弹回"
 	if u.mode == "释放硬直": return "待释放%d拍" % u.left
 	if not u.mode.is_empty(): return "%s余%d拍" % [u.mode, u.left]
@@ -250,7 +271,11 @@ func refresh_ui() -> void:
 	var u: Dictionary = units[editor_unit]
 	character_label.text = "%s%d · %s格 · %s · HP %d/%d · 盾%d" % ["蓝" if u.team == 0 else "红", u.member + 1, Beat.name_of(u.cell), action_state_label(u), u.hp, Beat.MAX_HP, u.shield]
 	info_label.text = "所在格 %s · %s · 趋势 %s · 生命%d/%d · 护盾%d\n本拍：%s；规则触发%d次\n%s\n精力 %d/100 · 公共CD剩%d拍\n%s" % [Beat.name_of(u.cell), u.pose, "无" if u.trend == Vector2i.ZERO else direction_name(u.trend), u.hp, Beat.MAX_HP, u.shield, u.frame_branch, u.frame_triggers, u.reason, u.energy, ceili(u.cooldown / Beat.SECONDS), u.last_cancel]
-	skill_help.text = "5血 · 普攻1 · 重击2 · 大招2–3 · 敌方碰撞各扣1血。\n普通移动2拍一格；只有PP侧闪可取消。侧闪1拍一格。"
+	skill_help.text = ("普通士兵 · 5血 · 普攻1伤害 · 无大招。" if team_presets[u.team] == SOLDIER_PRESET else "5血 · 普攻1 · 重击2 · 大招2–3 · 敌方碰撞各扣1血。") + "\n移动2拍/格；换向先站立1拍；直走不断速。侧闪1拍。"
+	for child in get_children():
+		if child.get_script() == preload("res://scripts/ultimate_portrait.gd"):
+			child.visible = team_presets[0] != SOLDIER_PRESET
+	if soldier_hint != null: soldier_hint.visible = team_presets[0] == SOLDIER_PRESET
 	for uid in range(roster_buttons.size()):
 		var bot: Dictionary = units[uid]
 		roster_buttons[uid].text = "%s %d · %s\nHP %d/%d · 盾%d · EN %d" % ["蓝方" if uid < 2 else "红方", uid % 2 + 1, bot.phase if bot.hp > 0 else "倒下", bot.hp, Beat.MAX_HP, bot.shield, bot.energy]
@@ -260,7 +285,7 @@ func refresh_ui() -> void:
 
 func beat_ultimate_available(uid: int) -> bool:
 	var u: Dictionary = units[uid]
-	return started and u.hp > 0 and u.ult_charge >= 100 and u.pose == "站稳" and u.energy >= 70
+	return team_presets[u.team] != SOLDIER_PRESET and started and u.hp > 0 and u.ult_charge >= 100 and u.pose == "站稳" and u.energy >= 70
 
 func beat_ultimate_tooltip(uid: int) -> String:
 	return ultimate_name(uid) + "：%d伤害，站稳、70精力、充能满后可瞄准，下一合法节拍起手。按整数格预览，前摇侧闪取消会退还精力和充能。" % beat_sim.damage_of(ultimate_name(uid))
@@ -286,29 +311,29 @@ func capture_beat_preview() -> void:
 	get_tree().quit()
 
 func capture_animation_preview() -> void:
-	var sheet := Image.create(1780, 1475, false, Image.FORMAT_RGBA8)
-	for row in range(5):
-		if row != 3:
-			beat_sim = preload("res://scripts/beat_validation.gd").fixture(self)
-			if row == 2:
-				beat_sim.units[2].cell = Vector2i(4, 3)
-				beat_sim.units[2].p = Beat.center(Vector2i(4, 3))
-				beat_sim.loadouts[2].active = [["向左移动", "无", "无"]]
-			if row == 4:
-				beat_sim.loadouts[0].reaction = [["侧闪", "无", "无"]]
-				preload("res://scripts/beat_validation.gd").warning(beat_sim, beat_sim.units[0].cell, 1)
-			else: beat_sim.loadouts[0].active = [["向右移动", "无", "无"]]
-			loadouts = beat_sim.loadouts
-			units.assign(beat_sim.units)
-			presentation.reset(units)
-			started = true
-			if row in [1, 2]:
-				simulate(Beat.SECONDS)
-				advance_visuals(Beat.SECONDS)
+	var sheet := Image.create(1780, 1770, false, Image.FORMAT_RGBA8)
+	for row in range(6):
+		beat_sim = preload("res://scripts/beat_validation.gd").fixture(self)
+		if row == 5:
+			beat_sim.loadouts[0].reaction = [["侧闪", "无", "无"]]
+			preload("res://scripts/beat_validation.gd").warning(beat_sim, beat_sim.units[0].cell, 1)
+		else: beat_sim.loadouts[0].active = [["向右移动", "无", "无"]]
+		loadouts = beat_sim.loadouts
+		units.assign(beat_sim.units)
+		presentation.reset(units)
+		started = true
+		var prior := 0 if row in [0, 5] else (1 if row == 1 else 2)
+		for tick in range(prior):
+			simulate(Beat.SECONDS)
+			advance_visuals(Beat.SECONDS)
+		if row in [3, 4]: loadouts[0].active = [["向上移动", "无", "无"]]
+		if row == 4:
+			simulate(Beat.SECONDS)
+			advance_visuals(Beat.SECONDS)
 		simulate(Beat.SECONDS)
 		for column in range(4):
 			if column > 0: advance_visuals(Beat.SECONDS / 3.0)
-			animation_preview_caption = "%s / %.0f ms" % [["普通移动·第1拍", "普通移动·第2拍", "碰撞接近", "弹回原格", "PP侧闪·1拍一格"][row], column * Beat.SECONDS / 3.0 * 1000.0]
+			animation_preview_caption = "%s / %.0f ms" % [["普通移动·第1拍", "普通移动·第2拍", "同向续走·不断速", "转向前站立·减速到格心", "转向后起步", "PP侧闪·1拍一格"][row], column * Beat.SECONDS / 3.0 * 1000.0]
 			queue_redraw()
 			await RenderingServer.frame_post_draw
 			var frame := get_viewport().get_texture().get_image().get_region(Rect2i(20, 145, 890, 590))

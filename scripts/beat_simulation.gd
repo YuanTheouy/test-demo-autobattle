@@ -318,12 +318,19 @@ func path_direction(u: Dictionary, target: int, skill: String, snapshot: Array) 
 					seen.append(next)
 					queue.append([next, item[1] + 1])
 			score = route_cost * 10 + score * 0.01 + Vector2(first).distance_squared_to(Vector2(snapshot[target].cell)) * 0.001
-		if u.pose == "移动" and u.trend == direction: score -= 0.001
+		if u.pose == "移动":
+			if u.trend == direction: score -= 0.001
+			else: score += 10.0 # A direction change includes a full standing beat.
 		if score < best_score - 0.0001: best_score = score; best = direction
 	return best
 
 func request_move(u: Dictionary, direction: Vector2i, proposals: Dictionary, immediate := false) -> bool:
 	if direction == Vector2i.ZERO or not legal(u.cell + direction): return false
+	if not immediate and u.pose == "移动" and u.trend != direction:
+		stand(u, "转向站立")
+		u.frame_branch = "转向：先站立1拍"
+		u.reason += "；换方向前先站立1拍，本拍不跨格"
+		return true
 	u.move_origin = u.cell
 	u.move_target = u.cell + direction
 	u.move_total = 1 if immediate else MOVE_BEATS + (1 if u.slow > 0 else 0)
@@ -337,11 +344,22 @@ func request_move(u: Dictionary, direction: Vector2i, proposals: Dictionary, imm
 		u.left = 0
 		u.phase = "侧闪跨格"
 	else:
-		# The selecting beat is the first beat of the move, for every direction.
+		# Standing or same-direction movement starts a full two-beat crossing.
+		u.angle = Vector2(direction).angle()
 		u.mode = "移动硬直"
 		u.left = u.move_total - 1
 		u.phase = "移动硬直"
 	return true
+
+func stand(u: Dictionary, phase := "站稳") -> void:
+	u.pose = "站稳"
+	u.trend = Vector2i.ZERO
+	u.mode = ""
+	u.left = 0
+	u.phase = phase
+	u.move_origin = u.cell
+	u.move_target = u.cell
+	u.action_goal = center(u.cell)
 
 func advance_move(u: Dictionary, proposals: Dictionary) -> void:
 	u.left -= 1
@@ -515,9 +533,7 @@ func try_ap(u: Dictionary, snapshot: Array, proposals: Dictionary) -> void:
 		if skill == "站稳":
 			if u.pose == "站稳" or not condition(u, target, rule[1], snapshot) or not condition(u, target, rule[2], snapshot): u.trace_ap[slot] = "姿态/条件未满足"; continue
 			select_rule(u, "active", slot, skill)
-			u.pose = "站稳"
-			u.trend = Vector2i.ZERO
-			u.phase = "站稳"
+			stand(u)
 			return
 		if skill in ["向左移动", "向右移动", "向上移动", "向下移动"]:
 			if not condition(u, target, rule[1], snapshot) or not condition(u, target, rule[2], snapshot): continue
@@ -536,9 +552,10 @@ func try_ap(u: Dictionary, snapshot: Array, proposals: Dictionary) -> void:
 			if skill == "调整站位" and move_score(u, u.cell + d, target, skill, snapshot) >= move_score(u, u.cell, target, skill, snapshot): continue
 			select_rule(u, "active", slot, skill)
 			u.target = target
-			u.energy -= cost(skill)
-			if skill == "短冲刺": u.skill_cds[skill] = skill_cd(skill)
 			request_move(u, d, proposals)
+			if u.phase != "转向站立":
+				u.energy -= cost(skill)
+				if skill == "短冲刺": u.skill_cds[skill] = skill_cd(skill)
 			return
 		if skill == "留空": continue
 		select_rule(u, "active", slot, skill)
