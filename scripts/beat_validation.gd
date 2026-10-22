@@ -260,6 +260,7 @@ static func run(game) -> void:
 	report.telegraphs = preload("res://scripts/beat_telegraph_validation.gd").run(game)
 	report.shooting = validate_shooting(game)
 	report.shot_postures = validate_shot_postures(game)
+	report.boundary = validate_boundaries(game)
 	report.soldier = validate_soldier(game)
 	report.movement_lock = validate_movement_lock(game)
 	report.motion = validate_motion(game)
@@ -269,15 +270,55 @@ static func run(game) -> void:
 	file.store_string(JSON.stringify(report, "\t"))
 	print("BEAT PASSED: soldier preset, 9-beat straight route/12-beat zigzag, turn-standing, smooth braking, two-beat committed movement, one-beat PP dodge, six symmetric cases, nine legacy presets and editor")
 
+static func validate_boundaries(game) -> Dictionary:
+	var checks: Array = []
+	var sim = fixture(game)
+	sim.units[2].cell = Vector2i(4, 3)
+	ap(sim, 0, "普通攻击")
+	sim.loadouts[2].reaction = [["侧闪", "无", "无"]]
+	sim.tick()
+	assert(sim.boundary_stages == ["格子更新", "攻击结算", "姿态更新", "下一拍决策"])
+	assert(sim.units[2].cell == Vector2i(4, 3) and sim.units[2].hp == 5 and sim.shots == 0)
+	assert(sim.next_segment.units[2].phase == "侧闪跨格" and sim.next_segment.units[0].phase == "释放硬直")
+	assert(Beat.posture(sim.units[0]) == "僵直姿态")
+	sim.tick()
+	assert(sim.units[2].cell != Vector2i(4, 3) and sim.units[2].hp == 5 and sim.shots == 1)
+	assert(Beat.posture(sim.units[0]) == "动作姿态")
+	checks.append("boundary1 detects aim and chooses defender dodge for segment1-2; boundary2 moves defender first then resolves the locked shot")
+	# A fresh hit can select a healing PP only for the following segment.
+	sim = fixture(game)
+	sim.loadouts[0].reaction = [["回春", "无", "无"]]
+	warning(sim, sim.units[0].cell, 1)
+	sim.tick()
+	assert(sim.units[0].hp == 3 and sim.units[0].energy == 100)
+	assert(sim.next_segment.units[0].active_skill == "回春" and sim.next_segment.supports.size() == 1)
+	assert(sim.next_segment.key == sim.boundary_key(), "Normal ticks consume the decision already made at the preceding endpoint")
+	sim.tick()
+	assert(sim.units[0].hp == 4 and sim.units[0].energy == 75)
+	checks.append("next PP sees damage at this endpoint; planning itself cannot heal, spend energy or undo the hit")
+	# Dead units get no next action, but simultaneous completed shots both land.
+	sim = fixture(game)
+	sim.units[0].hp = 1
+	sim.units[2].hp = 1
+	sim.units[2].cell = Vector2i(4, 3)
+	ap(sim, 0, "普通攻击")
+	ap(sim, 2, "普通攻击")
+	sim.tick()
+	sim.tick()
+	assert(sim.units[0].hp == 0 and sim.units[2].hp == 0 and sim.shots == 2 and sim.winner == -1)
+	assert(sim.next_segment.strikes.is_empty() and sim.next_segment.units[0].frame_triggers == 0 and sim.next_segment.units[2].frame_triggers == 0)
+	checks.append("all completed shots resolve before death; defeated units cannot choose a further action")
+	return {"stages": sim.boundary_stages, "checks": checks}
+
 static func validate_shot_postures(game) -> Dictionary:
 	var sim = fixture(game)
 	sim.units[2].cell = Vector2i(4, 3)
 	ap(sim, 0, "普通攻击")
 	var poses: Array = []
-	for tick in range(4):
+	for tick in range(3):
 		sim.tick()
 		poses.append(Beat.posture(sim.units[0]))
-	assert(poses == ["站立姿态", "僵直姿态", "动作姿态", "站立姿态"])
+	assert(poses == ["僵直姿态", "动作姿态", "站立姿态"])
 	assert(sim.units[0].pose == "站稳")
 	# A pending aim can be cancelled before its beat; no firing, cost or CD leak.
 	sim = fixture(game)
@@ -287,7 +328,7 @@ static func validate_shot_postures(game) -> Dictionary:
 	warning(sim, sim.units[0].cell, 1)
 	sim.tick()
 	assert(sim.shots == 0 and sim.units[0].energy == 80 and sim.units[0].phase == "侧闪跨格" and not sim.units[0].skill_cds.has("点射"))
-	# Pending release is locked even though last beat's visible aim was standing.
+	# The aim endpoint is rigid; the next firing segment cannot be replaced.
 	sim = fixture(game)
 	sim.units[2].cell = Vector2i(4, 3)
 	ap(sim, 0, "普通攻击")
@@ -295,7 +336,7 @@ static func validate_shot_postures(game) -> Dictionary:
 	sim.tick()
 	warning(sim, sim.units[0].cell, 2)
 	sim.tick()
-	assert(sim.shots == 1 and sim.units[0].cell == Vector2i(2, 3) and Beat.posture(sim.units[0]) == "僵直姿态")
+	assert(sim.shots == 1 and sim.units[0].cell == Vector2i(2, 3) and Beat.posture(sim.units[0]) == "动作姿态")
 	# Recovery can be dodged without undoing the shot, its paid cost or own CD.
 	warning(sim, sim.units[0].cell, 3)
 	sim.tick()
@@ -325,29 +366,27 @@ static func validate_shooting(game) -> Dictionary:
 	assert(warnings.size() == 1 and warnings[0].cell == Vector2i(4, 3) and warnings[0].due == 2 and warnings[0].total_beats == 1)
 	sim.tick()
 	assert(sim.beat == 2 and sim.shots == 1 and sim.units[2].hp == 4)
-	assert(sim.units[0].phase == "释放硬直" and sim.units[0].mode == "后摇" and sim.units[0].left == 2)
+	assert(sim.units[0].phase == "释放硬直" and sim.units[0].mode == "后摇" and sim.units[0].left == 1)
 	assert(sim.strikes.is_empty() and sim.effects.size() == 1 and Telegraph.cells(sim, 0.0).is_empty())
 	assert(sim.units[0].skill_cds["点射"] == 6 * Beat.SECONDS and sim.units[0].cooldown == 0)
 	sim.tick()
-	assert(sim.beat == 3 and sim.units[0].mode == "后摇" and sim.units[0].left == 1 and sim.units[0].frame_triggers == 0)
-	sim.tick()
-	assert(sim.beat == 4 and sim.units[0].mode.is_empty() and sim.units[0].pose == "站稳" and sim.units[0].trend == Vector2i.ZERO and sim.units[0].frame_triggers == 0)
-	assert(sim.units[0].cooldown == 0 and sim.units[0].skill_cds["点射"] == 4 * Beat.SECONDS)
-	checks.append("standing shot: beat1 aim, beat2 impact, beats3-4 recovery; standing at end of beat4")
-	while sim.beat < 8: sim.tick()
+	assert(sim.beat == 3 and sim.units[0].mode.is_empty() and sim.units[0].pose == "站稳" and sim.units[0].trend == Vector2i.ZERO and sim.units[0].frame_triggers == 0)
+	assert(sim.units[0].cooldown == 0 and sim.units[0].skill_cds["点射"] == 5 * Beat.SECONDS)
+	checks.append("standing shot: beat1 aim, beat2 impact, beat3 recovery completes standing")
+	while sim.beat < 9: sim.tick()
 	assert(sim.shots == 1 and sim.units[0].skill_cds["点射"] == 0 and sim.units[0].phase == "前摇" and sim.units[0].frame_triggers == 1)
 	sim.tick()
-	assert(sim.beat == 9 and sim.shots == 2 and sim.units[2].hp == 3)
-	checks.append("independent CD6 starts on firing and overlaps recovery; no public CD, next aim beat8 and impact beat9")
+	assert(sim.beat == 10 and sim.shots == 2 and sim.units[2].hp == 3)
+	checks.append("independent CD6 starts on firing and overlaps recovery; no public CD, CD ready at endpoint8, next aim ends at9 and impact at10")
 	# Another ready skill can start the very next beat after recovery.
 	sim = fixture(game)
 	sim.units[2].cell = Vector2i(4, 3)
 	ap(sim, 0, "普通攻击")
-	for tick in range(4): sim.tick()
+	for tick in range(3): sim.tick()
 	ap(sim, 0, "火矢")
 	sim.tick()
-	assert(sim.beat == 5 and sim.units[0].active_skill == "火矢" and sim.units[0].phase == "前摇" and sim.units[0].skill_cds["点射"] > 0 and sim.units[0].cooldown == 0)
-	checks.append("a different ready skill starts on beat5 immediately after recovery, despite the ordinary gun's independent cooldown")
+	assert(sim.beat == 4 and sim.units[0].active_skill == "火矢" and sim.units[0].phase == "前摇" and sim.units[0].skill_cds["点射"] > 0 and sim.units[0].cooldown == 0)
+	checks.append("a different ready skill starts on beat4 immediately after recovery, despite the ordinary gun's independent cooldown")
 	# No explicit standing rule is needed to enforce the ordinary gun's prerequisite.
 	sim = fixture(game)
 	sim.units[2].cell = Vector2i(4, 3)
@@ -361,8 +400,6 @@ static func validate_shooting(game) -> Dictionary:
 	assert(sim.units[0].phase == "前摇" and sim.units[0].energy == 85)
 	sim.tick()
 	assert(sim.shots == 1 and sim.units[2].hp == 4)
-	sim.tick()
-	assert(sim.units[0].mode == "后摇" and sim.units[0].left == 1)
 	sim.tick()
 	assert(sim.units[0].pose == "站稳" and sim.units[0].mode.is_empty() and sim.units[0].frame_triggers == 0)
 	checks.append("mobile shot automatically spends a separate standing beat even with the standing rule removed; no premature cost/CD/warning")
@@ -393,7 +430,7 @@ static func validate_shooting(game) -> Dictionary:
 	display.advance(Beat.SECONDS * 0.3)
 	assert(display.flights.is_empty() and display.bursts[0].age >= 0 and sim.beat == 2)
 	checks.append("ordinary shot has a short visual projectile and a delayed impact flash within the same firing beat; animation never changes logic")
-	return {"checks": checks, "independent_cd_beats": 6, "public_cd_beats": 0, "standing_action_beats": 4, "mobile_action_beats": 5}
+	return {"checks": checks, "independent_cd_beats": 6, "public_cd_beats": 0, "standing_action_beats": 3, "mobile_action_beats": 4}
 
 static func validate_soldier(game) -> Dictionary:
 	var checks: Array = []

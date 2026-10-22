@@ -38,6 +38,8 @@ var activations: Dictionary = {}
 var shots := 0
 var hits := 0
 var decision_order := [0, 1, 2, 3]
+var next_segment: Dictionary = {}
+var boundary_stages: Array = []
 
 static func cell_of(p: Vector2) -> Vector2i:
 	return Vector2i(floori(p.x / CELL_SIZE), floori(p.y / CELL_SIZE))
@@ -74,6 +76,8 @@ func reset(source_units: Array, source_loadouts: Array, walls: Array) -> void:
 	hit_events.clear()
 	manual.clear()
 	activations.clear()
+	next_segment.clear()
+	boundary_stages.clear()
 	for u in units:
 		u.hp = MAX_HP if u.hp > 0 else 0
 		u.cooldown = 0.0 # Compatibility with the shared legacy renderer; no public cooldown in beat combat.
@@ -105,9 +109,8 @@ func reset(source_units: Array, source_loadouts: Array, walls: Array) -> void:
 		u.trace_pp.fill("未检查")
 
 static func posture(u: Dictionary) -> String:
-	# phase describes the beat on screen; mode is the stage queued for NEXT beat.
-	if u.phase in ["释放硬直", "碰撞"]: return "僵直姿态"
-	if u.phase == "前摇" and u.active_skill == "点射": return "站立姿态"
+	# Endpoint posture constrains the segment about to begin, not the one completed.
+	if pp_locked(u): return "僵直姿态"
 	if u.mode == "后摇" or u.pose != "站稳": return "动作姿态"
 	return "站立姿态"
 
@@ -467,7 +470,7 @@ func advance_attack(u: Dictionary) -> void:
 		u.left -= 1
 		if u.left == 0:
 			u.mode = "后摇"
-			u.left = 2 if skill in HIGH or skill in ["点射", "强力射击", "落岩", "震山"] else 1
+			u.left = 2 if skill in HIGH or skill in ["强力射击", "落岩", "震山"] else 1
 	elif u.mode == "后摇":
 		u.left -= 1
 		if u.left == 0:
@@ -660,34 +663,30 @@ func resolve_moves(snapshot: Array, next_units: Array, proposals: Dictionary, da
 			next_units[uid].cell = snapshot[uid].cell
 			next_units[uid].phase = "退路保留"
 
-func tick() -> void:
-	beat += 1
-	effects.clear()
-	events.clear()
+func boundary_key() -> int:
+	return hash([beat, units, loadouts, strikes, manual, hit_events, decision_order, blocked_cells])
+
+func choose_next_segment() -> void:
+	var key := boundary_key()
 	var snapshot: Array = units.duplicate(true)
 	var next_units: Array = snapshot.duplicate(true)
 	var old_strikes: Array = strikes.duplicate(true)
 	var proposals: Dictionary = {}
 	var supports: Array = []
-	var damage := [0, 0, 0, 0]
+	var saved_beat := beat
+	var saved_shots := shots
+	var saved_strikes: Array = strikes
+	var saved_manual: Dictionary = manual
+	var saved_activations: Dictionary = activations
+	beat += 1 # Dates belong to the endpoint of the next segment.
+	strikes = []
+	manual = manual.duplicate(true)
+	activations = activations.duplicate(true)
 	for uid in decision_order:
 		var u: Dictionary = next_units[uid]
 		u.frame_triggers = 0
 		u.frame_branch = "等待决策"
 		if u.hp <= 0: continue
-		u.ult_charge = minf(100, u.ult_charge + SECONDS * 100 / 12.0)
-		for skill in u.skill_cds.keys(): u.skill_cds[skill] = maxf(0, u.skill_cds[skill] - SECONDS)
-		u.hurt_recent = maxf(0, u.hurt_recent - SECONDS)
-		u.marked = maxf(0, u.marked - SECONDS)
-		u.slow = maxf(0, u.slow - SECONDS)
-		u.guard = maxf(0, u.guard - SECONDS)
-		if u.thorns > 0:
-			u.thorns = maxf(0, u.thorns - SECONDS)
-			u.thorn_tick -= SECONDS
-			if u.thorn_tick <= 0: damage[u.uid] += THORN_DAMAGE; u.thorn_tick += 2.0
-		u.shield_time = maxf(0, u.shield_time - SECONDS)
-		if u.shield_time <= 0: u.shield = 0
-		if u.mode in ["", "移动硬直"]: u.energy = minf(100, u.energy + 12 * SECONDS)
 		if u.mode == "碰撞":
 			u.cell = u.return_cell
 			u.mode = ""
@@ -716,7 +715,52 @@ func tick() -> void:
 			advance_attack(u)
 			continue
 		try_ap(u, snapshot, proposals)
+	next_segment = {"key": key, "units": next_units, "moves": proposals, "supports": supports,
+		"strikes": strikes, "shots": shots, "manual": manual, "activations": activations}
+	beat = saved_beat
+	shots = saved_shots
+	strikes = saved_strikes
+	manual = saved_manual
+	activations = saved_activations
+
+func tick() -> void:
+	# Only initial deployment or an explicit edit needs a plan at the starting point.
+	if next_segment.is_empty() or next_segment.key != boundary_key(): choose_next_segment()
+	var snapshot: Array = units.duplicate(true)
+	var next_units: Array = next_segment.units.duplicate(true)
+	var proposals: Dictionary = next_segment.moves.duplicate(true)
+	var supports: Array = next_segment.supports
+	strikes.append_array(next_segment.strikes.duplicate(true))
+	shots = next_segment.shots
+	manual = next_segment.manual.duplicate(true)
+	activations = next_segment.activations.duplicate(true)
+	beat += 1
+	effects.clear()
+	events.clear()
+	boundary_stages.clear()
+	var damage := [0, 0, 0, 0]
+	# 1. Finish everyone's movement before testing any attack.
 	resolve_moves(snapshot, next_units, proposals, damage)
+	boundary_stages.append("格子更新")
+	for u in next_units:
+		if snapshot[u.uid].hp <= 0: continue
+		var old: Dictionary = snapshot[u.uid]
+		u.ult_charge = minf(100, u.ult_charge + SECONDS * 100 / 12.0) if u.ult_charge == old.ult_charge else u.ult_charge
+		for skill in old.skill_cds.keys():
+			if u.skill_cds.get(skill, 0) == old.skill_cds[skill]: u.skill_cds[skill] = maxf(0, old.skill_cds[skill] - SECONDS)
+		u.hurt_recent = maxf(0, u.hurt_recent - SECONDS)
+		u.marked = maxf(0, u.marked - SECONDS)
+		u.slow = maxf(0, u.slow - SECONDS)
+		u.guard = maxf(0, u.guard - SECONDS)
+		if u.thorns > 0:
+			u.thorns = maxf(0, u.thorns - SECONDS)
+			u.thorn_tick -= SECONDS
+			if u.thorn_tick <= 0: damage[u.uid] += THORN_DAMAGE; u.thorn_tick += 2.0
+		u.shield_time = maxf(0, u.shield_time - SECONDS)
+		if u.shield_time <= 0: u.shield = 0
+		if old.mode in ["", "移动硬直"]:
+			u.energy = minf(100, u.energy + minf(3, 100 - old.energy))
+	# 2. Support and due attacks resolve against endpoint cells. Postures are not published yet.
 	for support in supports:
 		var u: Dictionary = next_units[support.target]
 		match support.skill:
@@ -762,7 +806,10 @@ func tick() -> void:
 		u.action_stage = u.mode if u.mode in ["前摇", "释放硬直", "后摇"] else ""
 		u.stage_frames = u.left
 		u.timer = u.left * SECONDS
+	boundary_stages.append("攻击结算")
+	# 3. Publish completed action transitions only after damage/status/death settlement.
 	units = next_units
+	boundary_stages.append("姿态更新")
 	if not finished:
 		var alive := [0, 0]
 		for u in units:
@@ -775,3 +822,6 @@ func tick() -> void:
 			finished = true
 			winner = -1
 			result = "240拍结束，双方仍有存活角色"
+	# 4. Choose the next segment from the fully settled shared endpoint snapshot.
+	choose_next_segment()
+	boundary_stages.append("下一拍决策")

@@ -161,6 +161,19 @@
 		}
 	},
 	"beat_seconds": 0.25,
+	"boundary": {
+		"checks": [
+			"boundary1 detects aim and chooses defender dodge for segment1-2; boundary2 moves defender first then resolves the locked shot",
+			"next PP sees damage at this endpoint; planning itself cannot heal, spend energy or undo the hit",
+			"all completed shots resolve before death; defeated units cannot choose a further action"
+		],
+		"stages": [
+			"格子更新",
+			"攻击结算",
+			"姿态更新",
+			"下一拍决策"
+		]
+	},
 	"checks": [
 		"continuous presentation: movement/settling/collision/dodge, exact endpoints, no snapshot mutation, pause/step, frame-rate independence",
 		"T0 standing / T1 committed move / T2 adjacent cell / T3 explicit standing",
@@ -179,39 +192,39 @@
 	"default_real_beat_seconds": 0.5,
 	"matches": [
 		{
-			"beats": 89,
+			"beats": 78,
 			"final_hp": [
-				0,
-				0,
-				0,
-				1
-			],
-			"opponent": 0,
-			"shots": 36,
-			"winner": 1
-		},
-		{
-			"beats": 185,
-			"final_hp": [
-				0,
-				0,
-				0,
-				4
-			],
-			"opponent": 1,
-			"shots": 60,
-			"winner": 1
-		},
-		{
-			"beats": 88,
-			"final_hp": [
-				1,
+				2,
 				1,
 				0,
 				0
 			],
+			"opponent": 0,
+			"shots": 40,
+			"winner": 0
+		},
+		{
+			"beats": 166,
+			"final_hp": [
+				2,
+				4,
+				0,
+				0
+			],
+			"opponent": 1,
+			"shots": 70,
+			"winner": 0
+		},
+		{
+			"beats": 121,
+			"final_hp": [
+				1,
+				0,
+				0,
+				0
+			],
 			"opponent": 2,
-			"shots": 45,
+			"shots": 47,
 			"winner": 0
 		},
 		{
@@ -227,63 +240,63 @@
 			"winner": 0
 		},
 		{
-			"beats": 58,
+			"beats": 61,
 			"final_hp": [
-				1,
-				4,
+				5,
+				2,
 				0,
 				0
 			],
 			"opponent": 4,
-			"shots": 29,
+			"shots": 33,
 			"winner": 0
 		},
 		{
-			"beats": 53,
+			"beats": 77,
 			"final_hp": [
 				0,
-				3,
 				0,
-				0
+				0,
+				2
 			],
 			"opponent": 5,
-			"shots": 30,
-			"winner": 0
+			"shots": 35,
+			"winner": 1
 		},
 		{
-			"beats": 87,
+			"beats": 91,
 			"final_hp": [
-				1,
+				3,
 				0,
 				0,
 				0
 			],
 			"opponent": 6,
-			"shots": 38,
-			"winner": 0
-		},
-		{
-			"beats": 69,
-			"final_hp": [
-				0,
-				1,
-				0,
-				0
-			],
-			"opponent": 7,
 			"shots": 35,
 			"winner": 0
 		},
 		{
-			"beats": 58,
+			"beats": 64,
 			"final_hp": [
 				0,
 				0,
 				0,
-				5
+				1
+			],
+			"opponent": 7,
+			"shots": 36,
+			"winner": 1
+		},
+		{
+			"beats": 85,
+			"final_hp": [
+				0,
+				0,
+				0,
+				4
 			],
 			"opponent": 8,
-			"shots": 30,
+			"shots": 31,
 			"winner": 1
 		}
 	],
@@ -313,17 +326,17 @@
 	],
 	"shooting": {
 		"checks": [
-			"standing shot: beat1 aim, beat2 impact, beats3-4 recovery; standing at end of beat4",
-			"independent CD6 starts on firing and overlaps recovery; no public CD, next aim beat8 and impact beat9",
-			"a different ready skill starts on beat5 immediately after recovery, despite the ordinary gun's independent cooldown",
+			"standing shot: beat1 aim, beat2 impact, beat3 recovery completes standing",
+			"independent CD6 starts on firing and overlaps recovery; no public CD, CD ready at endpoint8, next aim ends at9 and impact at10",
+			"a different ready skill starts on beat4 immediately after recovery, despite the ordinary gun's independent cooldown",
 			"mobile shot automatically spends a separate standing beat even with the standing rule removed; no premature cost/CD/warning",
 			"shot resolves against the locked grid after simultaneous movement, with no homing or body-radius check",
 			"ordinary shot has a short visual projectile and a delayed impact flash within the same firing beat; animation never changes logic"
 		],
 		"independent_cd_beats": 6,
-		"mobile_action_beats": 5,
+		"mobile_action_beats": 4,
 		"public_cd_beats": 0,
-		"standing_action_beats": 4
+		"standing_action_beats": 3
 	},
 	"shot_postures": {
 		"checks": [
@@ -333,7 +346,6 @@
 			"dodge does not restore standing; a separate standing beat is required before shooting"
 		],
 		"postures": [
-			"站立姿态",
 			"僵直姿态",
 			"动作姿态",
 			"站立姿态"
@@ -350,14 +362,14 @@
 			"default soldier preset uses only standing, ordinary attack, engagement and PP dodge; no ultimate"
 		],
 		"match": {
-			"beats": 56,
+			"beats": 63,
 			"shots": 28,
 			"winner": -1
 		}
 	},
 	"symmetry": [
 		{
-			"beats": 35,
+			"beats": 39,
 			"final": [
 				{
 					"cell": "(3, 2)",
@@ -395,7 +407,7 @@
 			"team_size": 1
 		},
 		{
-			"beats": 33,
+			"beats": 37,
 			"final": [
 				{
 					"cell": "(2, 2)",
@@ -433,7 +445,7 @@
 			"team_size": 2
 		},
 		{
-			"beats": 29,
+			"beats": 31,
 			"final": [
 				{
 					"cell": "(4, 2)",
@@ -471,7 +483,7 @@
 			"team_size": 1
 		},
 		{
-			"beats": 27,
+			"beats": 29,
 			"final": [
 				{
 					"cell": "(3, 2)",
@@ -509,7 +521,7 @@
 			"team_size": 2
 		},
 		{
-			"beats": 26,
+			"beats": 28,
 			"final": [
 				{
 					"cell": "(3, 2)",
@@ -547,7 +559,7 @@
 			"team_size": 1
 		},
 		{
-			"beats": 24,
+			"beats": 26,
 			"final": [
 				{
 					"cell": "(2, 2)",

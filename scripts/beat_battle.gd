@@ -95,7 +95,7 @@ func setup_ui() -> void:
 	for node in get_children():
 		if node is Label and node.text == "AUTOBATTLE": node.text = "AUTOBATTLE / BEAT"
 	update_beat_menus()
-	soldier_hint = text_label(self, "普通士兵对练\n5血 · 普攻1伤害\n射击4拍 · 独立CD6拍\n无大招", 14)
+	soldier_hint = text_label(self, "普通士兵对练\n5血 · 普攻1伤害\n射击3拍 · 独立CD6拍\n无大招", 14)
 	soldier_hint.position = Vector2(700, 35)
 	soldier_hint.modulate = Color("c8b997")
 
@@ -136,7 +136,7 @@ func update_beat_menus() -> void:
 			elif index < entries.size(): menu.tooltip_text = entries[index].rule[column]
 
 func beat_help(skill: String) -> String:
-	if skill in ["普通攻击", "点射"]: return "普通射击需站立：非站立先花1拍站立，再瞄准预警1拍 → 目标格结算1拍 → 后摇2拍，结束恢复站立。瞄准可被侧闪取消；击发不可取消；后摇可取消，但侧闪后需重新站立。消耗15精力。独立CD6拍，从开火起算，与后摇重叠；没有公共CD。"
+	if skill in ["普通攻击", "点射"]: return "普通射击需站立：非站立先花1拍站立，再瞄准预警1拍 → 目标格结算1拍 → 后摇1拍，结束恢复站立。瞄准可被侧闪取消；击发不可取消；后摇可取消，但侧闪后需重新站立。消耗15精力。独立CD6拍，从开火起算，与后摇重叠；没有公共CD。"
 	if skill == "站稳": return "耗1拍，移动姿态恢复站稳；不跨格。高级技能必须先站稳。预设附加有射位条件，可排序、改条件或删除。"
 	if skill in Beat.MOVE or skill in ["向左移动", "向右移动", "向上移动", "向下移动"]: return "普通移动2拍一格；同方向可以连续走，换方向前自动站立1拍。移动硬直只能用PP侧闪取消；侧闪1拍一格。减速时普通移动额外1拍。"
 	if skill == "侧闪": return "真实预警触发，1拍跨入安全相邻格，耗20精力。前摇取消退款，后摇取消不退款，释放硬直/碰撞中禁用；无安全格不触发。"
@@ -260,7 +260,7 @@ func action_state_label(u: Dictionary) -> String:
 	if u.phase == "转向站立": return "转向站立·1拍"
 	if u.phase == "射击站立": return "射击前站立·1拍"
 	if u.active_skill == "点射":
-		if u.phase == "前摇": return "瞄准·下拍射击"
+		if u.phase == "前摇": return "瞄准完成"
 		if u.phase == "释放硬直": return "射击·目标格结算"
 		if u.frame_branch.ends_with("后摇") and u.phase == "站稳": return "后摇结束·站立"
 	if u.mode == "碰撞": return "碰撞·待弹回"
@@ -281,7 +281,12 @@ func refresh_ui() -> void:
 	if not started: status_label.text = "开局布阵  ·  8×8 节拍战斗  |  N 单拍 / Shift+N 四拍"
 	var u: Dictionary = units[editor_unit]
 	character_label.text = "%s%d · %s格 · %s · %s · HP %d/%d · 盾%d" % ["蓝" if u.team == 0 else "红", u.member + 1, Beat.name_of(u.cell), Beat.posture(u), action_state_label(u), u.hp, Beat.MAX_HP, u.shield]
-	info_label.text = "所在格 %s · 姿态：%s · 趋势 %s · 生命%d/%d · 护盾%d\n本拍：%s；规则触发%d次\n%s\n精力 %d/100\n%s" % [Beat.name_of(u.cell), Beat.posture(u), "无" if u.trend == Vector2i.ZERO else direction_name(u.trend), u.hp, Beat.MAX_HP, u.shield, u.frame_branch, u.frame_triggers, u.reason, u.energy, u.last_cancel]
+	var upcoming_action := "未选定"
+	if not beat_sim.next_segment.is_empty():
+		var upcoming: Dictionary = beat_sim.next_segment.units[u.uid]
+		upcoming_action = upcoming.phase if upcoming.hp > 0 else "无（已倒下）"
+	info_label.text = "所在格 %s · 端点姿态：%s · 生命%d/%d · 精力%d/100\n刚完成：%s → 下一拍：%s\n%s\n%s" % [Beat.name_of(u.cell), Beat.posture(u), u.hp, Beat.MAX_HP, u.energy, action_state_label(u), upcoming_action, u.reason, u.last_cancel]
+
 	skill_help.text = ("普通士兵 · 5血 · 普攻1伤害 · 无大招。" if team_presets[u.team] == SOLDIER_PRESET else "5血 · 普攻1 · 重击2 · 大招2–3 · 敌方碰撞各扣1血。") + "\n移动2拍/格；换向先站立1拍；直走不断速。侧闪1拍。"
 	for child in get_children():
 		if child.get_script() == preload("res://scripts/ultimate_portrait.gd"):
@@ -354,7 +359,7 @@ func capture_animation_preview() -> void:
 	get_tree().quit()
 
 func capture_shooting_preview() -> void:
-	var sheet := Image.create(1780, 1180, false, Image.FORMAT_RGBA8)
+	var sheet := Image.create(1780, 885, false, Image.FORMAT_RGBA8)
 	beat_sim = preload("res://scripts/beat_validation.gd").fixture(self)
 	beat_sim.units[2].cell = Vector2i(4, 3)
 	beat_sim.units[2].p = Beat.center(Vector2i(4, 3))
@@ -363,11 +368,11 @@ func capture_shooting_preview() -> void:
 	units.assign(beat_sim.units)
 	presentation.reset(units)
 	started = true
-	for row in range(4):
+	for row in range(3):
 		simulate(Beat.SECONDS)
 		for column in range(4):
 			if column > 0: advance_visuals(Beat.SECONDS / 3.0)
-			animation_preview_caption = "%s / %.0f ms" % [["第1拍·瞄准预警", "第2拍·目标格结算", "第3拍·后摇第1拍", "第4拍·后摇结束站立"][row], column * Beat.SECONDS / 3.0 * 1000.0]
+			animation_preview_caption = "%s / %.0f ms" % [["第1拍·瞄准预警", "第2拍·目标格结算", "第3拍·后摇结束站立"][row], column * Beat.SECONDS / 3.0 * 1000.0]
 			queue_redraw()
 			await RenderingServer.frame_post_draw
 			var frame := get_viewport().get_texture().get_image().get_region(Rect2i(20, 145, 890, 590))
