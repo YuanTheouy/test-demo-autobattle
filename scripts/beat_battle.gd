@@ -62,7 +62,7 @@ func preset_names() -> Array:
 func preset_loadouts(index: int) -> Array:
 	if index != SOLDIER_PRESET: return super.preset_loadouts(index)
 	var soldier := {
-		"active": [["站稳", "移动姿态", "有射位"], ["普通攻击", "优先队友目标", "无"], ["接敌", "无", "无"], ["站稳", "移动姿态", "无"]],
+		"active": [["普通攻击", "优先队友目标", "无"], ["接敌", "无", "无"]],
 		"reaction": [["侧闪", "无", "无"]]
 	}
 	return [soldier.duplicate(true), soldier.duplicate(true)]

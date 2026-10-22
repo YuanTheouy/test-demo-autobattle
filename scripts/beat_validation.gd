@@ -341,7 +341,7 @@ static func validate_tactical_movement(game) -> Dictionary:
 	game.edit_rule_cell(0, 0, "远敌")
 	game.edit_rule_cell(0, 1, "敌人距离≤1格")
 	game.rebuild_editor()
-	assert(game.loadouts[0].active[0] == ["远敌", "敌人距离≤1格", "有射位"])
+	assert(game.loadouts[0].active[0] == ["远敌", "敌人距离≤1格", "无"])
 	checks.append("distance conditions1-4 and new retreat action survive editor rebuilding")
 	game.setup_loadouts()
 	game.reset_round()
@@ -735,7 +735,7 @@ static func validate_soldier(game) -> Dictionary:
 	game.rebuild_editor()
 	game.reset_round()
 	for loadout in game.loadouts:
-		for rule in loadout.active: assert(rule[0] in ["站稳", "普通攻击", "接敌"])
+		assert(loadout.active.map(func(rule): return rule[0]) == ["普通攻击", "接敌"])
 		assert(loadout.reaction == [["侧闪", "无", "无"]])
 	assert(game.basic_loadout() == game.preset_loadouts(game.SOLDIER_PRESET)[0])
 	game.units[0].ult_charge = 100
