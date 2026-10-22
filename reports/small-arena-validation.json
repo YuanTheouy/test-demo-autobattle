@@ -1,8 +1,8 @@
 {
 	"blocked_cells": 55,
 	"checks": [
-		"four selectable presets match benchmark ids 5/7/3/19 exactly; independent teams; no ultimates; full playback",
-		"selected demo: actual playback settles 19 beats with two dodges, prediction finish and replayable setup",
+		"four selectable AP presets match original priorities; no dodge; independent teams; no ultimates; full playback",
+		"selected demo: 3HP/no dodge, actual playback settles 19 beats with prediction hit and replayable setup",
 		"only two active bots",
 		"all other cells blocked",
 		"deployment survives reset",
@@ -10,7 +10,7 @@
 		"four-step reaches endpoint4 past the first shots",
 		"continuous playback reaches endpoint46 without puzzle pauses"
 	],
-	"max_hp": 2,
+	"max_hp": 3,
 	"mode": "free_duel",
 	"open_cells": 9,
 	"participants": [

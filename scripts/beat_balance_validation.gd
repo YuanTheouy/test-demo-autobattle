@@ -34,7 +34,7 @@ static func run(game) -> Dictionary:
 		assert(sim.units[2].hp == Beat.MAX_HP - 1 - hit)
 		assert(sim.finished == (hit == Beat.MAX_HP - 1))
 	assert(sim.winner == 0)
-	report.checks.append("exactly two ordinary hits kill a full-health bot")
+	report.checks.append("exactly three ordinary hits kill a full-health bot")
 	for skill in ["点射", "落岩", "火矢", "蓄能贯穿"]:
 		sim = fixture(game)
 		sim.units[2].guard = 1.0
@@ -81,7 +81,7 @@ static func run(game) -> Dictionary:
 	sim.tick()
 	sim.tick()
 	assert(sim.units[1].hp == Beat.MAX_HP and sim.units[1].shield == 0)
-	report.checks.append("healing caps at two; wood grants one shield; ally cover replaces one shield with two and absorbs a heavy hit")
+	report.checks.append("healing caps at three; wood grants one shield; ally cover replaces one shield with two and absorbs a heavy hit")
 	sim = fixture(game)
 	for hp in range(1, Beat.MAX_HP + 1):
 		sim.units[0].hp = hp

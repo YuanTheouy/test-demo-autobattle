@@ -23,7 +23,7 @@ static func run(game) -> Array:
 		assert(warnings.any(func(w): return w.cell == sim.units[0].lock_cells[0]))
 		sim.tick()
 		assert(sim.units[2].cell == Vector2i(5, 3))
-		assert(sim.units[2].hp == (1 if predict else 2))
+		assert(sim.units[2].hp == (Beat.MAX_HP - 1 if predict else Beat.MAX_HP))
 		assert(sim.units[0].skill_cds["点射"] == 6 * Beat.SECONDS and sim.shots == 1)
 	checks.append("same two-beat straight movement: current-cell lob misses, one-cell prediction hits; identical cost/CD/timing and visible warning")
 	for response in ["站稳", "向上移动", "侧闪"]:
@@ -33,7 +33,7 @@ static func run(game) -> Array:
 		sim.tick()
 		assert(sim.units[0].lock_cells == [Vector2i(5, 3)], "Do not read hidden next action, even if target plans to stop or turn")
 		sim.tick()
-		assert(sim.units[0].lock_cells == [Vector2i(5, 3)] and sim.units[2].hp == 2, "No tracking after initial lock")
+		assert(sim.units[0].lock_cells == [Vector2i(5, 3)] and sim.units[2].hp == Beat.MAX_HP, "No tracking after initial lock")
 	checks.append("stopping, turning and PP dodge can defeat the prediction; no lookahead into next_segment or homing")
 	for invalid in ["wall", "edge", "range", "standing", "no_direction", "wrong_skill"]:
 		var sim = fixture(game)

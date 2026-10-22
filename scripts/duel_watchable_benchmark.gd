@@ -1,5 +1,5 @@
 extends SceneTree
-## Search existing presets/spawns for visible shots, dodges and a prediction finish. No rule changes.
+## Search existing presets/spawns for visible shots and a prediction finish without dodge. No rule changes.
 const Beat = preload("res://scripts/beat_simulation.gd")
 func _initialize(): call_deferred("search")
 func play(game, a, b, p, q):
@@ -49,12 +49,12 @@ func search():
 						var r = play(game,14,opponent,Vector2i(x,y),Vector2i(xx,yy))
 						total += 1
 						var c = r.counts
-						if c.prediction_hits > 0 and c.hits[0] > 0 and c.hits[1] > 0 and c.shots[0] >= 2 and c.shots[1] >= 2 and c.dodges[0] + c.dodges[1] > 0 and c.collisions == 0 and r.winner >= 0 and r.beats >= 12 and r.beats <= 60: picks.append(r)
+						if c.prediction_hits > 0 and c.hits[0] > 0 and c.hits[1] > 0 and c.shots[0] >= 2 and c.shots[1] >= 2 and c.dodges == [0,0] and c.collisions == 0 and r.winner >= 0 and r.beats >= 12 and r.beats <= 60: picks.append(r)
 	picks.sort_custom(func(a,b): return abs(a.beats - 24) < abs(b.beats - 24))
 	print("SEARCH ",total," matches; watchable ",picks.size())
-	var report = {"tested":total,"eligible":picks.size(),"max_hp": Beat.MAX_HP, "beat_limit": 240, "best":picks.slice(0,3), "without_prediction": play(game,12,10,Vector2i(5,5),Vector2i(7,7))}
+	var report = {"tested":total,"eligible":picks.size(),"max_hp": Beat.MAX_HP, "beat_limit": 240, "best":picks.slice(0,3), "demo": play(game,14,10,Vector2i(5,5),Vector2i(7,7)), "without_prediction": play(game,12,10,Vector2i(5,5),Vector2i(7,7))}
 	var file = FileAccess.open("res://reports/duel-watchable.json",FileAccess.WRITE)
 	file.store_string(JSON.stringify(report,"\t"))
-	for r in picks.slice(0,1): print("SELECTED ", r.presets, " ", r.spawns, " beats=", r.beats, " counters=",r.counts)
+	for r in [report.demo]: print("SELECTED ", r.presets, " ", r.spawns, " beats=", r.beats, " counters=",r.counts)
 	print("WITHOUT PREDICTION: ",report.without_prediction.beats," beats; winner=",report.without_prediction.winner, " counters=",report.without_prediction.counts)
 	quit()

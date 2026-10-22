@@ -740,7 +740,7 @@ static func validate_soldier(game) -> Dictionary:
 	game.reset_round()
 	for loadout in game.loadouts:
 		assert(loadout.active.map(func(rule): return rule[0]) == ["普通攻击", "接敌"])
-		assert(loadout.reaction == [["侧闪", "无", "无"]])
+		assert(loadout.reaction.is_empty())
 	assert(game.basic_loadout() == game.preset_loadouts(game.SOLDIER_PRESET)[0])
 	game.units[0].ult_charge = 100
 	game.started = true

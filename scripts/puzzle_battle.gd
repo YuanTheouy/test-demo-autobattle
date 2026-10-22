@@ -29,7 +29,7 @@ func _ready() -> void:
 		load_prediction_demo()
 	var demo_button := add_button(self, "载入预判示范", load_prediction_demo)
 	demo_button.position = Vector2(650, 738)
-	demo_button.tooltip_text = "载入实测19拍对局：蓝F6预判/接敌，红H8吊射/远敌，双方侧闪。空格观看，N逐拍，R重播。"
+	demo_button.tooltip_text = "载入实测19拍对局：蓝F6预判/接敌，红H8吊射/远敌，双方3血、无侧闪。空格观看，N逐拍，R重播。"
 	choose_editor_unit(0)
 	refresh_ui()
 	if "--watchable-preview" in OS.get_cmdline_user_args():
@@ -114,17 +114,17 @@ func run_small_arena_checks() -> void:
 	assert(beat_sim.blocked_cells.size() == 55)
 	for x in range(8):
 		for y in range(8): assert(beat_sim.legal(Vector2i(x, y)) == OPEN_CELLS.has_point(Vector2i(x, y)))
-	assert(units.filter(func(u): return u.enabled and u.hp == 2).size() == 2)
+	assert(units.filter(func(u): return u.enabled and u.hp == Beat.MAX_HP).size() == 2)
 	assert(not can_deploy(0, Vector2i(4, 6)) and can_deploy(0, Vector2i(5, 5)))
 	assert(place_unit(0, Vector2i(5, 5)))
 	reset_round()
 	assert(units[0].cell == Vector2i(5, 5))
 	deployment_cells = DUEL_SPAWNS.duplicate()
 	reset_round()
-	assert(loadouts[0] == loadouts[2] and not loadouts[0].active.is_empty() and not loadouts[0].reaction.is_empty())
+	assert(loadouts[0] == loadouts[2] and not loadouts[0].active.is_empty() and loadouts[0].reaction.is_empty())
 	step_forward(12)
 	advance_playback(10)
-	assert(logic_frame == 4 and units[0].hp == 1 and units[2].hp == 1)
+	assert(logic_frame == 4 and units[0].hp == Beat.MAX_HP - 1 and units[2].hp == Beat.MAX_HP - 1)
 	assert(beat_sim.shots == 2 and steps_remaining == 0 and not segment_active)
 	reset_round()
 	toggle_running()
@@ -137,7 +137,7 @@ func run_small_arena_checks() -> void:
 	validate_duel_presets()
 	validate_watchable_demo()
 	var report := {"mode": "free_duel", "max_hp": Beat.MAX_HP, "open_cells": 9, "blocked_cells": 55, "participants": PARTICIPANTS,
-		"checks": ["four selectable presets match benchmark ids 5/7/3/19 exactly; independent teams; no ultimates; full playback", "selected demo: actual playback settles 19 beats with two dodges, prediction finish and replayable setup", "only two active bots", "all other cells blocked", "deployment survives reset", "both sides have editable soldier AP and PP", "four-step reaches endpoint4 past the first shots", "continuous playback reaches endpoint46 without puzzle pauses"]}
+		"checks": ["four selectable AP presets match original priorities; no dodge; independent teams; no ultimates; full playback", "selected demo: 3HP/no dodge, actual playback settles 19 beats with prediction hit and replayable setup", "only two active bots", "all other cells blocked", "deployment survives reset", "both sides have editable soldier AP and PP", "four-step reaches endpoint4 past the first shots", "continuous playback reaches endpoint46 without puzzle pauses"]}
 	var report_file := FileAccess.open("res://reports/small-arena-validation.json", FileAccess.WRITE)
 	report_file.store_string(JSON.stringify(report, "\t"))
 	print("SMALL ARENA PASSED: 3x3/1v1, equal editable loadouts, no first-shot stop, continuous playback through endpoint46")
@@ -151,16 +151,18 @@ func validate_watchable_demo() -> void:
 		step_forward(1)
 		advance_playback(Beat.SECONDS / playback_rate())
 		assert(logic_frame == endpoint and not segment_active and not running)
-		if endpoint == 2: assert(units[0].hp == 1 and units[2].hp == 1)
-		if endpoint in [10, 13]:
-			var uid := 2 if endpoint == 10 else 0
-			assert(units[uid].phase == "侧闪跨格" and units[uid].hp == 1)
+		if endpoint == 2: assert(units[0].hp == Beat.MAX_HP - 1 and units[2].hp == Beat.MAX_HP - 1)
+		assert(loadouts[0].reaction.is_empty() and loadouts[2].reaction.is_empty())
+		for uid in PARTICIPANTS: assert(units[uid].phase != "侧闪跨格" and not units[uid].skill_cds.has("侧闪"))
+		if endpoint == 10:
+			assert(units[0].hp == 2 and units[2].hp == 1 and units[0].lock_cells == [Vector2i(7, 6)])
 			observed.append(endpoint)
-	assert(observed == [10, 13] and finished and beat_sim.winner == 0 and units[0].hp == 1 and units[2].hp == 0)
-	assert(units[2].skill_cds["侧闪"] == 3 * Beat.SECONDS and beat_sim.shots == 5)
+		if endpoint == 12: assert(units[0].hp == 1 and units[2].hp == 1)
+	assert(observed == [10] and finished and beat_sim.winner == 0 and units[0].hp == 1 and units[2].hp == 0)
+	assert(beat_sim.shots == 5)
 	reset_round()
 	assert(team_presets == WATCHABLE_PRESETS and units[0].cell == WATCHABLE_SPAWNS[0] and units[2].cell == WATCHABLE_SPAWNS[1])
-	print("WATCHABLE DEMO PASSED: full animated 19-beat replay, two dodges and prediction finish; reset preserves setup")
+	print("WATCHABLE DEMO PASSED: full animated 19-beat replay, 3HP/no dodge and prediction hit; reset preserves setup")
 
 func validate_duel_presets() -> void:
 	var benchmark = JSON.parse_string(FileAccess.get_file_as_string("res://reports/duel-strategy-benchmark.json"))
@@ -169,12 +171,12 @@ func validate_duel_presets() -> void:
 		var preset_index := SOLDIER_PRESET + 1 + offset
 		assert(preset_menus[0].item_count == preset_names().size())
 		var pair := preset_loadouts(preset_index)
-		assert(pair[0] == benchmark.candidates[candidate_ids[offset]].rules)
+		assert(pair[0] == {"active": benchmark.candidates[candidate_ids[offset]].rules.active, "reaction": []})
 		pair[0].active[0][1] = "自己HP≤2"
-		assert(pair[1] == benchmark.candidates[candidate_ids[offset]].rules, "Preset members must own separate rules")
+		assert(pair[1] == {"active": benchmark.candidates[candidate_ids[offset]].rules.active, "reaction": []}, "Preset members must own separate rules")
 		var red_before: Dictionary = loadouts[2].duplicate(true)
 		preset_menus[0].item_selected.emit(preset_index)
-		assert(loadouts[0] == benchmark.candidates[candidate_ids[offset]].rules and loadouts[2] == red_before)
+		assert(loadouts[0] == {"active": benchmark.candidates[candidate_ids[offset]].rules.active, "reaction": []} and loadouts[2] == red_before)
 		preset_menus[1].item_selected.emit(SOLDIER_PRESET + 1 + (offset + 1) % candidate_ids.size())
 		assert(preset_menus[0].selected == preset_index)
 		assert(units.filter(func(u): return u.enabled and u.hp > 0).size() == 2)
@@ -187,7 +189,7 @@ func validate_duel_presets() -> void:
 		assert(logic_frame == 4 and not segment_active)
 	apply_preset(0, SOLDIER_PRESET)
 	apply_preset(1, SOLDIER_PRESET)
-	print("DUEL PRESETS PASSED: exact benchmark rules, independent teams, no ultimate, complete beat playback")
+	print("DUEL PRESETS PASSED: original AP priorities without dodge, independent teams, no ultimate, complete beat playback")
 
 func capture_puzzle_preview() -> void:
 	await RenderingServer.frame_post_draw
