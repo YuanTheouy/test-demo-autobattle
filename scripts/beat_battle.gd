@@ -3,6 +3,8 @@ extends "res://scripts/battle.gd"
 const Beat = preload("res://scripts/beat_simulation.gd")
 const BASE_PLAYBACK_RATE := 0.5
 const SOLDIER_PRESET := 9
+const PLAYER_SKILLS := ["留空", "普通攻击", "接敌", "远敌", "侧闪"]
+const PLAYER_PRESETS := [9, 10, 11, 12, 13, 14]
 const SIMPLE_CONDITIONS := ["无", "自己HP≤2", "敌人处于站立姿态", "敌人处于移动姿态", "敌人距离≤2格", "敌人距离≥3格", "沿移动方向预判1格"]
 # AP priorities from earlier benchmark, now without dodge; fifth demonstrates prediction.
 const DUEL_PRESET_NAMES := ["吊射→远敌", "接敌→吊射", "吊射→接敌", "近身远敌→吊射", "预判吊射→接敌"]
@@ -105,7 +107,7 @@ func add_stand_rule(loadout: Dictionary) -> void:
 			return
 
 func apply_preset(team: int, index: int) -> void:
-	if team < preset_menus.size(): preset_menus[team].select(index)
+	if team < preset_menus.size(): preset_menus[team].select(preset_menus[team].get_item_index(index))
 	super.apply_preset(team, index)
 	for member in range(2): add_stand_rule(loadouts[team * 2 + member])
 	rebuild_editor()
@@ -120,13 +122,20 @@ func setup_ui() -> void:
 		if node.text.begins_with("速度 "): node.tooltip_text = "新基准：1倍速每拍0.5秒；0.5倍每拍1秒；2倍每拍0.25秒。"
 	for node in get_children():
 		if node is Label and node.text == "AUTOBATTLE": node.text = "AUTOBATTLE / BEAT"
-	for picker in preset_menus:
-		picker.tooltip_text = "切换会重开战斗并保留布阵。末尾包含四套3×3实测策略及一套预判演示；AP从上到下检查，默认不配置侧闪。"
-		for offset in range(DUEL_PRESET_NAMES.size()):
-			var lines: Array[String] = []
-			for rule in DUEL_PRESET_AP[offset]:
-				lines.append(rule[0] + ("〔" + rule[1] + "〕" if rule[1] != "无" else "") + ("〔" + rule[2] + "〕" if rule[2] != "无" else ""))
-			picker.get_popup().set_item_tooltip(SOLDIER_PRESET + 1 + offset, "AP：" + " → ".join(lines) + "\nPP：空\n克制与出生位置有关；预判演示尚未做胜率评测。")
+	for team in range(preset_menus.size()):
+		var picker: OptionButton = preset_menus[team]
+		for connection in picker.item_selected.get_connections(): picker.item_selected.disconnect(connection.callable)
+		picker.clear()
+		for preset_id in PLAYER_PRESETS:
+			picker.add_item(preset_names()[preset_id], preset_id)
+			if preset_id > SOLDIER_PRESET:
+				var lines: Array[String] = []
+				for rule in DUEL_PRESET_AP[preset_id - SOLDIER_PRESET - 1]:
+					lines.append(skill_label(rule[0]) + ("〔" + rule[1] + "〕" if rule[1] != "无" else "") + ("〔" + rule[2] + "〕" if rule[2] != "无" else ""))
+				picker.get_popup().set_item_tooltip(picker.item_count - 1, "AP：" + " → ".join(lines) + "\nPP：空")
+		picker.select(picker.get_item_index(team_presets[team]))
+		picker.item_selected.connect(func(index): apply_preset(team, picker.get_item_id(index)))
+		picker.tooltip_text = "仅展示当前开放的基础配置；切换会重开战斗并保留布阵。"
 	update_beat_menus()
 	soldier_hint = text_label(self, "普通士兵对练\n3血 · 单格吊射1伤害\n射程4格 · 射击3拍 · 独立CD6拍\n无大招", 14)
 	soldier_hint.position = Vector2(700, 35)
@@ -169,12 +178,10 @@ func update_beat_menus() -> void:
 		for column in range(3):
 			var menu: OptionButton = menus[column]
 			if column == 0:
-				for label in ["站稳", "接敌", "远敌", "向左移动", "向右移动", "向上移动", "向下移动"]:
-					var found := false
-					for item in range(menu.item_count):
-						if menu.get_item_text(item) == label: found = true
-					if not found: menu.add_item(label)
-				for item in range(menu.item_count): menu.get_popup().set_item_tooltip(item, beat_help(menu.get_item_text(item)))
+				menu.clear()
+				for skill in PLAYER_SKILLS:
+					menu.add_item(skill_label(skill))
+					menu.get_popup().set_item_tooltip(menu.item_count - 1, beat_help(skill))
 			else:
 				menu.clear()
 				menu.add_theme_font_size_override("font_size", 13)
@@ -183,8 +190,11 @@ func update_beat_menus() -> void:
 					menu.get_popup().set_item_tooltip(menu.item_count - 1, condition_help(condition))
 				menu.disabled = not occupied
 			for item in range(menu.item_count):
-				if menu.get_item_text(item) == rule[column]: menu.select(item)
+				if menu.get_item_text(item) == (skill_label(rule[column]) if column == 0 else rule[column]): menu.select(item)
 			menu.tooltip_text = beat_help(rule[0]) if column == 0 else condition_help(rule[column])
+
+func skill_label(skill: String) -> String:
+	return "吊射" if skill == "普通攻击" else skill
 
 func condition_help(condition: String) -> String:
 	match condition:
@@ -222,6 +232,9 @@ func beat_help(skill: String) -> String:
 	return "%s：每发%d伤害 × %d发，%d精力；%s。前摇%d拍，释放%d拍，后摇%d拍，独立CD%d拍。%s" % [skill, beat_sim.damage_of(actual), hits_per_action, beat_sim.cost(actual), "需要站稳" if skill in Beat.HIGH else "移动姿态可用", beat_sim.windup(actual), hits_per_action, 2 if actual in Beat.HIGH or actual in ["强力射击", "落岩", "震山"] else 1, ceili(beat_sim.skill_cd(actual) / Beat.SECONDS), extra]
 
 func edit_rule_cell(index: int, column: int, value: String) -> void:
+	if column == 0:
+		if value == "吊射": value = "普通攻击"
+		if value not in PLAYER_SKILLS: return
 	super.edit_rule_cell(index, column, value)
 	skill_help.text = beat_help(value) if column == 0 else "条件：" + small_hp_condition(value)
 

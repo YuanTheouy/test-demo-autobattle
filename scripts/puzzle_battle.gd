@@ -169,16 +169,16 @@ func validate_duel_presets() -> void:
 	var candidate_ids := [5, 7, 3, 19]
 	for offset in range(candidate_ids.size()):
 		var preset_index := SOLDIER_PRESET + 1 + offset
-		assert(preset_menus[0].item_count == preset_names().size())
+		assert(preset_menus[0].item_count == PLAYER_PRESETS.size())
 		var pair := preset_loadouts(preset_index)
 		assert(pair[0] == {"active": benchmark.candidates[candidate_ids[offset]].rules.active, "reaction": []})
 		pair[0].active[0][1] = "自己HP≤2"
 		assert(pair[1] == {"active": benchmark.candidates[candidate_ids[offset]].rules.active, "reaction": []}, "Preset members must own separate rules")
 		var red_before: Dictionary = loadouts[2].duplicate(true)
-		preset_menus[0].item_selected.emit(preset_index)
+		preset_menus[0].item_selected.emit(preset_menus[0].get_item_index(preset_index))
 		assert(loadouts[0] == {"active": benchmark.candidates[candidate_ids[offset]].rules.active, "reaction": []} and loadouts[2] == red_before)
-		preset_menus[1].item_selected.emit(SOLDIER_PRESET + 1 + (offset + 1) % candidate_ids.size())
-		assert(preset_menus[0].selected == preset_index)
+		preset_menus[1].item_selected.emit(preset_menus[1].get_item_index(SOLDIER_PRESET + 1 + (offset + 1) % candidate_ids.size()))
+		assert(preset_menus[0].get_selected_id() == preset_index)
 		assert(units.filter(func(u): return u.enabled and u.hp > 0).size() == 2)
 		assert(units[0].cell == DUEL_SPAWNS[0] and units[2].cell == DUEL_SPAWNS[2])
 		started = true

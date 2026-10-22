@@ -99,5 +99,24 @@ static func run(game) -> Array:
 	standing.units[2].mode = "后摇"
 	assert(not standing.condition(standing.units[0], 2, "敌人处于站立姿态", standing.units))
 	checks.append("seven-condition menu; skill-specific subsets; switching skills preserves valid filters and clears unsupported prediction; standing filter excludes recovery")
+	game.apply_preset(0, game.SOLDIER_PRESET + 5)
+	game.choose_editor_unit(0)
+	for row in game.editor_rows:
+		var skills: OptionButton = row.menus[0]
+		assert(skills.item_count == game.PLAYER_SKILLS.size())
+		for item in range(skills.item_count): assert(skills.get_item_text(item) == game.skill_label(game.PLAYER_SKILLS[item]))
+	for picker in game.preset_menus:
+		assert(picker.item_count == game.PLAYER_PRESETS.size())
+		for item in range(picker.item_count): assert(picker.get_item_id(item) in game.PLAYER_PRESETS)
+	var rows_before: Array = game.loadouts[0].duplicate(true).active
+	game.edit_rule_cell(0, 0, "火矢")
+	assert(game.loadouts[0].active == rows_before and Beat.DAMAGE.has("火矢"))
+	game.editor_rows[0].menus[0].item_selected.emit(1) # Visible label is 吊射, stored rule is 普通攻击.
+	assert(game.loadouts[0].active[0][0] == "普通攻击")
+	game.editor_rows[3].menus[0].item_selected.emit(4)
+	assert(game.loadouts[0].reaction == [["侧闪", "无", "无"]])
+	game.editor_rows[3].menus[0].item_selected.emit(0)
+	assert(game.loadouts[0].reaction.is_empty())
+	checks.append("player skill menus expose only lob/approach/retreat/dodge plus empty; legacy presets hidden; visible lob label and AP/PP add/delete work; hidden skills remain implemented")
 	print("PREDICTION PASSED: straight-move hit, stop/turn/dodge counterplay, fixed telegraph, invalid fallback and editor persistence")
 	return checks
