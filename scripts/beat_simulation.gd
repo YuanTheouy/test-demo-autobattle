@@ -21,7 +21,7 @@ const DAMAGE := {
 	"天穹贯穿": 3, "星火轰炸": 2,
 }
 const HIGH := ["抛射轰击", "烈焰爆破", "蓄能贯穿", "裂地冲击", "天穹贯穿", "星火轰炸"]
-const MOVE := ["接敌", "调整站位", "搜寻", "绕侧", "后撤", "短冲刺", "步行避险", "向左移动", "向右移动", "向上移动", "向下移动"]
+const MOVE := ["接敌", "调整站位", "搜寻", "绕侧", "远敌", "后撤", "短冲刺", "步行避险", "向左移动", "向右移动", "向上移动", "向下移动"]
 const SUPPORT := ["回春", "灵木护佑", "掩护队友", "架枪防御"]
 var units: Array = []
 var loadouts: Array = []
@@ -225,6 +225,12 @@ func ally_of(u: Dictionary, snapshot: Array) -> int:
 
 func condition(u: Dictionary, target: int, text: String, snapshot: Array) -> bool:
 	var ally := ally_of(u, snapshot)
+	for comparison in ["≤", "≥"]:
+		var prefix: String = "敌人距离" + comparison
+		if text.begins_with(prefix):
+			var amount := text.trim_prefix(prefix).trim_suffix("格").trim_suffix("米")
+			if amount.is_valid_int():
+				return target >= 0 and (distance(u.cell, snapshot[target].cell) <= int(amount) if comparison == "≤" else distance(u.cell, snapshot[target].cell) >= int(amount))
 	match text:
 		"有射位": return target >= 0 and ranged(u, snapshot[target], "点射")
 		"站稳姿态": return posture(u) == "站立姿态"
@@ -236,8 +242,6 @@ func condition(u: Dictionary, target: int, text: String, snapshot: Array) -> boo
 		"自己精力≤30": return u.energy <= 30
 		"自己HP≤2", "自己HP≤50": return u.hp <= 2
 		"队友HP≤2", "队友HP≤50": return ally >= 0 and snapshot[ally].hp <= 2
-		"敌人距离≤2米": return target >= 0 and distance(u.cell, snapshot[target].cell) <= 2
-		"敌人距离≥3米": return target >= 0 and distance(u.cell, snapshot[target].cell) >= 3
 		"仅已标记敌人": return target >= 0 and snapshot[target].marked > 0
 		"仅未标记敌人": return target >= 0 and snapshot[target].marked <= 0
 		"敌人正在收招": return target >= 0 and snapshot[target].mode == "后摇"
@@ -322,7 +326,45 @@ func move_score(u: Dictionary, c: Vector2i, target: int, skill: String, snapshot
 	if c == u.last_blocked and beat <= u.blocked_until: score += 50
 	return score
 
+func movement_costs(u: Dictionary, target: int, snapshot: Array) -> Dictionary:
+	# Equal-cost four-neighbour grid: BFS is the shortest-path cost field.
+	# The enemy cell seeds the field but is never a legal movement destination.
+	if target < 0: return {}
+	var goal: Vector2i = snapshot[target].cell
+	var costs: Dictionary = {goal: 0}
+	var queue: Array[Vector2i] = [goal]
+	var head := 0
+	while head < queue.size():
+		var cell: Vector2i = queue[head]
+		head += 1
+		for direction in [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.UP, Vector2i.DOWN]:
+			var next: Vector2i = cell + direction
+			if not legal(next) or costs.has(next) or occupied(next, snapshot, u.uid): continue
+			costs[next] = int(costs[cell]) + 1
+			queue.append(next)
+	return costs
+
+func tactical_step(u: Dictionary, target: int, skill: String, snapshot: Array) -> Vector2i:
+	var costs := movement_costs(u, target, snapshot)
+	if not costs.has(u.cell): return Vector2i.ZERO
+	var away := skill in ["远敌", "后撤"]
+	var current: int = costs[u.cell]
+	var best := Vector2i.ZERO
+	var best_value := current
+	for direction in directions(u):
+		var cell: Vector2i = u.cell + direction
+		if not costs.has(cell) or occupied(cell, snapshot, u.uid): continue
+		var value: int = costs[cell]
+		if (value <= current if away else value >= current): continue
+		var better := value > best_value if away else value < best_value
+		var continue_straight: bool = value == best_value and u.pose == "移动" and direction == u.trend
+		if better or continue_straight:
+			best_value = value
+			best = direction
+	return best
+
 func path_direction(u: Dictionary, target: int, skill: String, snapshot: Array) -> Vector2i:
+	if skill in ["接敌", "远敌", "后撤"]: return tactical_step(u, target, skill, snapshot)
 	var best := Vector2i.ZERO
 	var best_score := INF
 	# BFS makes cover routing a grid decision; local direction order breaks ties symmetrically.
@@ -585,9 +627,10 @@ func try_ap(u: Dictionary, snapshot: Array, proposals: Dictionary) -> void:
 		if skill in MOVE:
 			if skill == "搜寻": u.trace_ap[slot] = "敌人已知，无需搜寻"; continue
 			if skill == "调整站位" and not ranged(u, snapshot[target], "点射"): continue
-			if skill == "接敌" and ranged(u, snapshot[target], "点射"): continue
 			var d := path_direction(u, target, skill, snapshot)
-			if d == Vector2i.ZERO: continue
+			if d == Vector2i.ZERO:
+				u.trace_ap[slot] = "没有可改善路径距离的合法一步" if skill in ["接敌", "远敌", "后撤"] else "没有合法移动方向"
+				continue
 			if skill == "调整站位" and move_score(u, u.cell + d, target, skill, snapshot) >= move_score(u, u.cell, target, skill, snapshot): continue
 			select_rule(u, "active", slot, skill)
 			u.target = target

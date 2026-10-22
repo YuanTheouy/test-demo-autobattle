@@ -120,7 +120,7 @@ func rebuild_editor() -> void:
 	update_beat_menus()
 
 func small_hp_condition(text: String) -> String:
-	return text.replace("HP≤50", "HP≤2")
+	return text.replace("HP≤50", "HP≤2").replace("敌人距离≤2米", "敌人距离≤2格").replace("敌人距离≥3米", "敌人距离≥3格")
 
 func update_beat_menus() -> void:
 	var entries := editor_entries()
@@ -130,7 +130,7 @@ func update_beat_menus() -> void:
 			var menu: OptionButton = menus[column]
 			if column > 0:
 				for item in range(menu.item_count): menu.set_item_text(item, small_hp_condition(menu.get_item_text(item)))
-			var additions: Array = ["站稳", "向左移动", "向右移动", "向上移动", "向下移动"] if column == 0 else ["站稳姿态", "移动姿态", "动作姿态", "僵直姿态", "有射位"]
+			var additions: Array = ["站稳", "接敌", "远敌", "向左移动", "向右移动", "向上移动", "向下移动"] if column == 0 else ["站稳姿态", "移动姿态", "动作姿态", "僵直姿态", "有射位", "敌人距离≤1格", "敌人距离≤2格", "敌人距离≤3格", "敌人距离≤4格", "敌人距离≥1格", "敌人距离≥2格", "敌人距离≥3格", "敌人距离≥4格"]
 			for label in additions:
 				var found := false
 				for item in range(menu.item_count):
@@ -145,6 +145,7 @@ func update_beat_menus() -> void:
 			elif index < entries.size(): menu.tooltip_text = entries[index].rule[column]
 
 func beat_help(skill: String) -> String:
+	if skill in ["接敌", "远敌", "后撤"]: return "%s：按地形路径代价选择一个相邻空格，%s。每次只移动一格（2拍）；同向可续走，转向先站立1拍。无内置停止距离，不检查是否已能攻击；是否执行由条件和优先级决定。无可改善距离的一步时检查下条规则。" % [skill, "降低到目标的路径距离" if skill == "接敌" else "增加到目标的路径距离"]
 	if skill in ["普通攻击", "点射"]: return "单格吊射：曼哈顿距离≤4格，允许斜向选格、越墙，只命中瞄准时锁定的1格，不追踪目标。需站立：非站立先花1拍站立，再瞄准预警1拍 → 目标格结算1拍 → 后摇1拍，结束恢复站立。瞄准可被侧闪取消；击发不可取消；后摇可取消，但侧闪后需重新站立。消耗15精力。独立CD6拍，从开火起算，与后摇重叠；没有公共CD。"
 	if skill == "站稳": return "耗1拍，移动姿态恢复站稳；不跨格。高级技能必须先站稳。预设附加有射位条件，可排序、改条件或删除。"
 	if skill in Beat.MOVE or skill in ["向左移动", "向右移动", "向上移动", "向下移动"]: return "普通移动2拍一格；同方向可以连续走，换方向前自动站立1拍。移动硬直只能用PP侧闪取消；侧闪1拍一格，结束为有方向的移动姿态，同向可接普通移动，换向先站立1拍。减速时普通移动额外1拍。"

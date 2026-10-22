@@ -265,6 +265,7 @@ static func run(game) -> void:
 	report.normal_lob = validate_normal_lob(game)
 	report.shot_postures = validate_shot_postures(game)
 	report.dodge_movement_pose = validate_dodge_pose(game)
+	report.tactical_movement = validate_tactical_movement(game)
 	report.boundary = validate_boundaries(game)
 	report.animate_then_settle = validate_live_steps(game)
 	report.soldier = validate_soldier(game)
@@ -275,6 +276,76 @@ static func run(game) -> void:
 	var file := FileAccess.open("res://reports/beat-validation.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(report, "\t"))
 	print("BEAT PASSED: soldier preset, 9-beat straight route/12-beat zigzag, turn-standing, smooth braking, two-beat committed movement, one-beat PP dodge, six symmetric cases, nine legacy presets and editor")
+
+static func validate_tactical_movement(game) -> Dictionary:
+	var checks: Array = []
+	var sim = fixture(game)
+	sim.units[2].cell = Vector2i(4, 3)
+	sim.loadouts[0].active = [["接敌", "无", "无"], ["普通攻击", "无", "无"]]
+	assert(sim.ranged(sim.units[0], sim.units[2], "普通攻击"))
+	sim.tick()
+	assert(sim.units[0].active_skill == "接敌" and sim.units[0].mode == "移动硬直" and sim.shots == 0)
+	sim.tick()
+	assert(sim.units[0].cell == Vector2i(3, 3) and sim.shots == 0)
+	sim.tick()
+	assert(sim.units[0].phase == "射击站立", "Occupied enemy cells are intrinsic obstacles, not a hidden stopping distance")
+	checks.append("unconditional high-priority approach moves within attack range; only a blocked next step permits a lower rule")
+	sim = fixture(game)
+	sim.units[0].cell = Vector2i(1, 3)
+	sim.units[2].cell = Vector2i(5, 3)
+	sim.loadouts[0].active = [["接敌", "敌人距离≥3格", "无"], ["普通攻击", "无", "无"]]
+	for tick in range(4): sim.tick()
+	assert(sim.units[0].cell == Vector2i(3, 3) and sim.shots == 0)
+	sim.tick()
+	assert(sim.units[0].phase == "射击站立")
+	sim.tick()
+	assert(sim.units[0].phase == "前摇")
+	checks.append("player distance condition stops approach, then normal shooting first completes standing")
+	sim = fixture(game)
+	sim.units[2].cell = Vector2i(4, 3)
+	sim.units[0].pose = "移动"
+	sim.units[0].trend = Vector2i.LEFT
+	sim.loadouts[0].active = [["远敌", "无", "无"], ["普通攻击", "无", "无"]]
+	assert(sim.path_direction(sim.units[0], 2, "远敌", sim.units) == sim.path_direction(sim.units[0], 2, "后撤", sim.units))
+	for tick in range(4): sim.tick()
+	assert(sim.units[0].cell == Vector2i(0, 3) and sim.shots == 0)
+	sim.tick()
+	assert(sim.units[0].phase == "转向站立")
+	checks.append("unconditional retreat continues past distance3; turn-standing and old retreat alias retained")
+	sim = fixture(game)
+	sim.units[2].cell = Vector2i(3, 3)
+	sim.units[0].pose = "移动"
+	sim.units[0].trend = Vector2i.LEFT
+	sim.loadouts[0].active = [["远敌", "敌人距离≤1格", "无"], ["普通攻击", "无", "无"]]
+	sim.tick()
+	sim.tick()
+	assert(sim.units[0].cell == Vector2i(1, 3))
+	sim.tick()
+	assert(sim.units[0].phase == "射击站立")
+	checks.append("retreat condition becomes false after one crossing, so the lower attack rule takes over")
+	sim = fixture(game)
+	sim.units[2].cell = Vector2i(4, 3)
+	sim.blocked_cells.assign([Vector2i(3, 3), Vector2i(2, 2)])
+	var costs: Dictionary = sim.movement_costs(sim.units[0], 2, sim.units)
+	assert(costs[Vector2i(2, 3)] == 4 and costs[Vector2i(2, 4)] == 3)
+	assert(sim.path_direction(sim.units[0], 2, "接敌", sim.units) == Vector2i.DOWN)
+	checks.append("cost field routes around cover even when the first step increases Manhattan distance")
+	for amount in range(1, 5):
+		sim.units[2].cell = Vector2i(2 + amount, 3)
+		assert(sim.condition(sim.units[0], 2, "敌人距离≤%d格" % amount, sim.units))
+		assert(sim.condition(sim.units[0], 2, "敌人距离≥%d格" % amount, sim.units))
+	game.team_presets = [game.SOLDIER_PRESET, game.SOLDIER_PRESET]
+	game.setup_loadouts()
+	game.reset_round()
+	game.choose_editor_unit(0)
+	game.edit_rule_cell(0, 0, "远敌")
+	game.edit_rule_cell(0, 1, "敌人距离≤1格")
+	game.rebuild_editor()
+	assert(game.loadouts[0].active[0] == ["远敌", "敌人距离≤1格", "有射位"])
+	checks.append("distance conditions1-4 and new retreat action survive editor rebuilding")
+	game.setup_loadouts()
+	game.reset_round()
+	return {"checks": checks, "step_cells": 1, "step_beats": 2, "hidden_stop_distance": false, "pathfinding": "equal-cost BFS distance field"}
 
 static func validate_normal_lob(game) -> Dictionary:
 	var sim = fixture(game)
