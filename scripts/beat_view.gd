@@ -106,6 +106,7 @@ func ground_effects() -> void:
 		var color: Color = g.ATTACK_BLUE if warning.team == 0 else g.ATTACK_RED
 		paint_cell(warning.cell, Color(color, 0.08))
 	for burst in g.presentation.bursts:
+		if burst.age < 0: continue
 		var color: Color = g.ATTACK_BLUE if burst.team == 0 else g.ATTACK_RED
 		paint_cell(g.Beat.cell_of(burst.p), Color(color, 0.5 * (1.0 - burst.age / 0.35)))
 	for marker in occupants:
@@ -114,6 +115,7 @@ func ground_effects() -> void:
 	# All board overlays, including warnings and labels, belong below robots/walls.
 	for warning in warnings: draw_warning(warning)
 	for burst in g.presentation.bursts:
+		if burst.age < 0: continue
 		if burst.age < 0.18:
 			draw_warning({"cell": g.Beat.cell_of(burst.p), "team": burst.team, "progress": 1.0, "remaining": 0, "total_beats": burst.total_beats}, 1.0 - burst.age / 0.18)
 	for u in g.units:
@@ -202,6 +204,7 @@ func air_effects() -> void:
 		g.draw_line(project(tail, tail_h), project(p, height), color, 3, true)
 		g.draw_circle(project(p, height), 5 if flight.arc else 3, Color("fff5db"))
 	for burst in g.presentation.bursts:
+		if burst.age < 0: continue
 		var t: float = burst.age / 0.35
 		var color: Color = g.ATTACK_BLUE if burst.team == 0 else g.ATTACK_RED
 		ring(burst.p, 8.0 + t * 40.0, Color(color, 1.0 - t), 3)

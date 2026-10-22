@@ -167,7 +167,7 @@ func coverage(u: Dictionary, skill: String, target: Vector2i) -> Array:
 	return cells
 
 static func flight_delay(skill: String) -> int:
-	return 0 if skill in ["蓄能贯穿", "裂地冲击", "天穹贯穿"] else (2 if skill in ["抛射轰击", "烈焰爆破", "星火轰炸"] else 1)
+	return 0 if skill in ["点射", "普通攻击", "蓄能贯穿", "裂地冲击", "天穹贯穿"] else (2 if skill in ["抛射轰击", "烈焰爆破", "星火轰炸"] else 1)
 
 func cost(skill: String) -> float:
 	if skill in ["天穹贯穿", "星火轰炸"]: return 70.0
@@ -179,6 +179,7 @@ func cost(skill: String) -> float:
 	return 25.0
 
 func skill_cd(skill: String) -> float:
+	if skill == "普通攻击": skill = "点射"
 	var seconds: float = Tactics.MAGIC.get(skill, {}).get("cd", {"点射": 1.5, "标记弹": 5, "强力射击": 6, "压制射击": 6, "协同追击": 5, "侧闪": 2.8, "回春": 8, "灵木护佑": 9, "掩护队友": 6, "架枪防御": 5, "短冲刺": 4}.get(skill, 0))
 	return ceilf(seconds / SECONDS) * SECONDS
 
@@ -249,11 +250,13 @@ func target_for(u: Dictionary, rule: Array, snapshot: Array, shooting: bool, eli
 	return best
 
 func ready(u: Dictionary, skill: String, refund := false) -> String:
+	if skill == "普通攻击": skill = "点射"
 	if float(u.skill_cds.get(skill, 0)) > 0: return "技能CD中"
 	if skill in HIGH and u.pose != "站稳": return "需要站稳"
 	var available: float = u.energy + (u.paid if refund and u.mode == "前摇" and not u.committed else 0.0)
 	if available < cost(skill): return "精力不足"
 	if skill not in MOVE and skill not in ["站稳", "侧闪", "架枪防御", "天穹贯穿", "星火轰炸"] and u.cooldown > 0: return "公共CD中"
+	if skill == "点射" and u.pose != "站稳": return "需要站稳"
 	return ""
 
 func select_rule(u: Dictionary, kind: String, slot: int, skill: String) -> void:
@@ -414,6 +417,9 @@ func cancel(u: Dictionary) -> void:
 	u.move_total = MOVE_BEATS
 
 func start_attack(u: Dictionary, target: int, skill: String, target_cell: Vector2i) -> void:
+	if skill == "普通攻击": skill = "点射"
+	if skill == "点射":
+		assert(u.pose == "站稳", "Ordinary shooting must start from a completed standing pose")
 	u.attack_started = beat
 	u.energy -= cost(skill)
 	u.paid = cost(skill)
@@ -456,7 +462,8 @@ func advance_attack(u: Dictionary) -> void:
 			u.mode = ""
 			u.rule_kind = ""
 			u.rule_slot = -1
-			u.phase = u.pose
+			if u.active_skill == "点射": stand(u)
+			else: u.phase = u.pose
 
 func try_pp(u: Dictionary, snapshot: Array, old_strikes: Array, proposals: Dictionary, supports: Array) -> bool:
 	var rows: Array = loadouts[u.uid].reaction
@@ -528,6 +535,15 @@ func try_ap(u: Dictionary, snapshot: Array, proposals: Dictionary) -> void:
 		var skill: String = rule[0]
 		var actual := "点射" if skill == "普通攻击" else skill
 		var gate := ready(u, actual)
+		if actual == "点射" and gate == "需要站稳":
+			var aim_target := target_for(u, rule, snapshot, true)
+			if aim_target < 0: u.trace_ap[slot] = "没有符合条件的目标"; continue
+			select_rule(u, "active", slot, skill)
+			u.target = aim_target
+			stand(u, "射击站立")
+			u.frame_branch = "射击：先站立1拍"
+			u.reason += "；普通射击必须先站立，本拍不瞄准、不消耗精力或CD"
+			return
 		if not gate.is_empty(): u.trace_ap[slot] = gate; continue
 		var target := target_for(u, rule, snapshot, skill not in MOVE and skill != "站稳")
 		if skill == "站稳":

@@ -166,7 +166,7 @@
 		"T0 standing / T1 committed move / T2 adjacent cell / T3 explicit standing",
 		"ordinary crossing two beats; same direction continues; turning first consumes a separate standing beat",
 		"high skills require standing; standing cannot cast on the same beat",
-		"low skill allowed while mobile; locked-cell impact; no AP on recovery completion beat",
+		"low-tier magic allowed while mobile; ordinary gun has its own standing requirement; no AP on recovery completion beat",
 		"windup dodge refunds; release lock prevents dodge; recovery cancellation keeps cooldown and cost",
 		"simultaneous hostile collision once for 1HP, shared collision cell, next-beat forced return, reserved origins",
 		"head-on exchange cannot cross bodies; friendly collision has no damage",
@@ -179,43 +179,43 @@
 	"default_real_beat_seconds": 0.5,
 	"matches": [
 		{
-			"beats": 118,
+			"beats": 148,
 			"final_hp": [
-				5,
-				2,
-				0,
-				0
-			],
-			"opponent": 0,
-			"shots": 53,
-			"winner": 0
-		},
-		{
-			"beats": 140,
-			"final_hp": [
-				5,
+				4,
 				1,
 				0,
 				0
 			],
-			"opponent": 1,
-			"shots": 50,
+			"opponent": 0,
+			"shots": 55,
 			"winner": 0
 		},
 		{
-			"beats": 78,
+			"beats": 181,
+			"final_hp": [
+				4,
+				5,
+				0,
+				0
+			],
+			"opponent": 1,
+			"shots": 64,
+			"winner": 0
+		},
+		{
+			"beats": 57,
 			"final_hp": [
 				5,
-				4,
+				3,
 				0,
 				0
 			],
 			"opponent": 2,
-			"shots": 31,
+			"shots": 24,
 			"winner": 0
 		},
 		{
-			"beats": 59,
+			"beats": 44,
 			"final_hp": [
 				5,
 				4,
@@ -223,11 +223,11 @@
 				0
 			],
 			"opponent": 3,
-			"shots": 23,
+			"shots": 18,
 			"winner": 0
 		},
 		{
-			"beats": 98,
+			"beats": 87,
 			"final_hp": [
 				5,
 				4,
@@ -235,56 +235,56 @@
 				0
 			],
 			"opponent": 4,
-			"shots": 35,
+			"shots": 31,
 			"winner": 0
 		},
 		{
-			"beats": 148,
+			"beats": 154,
 			"final_hp": [
 				0,
 				0,
-				1,
-				1
+				0,
+				4
 			],
 			"opponent": 5,
-			"shots": 65,
+			"shots": 52,
 			"winner": 1
 		},
 		{
-			"beats": 172,
+			"beats": 174,
 			"final_hp": [
+				1,
 				0,
 				0,
-				2,
-				3
+				0
 			],
 			"opponent": 6,
-			"shots": 58,
-			"winner": 1
+			"shots": 53,
+			"winner": 0
 		},
 		{
-			"beats": 150,
+			"beats": 200,
 			"final_hp": [
-				2,
-				2,
+				0,
+				1,
 				0,
 				0
 			],
 			"opponent": 7,
-			"shots": 63,
+			"shots": 79,
 			"winner": 0
 		},
 		{
-			"beats": 222,
+			"beats": 168,
 			"final_hp": [
+				1,
 				0,
 				0,
-				3,
-				3
+				0
 			],
 			"opponent": 8,
-			"shots": 70,
-			"winner": 1
+			"shots": 56,
+			"winner": 0
 		}
 	],
 	"motion": [
@@ -311,6 +311,19 @@
 		"0.5x/1x/2x use 1.0/0.5/0.25 real seconds per beat",
 		"single-step animation follows the same new baseline"
 	],
+	"shooting": {
+		"checks": [
+			"standing shot: beat1 aim/locked warning, beat2 target-cell impact, beat3 recovery completes standing",
+			"independent CD6/public CD8 start together on firing and overlap recovery; next aim beat10 and impact beat11",
+			"mobile shot automatically spends a separate standing beat even with the standing rule removed; no premature cost/CD/warning",
+			"shot resolves against the locked grid after simultaneous movement, with no homing or body-radius check",
+			"ordinary shot has a short visual projectile and a delayed impact flash within the same firing beat; animation never changes logic"
+		],
+		"independent_cd_beats": 6,
+		"mobile_action_beats": 4,
+		"public_cd_beats": 8,
+		"standing_action_beats": 3
+	},
 	"soldier": {
 		"checks": [
 			"straight four cells plus final stand takes exactly nine beats",
@@ -322,19 +335,19 @@
 			"default soldier preset uses only standing, ordinary attack, engagement and PP dodge; no ultimate"
 		],
 		"match": {
-			"beats": 125,
-			"shots": 42,
+			"beats": 70,
+			"shots": 28,
 			"winner": -1
 		}
 	},
 	"symmetry": [
 		{
-			"beats": 89,
+			"beats": 43,
 			"final": [
 				{
-					"cell": "(5, 3)",
+					"cell": "(3, 2)",
 					"hp": 0,
-					"mode": "",
+					"mode": "后摇",
 					"pose": "站稳",
 					"trend": "(0, 0)"
 				},
@@ -346,9 +359,9 @@
 					"trend": "(0, 0)"
 				},
 				{
-					"cell": "(2, 4)",
+					"cell": "(4, 5)",
 					"hp": 0,
-					"mode": "",
+					"mode": "后摇",
 					"pose": "站稳",
 					"trend": "(0, 0)"
 				},
@@ -362,45 +375,45 @@
 			],
 			"max_hp_difference": 0.0,
 			"result": "双方同时全灭",
-			"shots": 20,
+			"shots": 10,
 			"skill": "普通攻击",
 			"team_size": 1
 		},
 		{
-			"beats": 123,
+			"beats": 41,
 			"final": [
 				{
-					"cell": "(4, 3)",
+					"cell": "(2, 2)",
 					"hp": 0,
-					"mode": "",
+					"mode": "后摇",
 					"pose": "站稳",
 					"trend": "(0, 0)"
 				},
 				{
-					"cell": "(5, 4)",
+					"cell": "(2, 5)",
 					"hp": 0,
-					"mode": "",
+					"mode": "后摇",
 					"pose": "站稳",
 					"trend": "(0, 0)"
 				},
 				{
-					"cell": "(3, 4)",
+					"cell": "(5, 5)",
 					"hp": 0,
-					"mode": "",
+					"mode": "后摇",
 					"pose": "站稳",
 					"trend": "(0, 0)"
 				},
 				{
-					"cell": "(2, 3)",
+					"cell": "(5, 2)",
 					"hp": 0,
-					"mode": "",
+					"mode": "后摇",
 					"pose": "站稳",
 					"trend": "(0, 0)"
 				}
 			],
 			"max_hp_difference": 0.0,
 			"result": "双方同时全灭",
-			"shots": 40,
+			"shots": 20,
 			"skill": "普通攻击",
 			"team_size": 2
 		},
@@ -443,31 +456,31 @@
 			"team_size": 1
 		},
 		{
-			"beats": 76,
+			"beats": 53,
 			"final": [
 				{
-					"cell": "(4, 3)",
+					"cell": "(3, 3)",
 					"hp": 0,
 					"mode": "后摇",
 					"pose": "站稳",
 					"trend": "(0, 0)"
 				},
 				{
-					"cell": "(5, 4)",
+					"cell": "(3, 5)",
 					"hp": 0,
 					"mode": "后摇",
 					"pose": "站稳",
 					"trend": "(0, 0)"
 				},
 				{
-					"cell": "(3, 4)",
+					"cell": "(4, 4)",
 					"hp": 0,
 					"mode": "后摇",
 					"pose": "站稳",
 					"trend": "(0, 0)"
 				},
 				{
-					"cell": "(2, 3)",
+					"cell": "(4, 2)",
 					"hp": 0,
 					"mode": "后摇",
 					"pose": "站稳",
@@ -476,17 +489,17 @@
 			],
 			"max_hp_difference": 0.0,
 			"result": "双方同时全灭",
-			"shots": 22,
+			"shots": 18,
 			"skill": "落岩",
 			"team_size": 2
 		},
 		{
-			"beats": 51,
+			"beats": 39,
 			"final": [
 				{
-					"cell": "(5, 3)",
+					"cell": "(3, 2)",
 					"hp": 0,
-					"mode": "",
+					"mode": "后摇",
 					"pose": "站稳",
 					"trend": "(0, 0)"
 				},
@@ -498,9 +511,9 @@
 					"trend": "(0, 0)"
 				},
 				{
-					"cell": "(2, 4)",
+					"cell": "(4, 5)",
 					"hp": 0,
-					"mode": "",
+					"mode": "后摇",
 					"pose": "站稳",
 					"trend": "(0, 0)"
 				},
@@ -514,45 +527,45 @@
 			],
 			"max_hp_difference": 0.0,
 			"result": "双方同时全灭",
-			"shots": 10,
+			"shots": 8,
 			"skill": "烈焰爆破",
 			"team_size": 1
 		},
 		{
-			"beats": 88,
+			"beats": 37,
 			"final": [
 				{
-					"cell": "(3, 3)",
+					"cell": "(2, 2)",
 					"hp": 0,
-					"mode": "",
+					"mode": "后摇",
 					"pose": "站稳",
 					"trend": "(0, 0)"
 				},
 				{
-					"cell": "(5, 4)",
+					"cell": "(2, 5)",
 					"hp": 0,
-					"mode": "",
+					"mode": "后摇",
 					"pose": "站稳",
 					"trend": "(0, 0)"
 				},
 				{
-					"cell": "(4, 4)",
+					"cell": "(5, 5)",
 					"hp": 0,
-					"mode": "",
+					"mode": "后摇",
 					"pose": "站稳",
 					"trend": "(0, 0)"
 				},
 				{
-					"cell": "(2, 3)",
+					"cell": "(5, 2)",
 					"hp": 0,
-					"mode": "",
+					"mode": "后摇",
 					"pose": "站稳",
 					"trend": "(0, 0)"
 				}
 			],
 			"max_hp_difference": 0.0,
 			"result": "双方同时全灭",
-			"shots": 28,
+			"shots": 16,
 			"skill": "烈焰爆破",
 			"team_size": 2
 		}

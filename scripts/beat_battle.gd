@@ -29,6 +29,11 @@ func _ready() -> void:
 		set_process(false)
 		capture_telegraph_preview.call_deferred()
 		return
+	if "--beat-shooting-preview" in OS.get_cmdline_user_args():
+		set_physics_process(false)
+		set_process(false)
+		capture_shooting_preview.call_deferred()
+		return
 	if "--beat-animation-preview" in OS.get_cmdline_user_args():
 		set_physics_process(false)
 		set_process(false)
@@ -90,7 +95,7 @@ func setup_ui() -> void:
 	for node in get_children():
 		if node is Label and node.text == "AUTOBATTLE": node.text = "AUTOBATTLE / BEAT"
 	update_beat_menus()
-	soldier_hint = text_label(self, "普通士兵对练\n5血 · 普攻1伤害\n无大招", 14)
+	soldier_hint = text_label(self, "普通士兵对练\n5血 · 普攻1伤害\n射击3拍 · CD6/8拍\n无大招", 14)
 	soldier_hint.position = Vector2(700, 35)
 	soldier_hint.modulate = Color("c8b997")
 
@@ -131,6 +136,7 @@ func update_beat_menus() -> void:
 			elif index < entries.size(): menu.tooltip_text = entries[index].rule[column]
 
 func beat_help(skill: String) -> String:
+	if skill in ["普通攻击", "点射"]: return "普通射击需站立：非站立先花1拍站立，再瞄准预警1拍 → 目标格结算1拍 → 后摇1拍，结束恢复站立。消耗15精力。独立CD6拍、公共CD8拍，都从开火起算，与后摇重叠；不会每3拍连射。"
 	if skill == "站稳": return "耗1拍，移动姿态恢复站稳；不跨格。高级技能必须先站稳。预设附加有射位条件，可排序、改条件或删除。"
 	if skill in Beat.MOVE or skill in ["向左移动", "向右移动", "向上移动", "向下移动"]: return "普通移动2拍一格；同方向可以连续走，换方向前自动站立1拍。移动硬直只能用PP侧闪取消；侧闪1拍一格。减速时普通移动额外1拍。"
 	if skill == "侧闪": return "真实预警触发，1拍跨入安全相邻格，耗20精力。前摇取消退款，后摇取消不退款，释放硬直/碰撞中禁用；无安全格不触发。"
@@ -252,6 +258,11 @@ func action_state_label(u: Dictionary) -> String:
 	if not u.has("pose"): return u.phase
 	if u.mode == "移动硬直": return "移动硬直·余%d拍" % u.left
 	if u.phase == "转向站立": return "转向站立·1拍"
+	if u.phase == "射击站立": return "射击前站立·1拍"
+	if u.active_skill == "点射":
+		if u.phase == "前摇": return "瞄准·下拍射击"
+		if u.phase == "释放硬直": return "射击·目标格结算"
+		if u.frame_branch.ends_with("后摇") and u.phase == "站稳": return "后摇结束·站立"
 	if u.mode == "碰撞": return "碰撞·待弹回"
 	if u.mode == "释放硬直": return "待释放%d拍" % u.left
 	if not u.mode.is_empty(): return "%s余%d拍" % [u.mode, u.left]
@@ -266,7 +277,7 @@ func direction_name(direction: Vector2i) -> String:
 func refresh_ui() -> void:
 	super.refresh_ui()
 	if units.is_empty() or not units[0].has("pose"): return
-	status_label.text = "第 %03d 拍  ·  %.1f倍速 · 每拍%.2f秒  |  整格位置 · 独立行动" % [logic_frame, speed, Beat.SECONDS / playback_rate()]
+	status_label.text = "第 %03d 拍  ·  %.1f倍速 · 每拍%.2f秒  |  同步回合 · 整格判定" % [logic_frame, speed, Beat.SECONDS / playback_rate()]
 	if not started: status_label.text = "开局布阵  ·  8×8 节拍战斗  |  N 单拍 / Shift+N 四拍"
 	var u: Dictionary = units[editor_unit]
 	character_label.text = "%s%d · %s格 · %s · HP %d/%d · 盾%d" % ["蓝" if u.team == 0 else "红", u.member + 1, Beat.name_of(u.cell), action_state_label(u), u.hp, Beat.MAX_HP, u.shield]
@@ -340,6 +351,29 @@ func capture_animation_preview() -> void:
 			frame.resize(445, 295, Image.INTERPOLATE_LANCZOS)
 			sheet.blit_rect(frame, Rect2i(0, 0, 445, 295), Vector2i(column * 445, row * 295))
 	sheet.save_png("res://reports/beat-animation-preview.png")
+	get_tree().quit()
+
+func capture_shooting_preview() -> void:
+	var sheet := Image.create(1780, 885, false, Image.FORMAT_RGBA8)
+	beat_sim = preload("res://scripts/beat_validation.gd").fixture(self)
+	beat_sim.units[2].cell = Vector2i(4, 3)
+	beat_sim.units[2].p = Beat.center(Vector2i(4, 3))
+	beat_sim.loadouts[0].active = [["普通攻击", "无", "无"]]
+	loadouts = beat_sim.loadouts
+	units.assign(beat_sim.units)
+	presentation.reset(units)
+	started = true
+	for row in range(3):
+		simulate(Beat.SECONDS)
+		for column in range(4):
+			if column > 0: advance_visuals(Beat.SECONDS / 3.0)
+			animation_preview_caption = "%s / %.0f ms" % [["第1拍·瞄准预警", "第2拍·目标格结算", "第3拍·后摇结束站立"][row], column * Beat.SECONDS / 3.0 * 1000.0]
+			queue_redraw()
+			await RenderingServer.frame_post_draw
+			var frame := get_viewport().get_texture().get_image().get_region(Rect2i(20, 145, 890, 590))
+			frame.resize(445, 295, Image.INTERPOLATE_LANCZOS)
+			sheet.blit_rect(frame, Rect2i(0, 0, 445, 295), Vector2i(column * 445, row * 295))
+	sheet.save_png("res://reports/beat-shooting-preview.png")
 	get_tree().quit()
 
 func capture_telegraph_preview() -> void:

@@ -94,11 +94,13 @@ func begin(before: Array, after: Array, sim) -> void:
 		for cell in strike.cells:
 			flights.append({"from": position(source), "to": sim.center(cell), "age": 0.0, "duration": maxf(DURATION, delay * DURATION), "team": strike.team, "arc": delay >= 2})
 	for effect in sim.effects:
+		var ordinary: bool = effect.skill in ["点射", "普通攻击"]
+		var flight_time := DURATION * 0.6 if ordinary else 0.0
 		for cell in effect.cells:
-			bursts.append({"p": sim.center(cell), "age": 0.0, "team": effect.team, "total_beats": maxi(1, effect.at - effect.get("warn_from", effect.at - maxi(1, sim.flight_delay(effect.skill))))})
+			bursts.append({"p": sim.center(cell), "age": -flight_time, "team": effect.team, "total_beats": maxi(1, effect.at - effect.get("warn_from", effect.at - maxi(1, sim.flight_delay(effect.skill))))})
 		if sim.flight_delay(effect.skill) == 0:
 			for cell in effect.cells:
-				flights.append({"from": position(after[effect.source]), "to": sim.center(cell), "age": 0.0, "duration": 0.16, "team": effect.team, "arc": false, "beam": true})
+				flights.append({"from": position(after[effect.source]), "to": sim.center(cell), "age": 0.0, "duration": flight_time if ordinary else 0.16, "team": effect.team, "arc": false, "beam": not ordinary})
 
 func advance(delta: float) -> void:
 	time += delta

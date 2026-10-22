@@ -74,7 +74,7 @@ static func run(game) -> Array:
 	sim.cancel(sim.units[0])
 	assert(Telegraph.cells(sim, 0.0).is_empty())
 	sim = fixture(game)
-	sim.loadouts[0].active = [["普通攻击", "无", "无"]]
+	sim.loadouts[0].active = [["火矢", "无", "无"]]
 	sim.tick()
 	sim.tick()
 	sim.cancel(sim.units[0])
