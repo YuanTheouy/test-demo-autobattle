@@ -105,7 +105,7 @@ func setup_ui() -> void:
 	soldier_hint = text_label(self, "普通士兵对练\n5血 · 单格吊射1伤害\n射程4格 · 射击3拍 · 独立CD6拍\n无大招", 14)
 	soldier_hint.position = Vector2(700, 35)
 	soldier_hint.modulate = Color("c8b997")
-	arena_mode_button = add_button(self, "3×3 谜题 →", func(): get_tree().change_scene_to_file("res://puzzle_arena.tscn"))
+	arena_mode_button = add_button(self, "3×3 自由对战 →", func(): get_tree().change_scene_to_file("res://puzzle_arena.tscn"))
 	arena_mode_button.position = Vector2(730, 112)
 
 func rebuild_editor() -> void:

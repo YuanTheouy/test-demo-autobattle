@@ -1,0 +1,17 @@
+{
+	"blocked_cells": 55,
+	"checks": [
+		"only two active bots",
+		"all other cells blocked",
+		"deployment survives reset",
+		"both sides have editable soldier AP and PP",
+		"four-step reaches endpoint4 past the first shots",
+		"continuous playback reaches endpoint46 without puzzle pauses"
+	],
+	"mode": "free_duel",
+	"open_cells": 9,
+	"participants": [
+		0,
+		2
+	]
+}

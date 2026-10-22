@@ -1,10 +1,8 @@
 extends "res://scripts/beat_battle.gd"
 ## A separate 1v1 workbench. The full 2v2 scene remains available unchanged.
 const OPEN_CELLS := Rect2i(5, 5, 3, 3)
-const PUZZLE_SPAWNS := [Vector2i(5, 6), Vector2i(5, 5), Vector2i(7, 6), Vector2i(7, 7)]
+const DUEL_SPAWNS := [Vector2i(5, 6), Vector2i(5, 5), Vector2i(7, 6), Vector2i(7, 7)]
 const PARTICIPANTS := [0, 2]
-var puzzle_outcome := ""
-var puzzle_hint: Label
 
 func _ready() -> void:
 	for arg in OS.get_cmdline_user_args():
@@ -14,23 +12,20 @@ func _ready() -> void:
 			hide()
 			get_tree().change_scene_to_file.call_deferred("res://beat_arena.tscn")
 			return
-	deployment_cells = PUZZLE_SPAWNS.duplicate()
+	deployment_cells = DUEL_SPAWNS.duplicate()
 	super._ready()
-	DisplayServer.window_set_title("AutoBattle — 3×3 / 躲开第一枪")
-	puzzle_hint = text_label(self, "", 16)
-	puzzle_hint.position = Vector2(45, 225)
-	puzzle_hint.modulate = Color("eee0ac")
+	DisplayServer.window_set_title("AutoBattle — 3×3 / 1v1 自由对战")
 	for connection in arena_mode_button.pressed.get_connections(): arena_mode_button.pressed.disconnect(connection.callable)
 	arena_mode_button.text = "← 返回2v2"
 	arena_mode_button.pressed.connect(func(): get_tree().change_scene_to_file("res://beat_arena.tscn"))
 	for child in get_children():
-		if child is Label and child.text == "AUTOBATTLE / BEAT": child.text = "AUTOBATTLE / PUZZLE"
+		if child is Label and child.text == "AUTOBATTLE / BEAT": child.text = "AUTOBATTLE / DUEL"
 	choose_editor_unit(0)
 	refresh_ui()
-	if "--puzzle-test" in OS.get_cmdline_user_args():
-		run_puzzle_checks()
+	if "--small-arena-test" in OS.get_cmdline_user_args() or "--puzzle-test" in OS.get_cmdline_user_args():
+		run_small_arena_checks()
 		get_tree().quit()
-	if "--puzzle-preview" in OS.get_cmdline_user_args():
+	if "--small-arena-preview" in OS.get_cmdline_user_args() or "--puzzle-preview" in OS.get_cmdline_user_args():
 		set_process(false)
 		set_physics_process(false)
 		capture_puzzle_preview.call_deferred()
@@ -39,7 +34,8 @@ func make_arena_view():
 	return preload("res://scripts/puzzle_view.gd").new()
 
 func setup_loadouts() -> void:
-	loadouts = [Tactics.build([], []), Tactics.build([], []), Tactics.build([["普通攻击", "无", "无"]], []), Tactics.build([], [])]
+	super.setup_loadouts()
+	for uid in [1, 3]: loadouts[uid] = Tactics.build([], [])
 
 func reset_walls() -> void:
 	# 55 filled cells; only F6:H8, the corner nearest the audience, is traversable.
@@ -56,9 +52,9 @@ func deployment_position(uid: int) -> Vector2:
 func validate_deployment() -> void:
 	for uid in PARTICIPANTS:
 		if not OPEN_CELLS.has_point(deployment_cells[uid]):
-			deployment_cells = PUZZLE_SPAWNS.duplicate()
+			deployment_cells = DUEL_SPAWNS.duplicate()
 			return
-	if deployment_cells[0] == deployment_cells[2]: deployment_cells = PUZZLE_SPAWNS.duplicate()
+	if deployment_cells[0] == deployment_cells[2]: deployment_cells = DUEL_SPAWNS.duplicate()
 
 func can_deploy(uid: int, cell: Vector2i) -> bool:
 	if started or uid not in PARTICIPANTS or not OPEN_CELLS.has_point(cell): return false
@@ -75,7 +71,6 @@ func choose_editor_unit(uid: int) -> void:
 	if uid in PARTICIPANTS: super.choose_editor_unit(uid)
 
 func reset_round() -> void:
-	puzzle_outcome = ""
 	super.reset_round()
 	for u in units:
 		u.enabled = u.uid in PARTICIPANTS
@@ -88,28 +83,11 @@ func reset_round() -> void:
 func refresh_ui() -> void:
 	super.refresh_ui()
 	if units.is_empty(): return
-	subtitle.text = "3×3 谜题工作台 · 1v1 · 只保留前方 F6—H8 九格"
-	if not started: status_label.text = "题目01：躲开第一枪  |  修改策略后按 N，完整播放一拍"
+	subtitle.text = "3×3 自由对战 · 1v1 · 双方策略均可调整"
+	if not started: status_label.text = "3×3 自由布阵  |  空格连续战斗 / N逐拍 / R重开"
 	for uid in range(roster_buttons.size()): roster_buttons[uid].visible = uid in PARTICIPANTS
-	if soldier_hint != null: soldier_hint.text = "3×3 / 1v1\n单格吊射 · 射程4\nN逐拍 · R重试"
-	if puzzle_hint != null:
-		puzzle_hint.text = "题目01 · 躲开第一枪\n目标：红方第一枪结算时，蓝方不受伤。\n蓝方策略留空；右侧选择技能和条件，修改后重开。\nN：播放一拍并暂停    R：重试" if puzzle_outcome.is_empty() else puzzle_outcome + "\n按 R 重试，或修改蓝方策略后再试。"
-
-func simulate(dt: float, animate_after := true) -> void:
-	super.simulate(dt, animate_after)
-	if puzzle_outcome.is_empty() and beat_sim.effects.any(func(effect): return effect.source == 2):
-		puzzle_outcome = "通过：蓝方躲开了第一枪。" if units[0].hp == Beat.MAX_HP else "未通过：第一枪命中了蓝方。"
-		running = false
-		steps_remaining = 0
-	refresh_ui()
-
-func step_forward(frame_count := 1) -> void:
-	if puzzle_outcome.is_empty(): super.step_forward(frame_count)
-
-func toggle_running() -> void:
-	if puzzle_outcome.is_empty(): super.toggle_running()
-
-func run_puzzle_checks() -> void:
+	if soldier_hint != null: soldier_hint.text = "3×3 / 1v1\n单格吊射 · 射程4\nN逐拍 · R重开"
+func run_small_arena_checks() -> void:
 	assert(beat_sim.blocked_cells.size() == 55)
 	for x in range(8):
 		for y in range(8): assert(beat_sim.legal(Vector2i(x, y)) == OPEN_CELLS.has_point(Vector2i(x, y)))
@@ -118,28 +96,26 @@ func run_puzzle_checks() -> void:
 	assert(place_unit(0, Vector2i(5, 5)))
 	reset_round()
 	assert(units[0].cell == Vector2i(5, 5))
-	deployment_cells = PUZZLE_SPAWNS.duplicate()
+	deployment_cells = DUEL_SPAWNS.duplicate()
 	reset_round()
-	step_forward()
-	advance_playback(0.5)
-	assert(logic_frame == 1 and units[0].hp == 5 and puzzle_outcome.is_empty())
-	step_forward()
-	advance_playback(0.5)
-	assert(units[0].hp == 4 and puzzle_outcome.begins_with("未通过"))
-	loadouts[0] = Tactics.build([], [["侧闪", "无", "无"]])
-	reset_round()
+	assert(loadouts[0] == loadouts[2] and not loadouts[0].active.is_empty() and not loadouts[0].reaction.is_empty())
 	step_forward(12)
 	advance_playback(10)
-	assert(logic_frame == 2 and units[0].hp == 5 and puzzle_outcome.begins_with("通过"))
-	assert(Beat.posture(units[0]) == "移动姿态")
+	assert(logic_frame == 4 and units[0].hp == 4 and units[2].hp == 4)
+	assert(beat_sim.shots == 2 and steps_remaining == 0 and not segment_active)
+	reset_round()
+	toggle_running()
+	advance_playback(3.0)
+	assert(logic_frame == 6 and running and units[0].hp == 4 and units[2].hp == 4)
+	advance_playback(20.0)
+	assert(logic_frame == 46 and running and finished, "Free battle must continue past first shots and even the recorded match result")
 	for u in units:
 		if u.enabled: assert(OPEN_CELLS.has_point(u.cell))
-	assert(not running and steps_remaining == 0 and not segment_active)
-	var report := {"open_cells": 9, "blocked_cells": 55, "participants": PARTICIPANTS,
-		"checks": ["inactive slots are not rendered or selectable", "all cells outside F6:H8 blocked", "deployment survives reset", "empty blue rules fail at first impact", "PP dodge succeeds and retains directed movement", "single-step and four-step both stop at the puzzle result"]}
-	var report_file := FileAccess.open("res://reports/puzzle-validation.json", FileAccess.WRITE)
+	var report := {"mode": "free_duel", "open_cells": 9, "blocked_cells": 55, "participants": PARTICIPANTS,
+		"checks": ["only two active bots", "all other cells blocked", "deployment survives reset", "both sides have editable soldier AP and PP", "four-step reaches endpoint4 past the first shots", "continuous playback reaches endpoint46 without puzzle pauses"]}
+	var report_file := FileAccess.open("res://reports/small-arena-validation.json", FileAccess.WRITE)
 	report_file.store_string(JSON.stringify(report, "\t"))
-	print("PUZZLE PASSED: 9 open/55 blocked cells, exactly 1v1, placement persistence, empty rules fail, PP dodge succeeds at endpoint2")
+	print("SMALL ARENA PASSED: 3x3/1v1, equal editable loadouts, no first-shot stop, continuous playback through endpoint46")
 
 func capture_puzzle_preview() -> void:
 	await RenderingServer.frame_post_draw
