@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="AutoBattle — 双人对抗"
-run/main_scene="res://beat_arena.tscn"
+run/main_scene="res://puzzle_arena.tscn"
 config/features=PackedStringArray("4.6")
 
 [display]

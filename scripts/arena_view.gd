@@ -80,6 +80,7 @@ func render(game) -> void:
 	for w in g.wall_states:
 		actors.append({"depth": w.rect.get_center().x + w.rect.get_center().y, "wall": w.rect, "state": w})
 	for u in g.units:
+		if not u.get("enabled", true): continue
 		var displayed := display_position(u)
 		disc(displayed + Vector2(7, 7), 27, Color(0, 0, 0, 0.28))
 		actors.append({"depth": displayed.x + displayed.y, "unit": u})

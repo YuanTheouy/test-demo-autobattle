@@ -769,6 +769,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.pressed:
 			var clicked_unit := -1
 			for i in range(units.size()):
+				if not units[i].get("enabled", true): continue
 				if arena_view.project(arena_view.display_position(units[i]), 25).distance_to(event.position) < 28:
 					clicked_unit = i
 					break

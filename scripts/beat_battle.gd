@@ -4,6 +4,7 @@ const Beat = preload("res://scripts/beat_simulation.gd")
 const BASE_PLAYBACK_RATE := 0.5
 const SOLDIER_PRESET := 9
 var soldier_hint: Label
+var arena_mode_button: Button
 var beat_sim = Beat.new()
 var presentation = preload("res://scripts/beat_presentation.gd").new()
 var settle_visual := 0.0
@@ -16,7 +17,7 @@ func _ready() -> void:
 	team_presets = [SOLDIER_PRESET, SOLDIER_PRESET]
 	font = SystemFont.new()
 	font.font_names = PackedStringArray(["Microsoft YaHei", "PingFang SC", "Arial"])
-	arena_view = preload("res://scripts/beat_view.gd").new()
+	arena_view = make_arena_view()
 	DisplayServer.window_set_title("AutoBattle — 8×8 节拍战斗 / beat-grid-combat")
 	reset_walls()
 	setup_navigation()
@@ -51,6 +52,9 @@ func _ready() -> void:
 		set_physics_process(false)
 		refresh_ui()
 		capture_beat_preview.call_deferred()
+
+func make_arena_view():
+	return preload("res://scripts/beat_view.gd").new()
 
 func preset_names() -> Array:
 	return Tactics.NAMES + ["普通士兵"]
@@ -101,6 +105,8 @@ func setup_ui() -> void:
 	soldier_hint = text_label(self, "普通士兵对练\n5血 · 普攻1伤害\n射击3拍 · 独立CD6拍\n无大招", 14)
 	soldier_hint.position = Vector2(700, 35)
 	soldier_hint.modulate = Color("c8b997")
+	arena_mode_button = add_button(self, "3×3 谜题 →", func(): get_tree().change_scene_to_file("res://puzzle_arena.tscn"))
+	arena_mode_button.position = Vector2(730, 112)
 
 func rebuild_editor() -> void:
 	# The legacy editor removes conditions it does not know; preserve beat-only ones.
