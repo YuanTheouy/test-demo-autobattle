@@ -15,5 +15,5 @@ static func markers(units: Array) -> Array:
 		for lane in range(occupants.size()):
 			var u: Dictionary = occupants[lane]
 			var direction: String = {Vector2i.RIGHT: "右", Vector2i.LEFT: "左", Vector2i.UP: "上", Vector2i.DOWN: "下"}.get(u.trend, "无")
-			result.append({"uid": u.uid, "cell": cell, "p": Beat.center(cell), "team": u.team, "stationary": u.pose == "站稳", "trend": u.trend, "identity": "%s%d %s" % ["蓝" if u.team == 0 else "红", u.member + 1, Beat.name_of(cell)], "pose_text": "站稳" if u.pose == "站稳" else "移动·" + direction, "lane": lane, "count": occupants.size()})
+			result.append({"uid": u.uid, "cell": cell, "p": Beat.center(cell), "team": u.team, "stationary": Beat.posture(u) == "站立姿态", "trend": u.trend, "identity": "%s%d %s" % ["蓝" if u.team == 0 else "红", u.member + 1, Beat.name_of(cell)], "pose_text": Beat.posture(u) if u.active_skill == "点射" and u.phase in ["前摇", "释放硬直", "后摇"] else ("站稳" if u.pose == "站稳" else ("移动·" + direction if u.trend != Vector2i.ZERO else "动作姿态")), "lane": lane, "count": occupants.size()})
 	return result

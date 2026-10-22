@@ -104,6 +104,17 @@ func reset(source_units: Array, source_loadouts: Array, walls: Array) -> void:
 		u.trace_ap.fill("未检查")
 		u.trace_pp.fill("未检查")
 
+static func posture(u: Dictionary) -> String:
+	# phase describes the beat on screen; mode is the stage queued for NEXT beat.
+	if u.phase in ["释放硬直", "碰撞"]: return "僵直姿态"
+	if u.phase == "前摇" and u.active_skill == "点射": return "站立姿态"
+	if u.mode == "后摇" or u.pose != "站稳": return "动作姿态"
+	return "站立姿态"
+
+static func pp_locked(u: Dictionary) -> bool:
+	# Decide from the stage about to execute, never from last beat's display pose.
+	return u.mode in ["碰撞", "释放硬直"]
+
 func legal(cell: Vector2i) -> bool:
 	return cell.x >= 0 and cell.y >= 0 and cell.x < SIZE and cell.y < SIZE and cell not in blocked_cells
 
@@ -442,6 +453,9 @@ func advance_attack(u: Dictionary) -> void:
 			u.left = int(Tactics.MAGIC.get(u.active_skill, {}).get("hits", 1))
 	elif u.mode == "释放硬直":
 		var skill: String = u.active_skill
+		if skill == "点射":
+			u.pose = "动作"
+			u.trend = Vector2i.ZERO
 		if not u.committed:
 			u.committed = true
 			u.skill_cds[skill] = skill_cd(skill)
@@ -469,7 +483,7 @@ func try_pp(u: Dictionary, snapshot: Array, old_strikes: Array, proposals: Dicti
 	for slot in range(rows.size()):
 		var rule: Array = rows[slot]
 		var skill: String = rule[0]
-		if u.mode in ["碰撞", "释放硬直"]:
+		if pp_locked(u):
 			u.trace_pp[slot] = "碰撞/释放硬直中"
 			continue
 		if not u.mode.is_empty() and skill != "侧闪":

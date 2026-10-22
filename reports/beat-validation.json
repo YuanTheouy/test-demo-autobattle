@@ -325,6 +325,20 @@
 		"public_cd_beats": 0,
 		"standing_action_beats": 4
 	},
+	"shot_postures": {
+		"checks": [
+			"aim is cancellable before execution; refund retained",
+			"release cannot be cancelled",
+			"recovery dodge keeps shot, cost and independent CD",
+			"dodge does not restore standing; a separate standing beat is required before shooting"
+		],
+		"postures": [
+			"站立姿态",
+			"僵直姿态",
+			"动作姿态",
+			"站立姿态"
+		]
+	},
 	"soldier": {
 		"checks": [
 			"straight four cells plus final stand takes exactly nine beats",
@@ -349,7 +363,7 @@
 					"cell": "(3, 2)",
 					"hp": 0,
 					"mode": "后摇",
-					"pose": "站稳",
+					"pose": "动作",
 					"trend": "(0, 0)"
 				},
 				{
@@ -363,7 +377,7 @@
 					"cell": "(4, 5)",
 					"hp": 0,
 					"mode": "后摇",
-					"pose": "站稳",
+					"pose": "动作",
 					"trend": "(0, 0)"
 				},
 				{
@@ -387,28 +401,28 @@
 					"cell": "(2, 2)",
 					"hp": 0,
 					"mode": "后摇",
-					"pose": "站稳",
+					"pose": "动作",
 					"trend": "(0, 0)"
 				},
 				{
 					"cell": "(2, 5)",
 					"hp": 0,
 					"mode": "后摇",
-					"pose": "站稳",
+					"pose": "动作",
 					"trend": "(0, 0)"
 				},
 				{
 					"cell": "(5, 5)",
 					"hp": 0,
 					"mode": "后摇",
-					"pose": "站稳",
+					"pose": "动作",
 					"trend": "(0, 0)"
 				},
 				{
 					"cell": "(5, 2)",
 					"hp": 0,
 					"mode": "后摇",
-					"pose": "站稳",
+					"pose": "动作",
 					"trend": "(0, 0)"
 				}
 			],
@@ -425,7 +439,7 @@
 					"cell": "(4, 2)",
 					"hp": 0,
 					"mode": "后摇",
-					"pose": "站稳",
+					"pose": "动作",
 					"trend": "(0, 0)"
 				},
 				{
@@ -439,7 +453,7 @@
 					"cell": "(3, 5)",
 					"hp": 0,
 					"mode": "后摇",
-					"pose": "站稳",
+					"pose": "动作",
 					"trend": "(0, 0)"
 				},
 				{
@@ -463,28 +477,28 @@
 					"cell": "(3, 2)",
 					"hp": 0,
 					"mode": "后摇",
-					"pose": "站稳",
+					"pose": "动作",
 					"trend": "(0, 0)"
 				},
 				{
 					"cell": "(3, 5)",
 					"hp": 0,
 					"mode": "后摇",
-					"pose": "站稳",
+					"pose": "动作",
 					"trend": "(0, 0)"
 				},
 				{
 					"cell": "(4, 5)",
 					"hp": 0,
 					"mode": "后摇",
-					"pose": "站稳",
+					"pose": "动作",
 					"trend": "(0, 0)"
 				},
 				{
 					"cell": "(4, 2)",
 					"hp": 0,
 					"mode": "后摇",
-					"pose": "站稳",
+					"pose": "动作",
 					"trend": "(0, 0)"
 				}
 			],
@@ -501,7 +515,7 @@
 					"cell": "(3, 2)",
 					"hp": 0,
 					"mode": "后摇",
-					"pose": "站稳",
+					"pose": "动作",
 					"trend": "(0, 0)"
 				},
 				{
@@ -515,7 +529,7 @@
 					"cell": "(4, 5)",
 					"hp": 0,
 					"mode": "后摇",
-					"pose": "站稳",
+					"pose": "动作",
 					"trend": "(0, 0)"
 				},
 				{
@@ -539,28 +553,28 @@
 					"cell": "(2, 2)",
 					"hp": 0,
 					"mode": "后摇",
-					"pose": "站稳",
+					"pose": "动作",
 					"trend": "(0, 0)"
 				},
 				{
 					"cell": "(2, 5)",
 					"hp": 0,
 					"mode": "后摇",
-					"pose": "站稳",
+					"pose": "动作",
 					"trend": "(0, 0)"
 				},
 				{
 					"cell": "(5, 5)",
 					"hp": 0,
 					"mode": "后摇",
-					"pose": "站稳",
+					"pose": "动作",
 					"trend": "(0, 0)"
 				},
 				{
 					"cell": "(5, 2)",
 					"hp": 0,
 					"mode": "后摇",
-					"pose": "站稳",
+					"pose": "动作",
 					"trend": "(0, 0)"
 				}
 			],

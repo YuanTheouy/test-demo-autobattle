@@ -259,6 +259,7 @@ static func run(game) -> void:
 	report.balance = preload("res://scripts/beat_balance_validation.gd").run(game)
 	report.telegraphs = preload("res://scripts/beat_telegraph_validation.gd").run(game)
 	report.shooting = validate_shooting(game)
+	report.shot_postures = validate_shot_postures(game)
 	report.soldier = validate_soldier(game)
 	report.movement_lock = validate_movement_lock(game)
 	report.motion = validate_motion(game)
@@ -267,6 +268,48 @@ static func run(game) -> void:
 	var file := FileAccess.open("res://reports/beat-validation.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(report, "\t"))
 	print("BEAT PASSED: soldier preset, 9-beat straight route/12-beat zigzag, turn-standing, smooth braking, two-beat committed movement, one-beat PP dodge, six symmetric cases, nine legacy presets and editor")
+
+static func validate_shot_postures(game) -> Dictionary:
+	var sim = fixture(game)
+	sim.units[2].cell = Vector2i(4, 3)
+	ap(sim, 0, "普通攻击")
+	var poses: Array = []
+	for tick in range(4):
+		sim.tick()
+		poses.append(Beat.posture(sim.units[0]))
+	assert(poses == ["站立姿态", "僵直姿态", "动作姿态", "站立姿态"])
+	assert(sim.units[0].pose == "站稳")
+	# A pending aim can be cancelled before its beat; no firing, cost or CD leak.
+	sim = fixture(game)
+	sim.units[2].cell = Vector2i(4, 3)
+	sim.loadouts[0].reaction = [["侧闪", "无", "无"]]
+	sim.start_attack(sim.units[0], 2, "点射", sim.units[2].cell)
+	warning(sim, sim.units[0].cell, 1)
+	sim.tick()
+	assert(sim.shots == 0 and sim.units[0].energy == 80 and sim.units[0].phase == "侧闪跨格" and not sim.units[0].skill_cds.has("点射"))
+	# Pending release is locked even though last beat's visible aim was standing.
+	sim = fixture(game)
+	sim.units[2].cell = Vector2i(4, 3)
+	ap(sim, 0, "普通攻击")
+	sim.loadouts[0].reaction = [["侧闪", "无", "无"]]
+	sim.tick()
+	warning(sim, sim.units[0].cell, 2)
+	sim.tick()
+	assert(sim.shots == 1 and sim.units[0].cell == Vector2i(2, 3) and Beat.posture(sim.units[0]) == "僵直姿态")
+	# Recovery can be dodged without undoing the shot, its paid cost or own CD.
+	warning(sim, sim.units[0].cell, 3)
+	sim.tick()
+	assert(sim.units[0].phase == "侧闪跨格" and sim.units[0].pose == "移动" and sim.units[0].energy == 65 and sim.units[0].skill_cds["点射"] > 0 and sim.shots == 1)
+	assert(Beat.posture(sim.units[0]) == "动作姿态")
+	sim.units[0].skill_cds["点射"] = 0.0
+	sim.loadouts[0].reaction.clear()
+	sim.units[2].cell = sim.units[0].cell + Vector2i(2, 0)
+	var energy: float = sim.units[0].energy
+	sim.tick()
+	assert(sim.units[0].phase == "射击站立" and sim.units[0].pose == "站稳" and sim.shots == 1 and sim.units[0].energy >= energy)
+	sim.tick()
+	assert(sim.units[0].phase == "前摇" and sim.shots == 1)
+	return {"postures": poses, "checks": ["aim is cancellable before execution; refund retained", "release cannot be cancelled", "recovery dodge keeps shot, cost and independent CD", "dodge does not restore standing; a separate standing beat is required before shooting"]}
 
 static func validate_shooting(game) -> Dictionary:
 	var checks: Array = []

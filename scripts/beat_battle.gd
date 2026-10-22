@@ -136,7 +136,7 @@ func update_beat_menus() -> void:
 			elif index < entries.size(): menu.tooltip_text = entries[index].rule[column]
 
 func beat_help(skill: String) -> String:
-	if skill in ["普通攻击", "点射"]: return "普通射击需站立：非站立先花1拍站立，再瞄准预警1拍 → 目标格结算1拍 → 后摇2拍，结束恢复站立。消耗15精力。独立CD6拍，从开火起算，与后摇重叠；没有公共CD。"
+	if skill in ["普通攻击", "点射"]: return "普通射击需站立：非站立先花1拍站立，再瞄准预警1拍 → 目标格结算1拍 → 后摇2拍，结束恢复站立。瞄准可被侧闪取消；击发不可取消；后摇可取消，但侧闪后需重新站立。消耗15精力。独立CD6拍，从开火起算，与后摇重叠；没有公共CD。"
 	if skill == "站稳": return "耗1拍，移动姿态恢复站稳；不跨格。高级技能必须先站稳。预设附加有射位条件，可排序、改条件或删除。"
 	if skill in Beat.MOVE or skill in ["向左移动", "向右移动", "向上移动", "向下移动"]: return "普通移动2拍一格；同方向可以连续走，换方向前自动站立1拍。移动硬直只能用PP侧闪取消；侧闪1拍一格。减速时普通移动额外1拍。"
 	if skill == "侧闪": return "真实预警触发，1拍跨入安全相邻格，耗20精力。前摇取消退款，后摇取消不退款，释放硬直/碰撞中禁用；无安全格不触发。"
@@ -280,8 +280,8 @@ func refresh_ui() -> void:
 	status_label.text = "第 %03d 拍  ·  %.1f倍速 · 每拍%.2f秒  |  同步回合 · 整格判定" % [logic_frame, speed, Beat.SECONDS / playback_rate()]
 	if not started: status_label.text = "开局布阵  ·  8×8 节拍战斗  |  N 单拍 / Shift+N 四拍"
 	var u: Dictionary = units[editor_unit]
-	character_label.text = "%s%d · %s格 · %s · HP %d/%d · 盾%d" % ["蓝" if u.team == 0 else "红", u.member + 1, Beat.name_of(u.cell), action_state_label(u), u.hp, Beat.MAX_HP, u.shield]
-	info_label.text = "所在格 %s · %s · 趋势 %s · 生命%d/%d · 护盾%d\n本拍：%s；规则触发%d次\n%s\n精力 %d/100\n%s" % [Beat.name_of(u.cell), u.pose, "无" if u.trend == Vector2i.ZERO else direction_name(u.trend), u.hp, Beat.MAX_HP, u.shield, u.frame_branch, u.frame_triggers, u.reason, u.energy, u.last_cancel]
+	character_label.text = "%s%d · %s格 · %s · %s · HP %d/%d · 盾%d" % ["蓝" if u.team == 0 else "红", u.member + 1, Beat.name_of(u.cell), Beat.posture(u), action_state_label(u), u.hp, Beat.MAX_HP, u.shield]
+	info_label.text = "所在格 %s · 姿态：%s · 趋势 %s · 生命%d/%d · 护盾%d\n本拍：%s；规则触发%d次\n%s\n精力 %d/100\n%s" % [Beat.name_of(u.cell), Beat.posture(u), "无" if u.trend == Vector2i.ZERO else direction_name(u.trend), u.hp, Beat.MAX_HP, u.shield, u.frame_branch, u.frame_triggers, u.reason, u.energy, u.last_cancel]
 	skill_help.text = ("普通士兵 · 5血 · 普攻1伤害 · 无大招。" if team_presets[u.team] == SOLDIER_PRESET else "5血 · 普攻1 · 重击2 · 大招2–3 · 敌方碰撞各扣1血。") + "\n移动2拍/格；换向先站立1拍；直走不断速。侧闪1拍。"
 	for child in get_children():
 		if child.get_script() == preload("res://scripts/ultimate_portrait.gd"):
