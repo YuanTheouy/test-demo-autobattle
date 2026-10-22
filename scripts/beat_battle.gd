@@ -124,7 +124,7 @@ func update_beat_menus() -> void:
 			var menu: OptionButton = menus[column]
 			if column > 0:
 				for item in range(menu.item_count): menu.set_item_text(item, small_hp_condition(menu.get_item_text(item)))
-			var additions: Array = ["站稳", "向左移动", "向右移动", "向上移动", "向下移动"] if column == 0 else ["站稳姿态", "移动姿态", "有射位"]
+			var additions: Array = ["站稳", "向左移动", "向右移动", "向上移动", "向下移动"] if column == 0 else ["站稳姿态", "移动姿态", "动作姿态", "僵直姿态", "有射位"]
 			for label in additions:
 				var found := false
 				for item in range(menu.item_count):
@@ -141,8 +141,8 @@ func update_beat_menus() -> void:
 func beat_help(skill: String) -> String:
 	if skill in ["普通攻击", "点射"]: return "普通射击需站立：非站立先花1拍站立，再瞄准预警1拍 → 目标格结算1拍 → 后摇1拍，结束恢复站立。瞄准可被侧闪取消；击发不可取消；后摇可取消，但侧闪后需重新站立。消耗15精力。独立CD6拍，从开火起算，与后摇重叠；没有公共CD。"
 	if skill == "站稳": return "耗1拍，移动姿态恢复站稳；不跨格。高级技能必须先站稳。预设附加有射位条件，可排序、改条件或删除。"
-	if skill in Beat.MOVE or skill in ["向左移动", "向右移动", "向上移动", "向下移动"]: return "普通移动2拍一格；同方向可以连续走，换方向前自动站立1拍。移动硬直只能用PP侧闪取消；侧闪1拍一格。减速时普通移动额外1拍。"
-	if skill == "侧闪": return "真实预警触发，1拍跨入安全相邻格，耗20精力。前摇取消退款，后摇取消不退款，释放硬直/碰撞中禁用；无安全格不触发。"
+	if skill in Beat.MOVE or skill in ["向左移动", "向右移动", "向上移动", "向下移动"]: return "普通移动2拍一格；同方向可以连续走，换方向前自动站立1拍。移动硬直只能用PP侧闪取消；侧闪1拍一格，结束为有方向的移动姿态，同向可接普通移动，换向先站立1拍。减速时普通移动额外1拍。"
+	if skill == "侧闪": return "真实预警触发，1拍跨入安全相邻格，耗20精力。前摇取消退款，后摇取消不退款，释放硬直/碰撞中禁用；无安全格不触发。结束保留侧闪方向的移动姿态，同向接普通移动无需站立；转向或普攻须先站立。"
 	if skill == "回春": return "25精力；治疗1血，上限5血。自己或3格内队友刚受伤时触发；冷却32拍，后摇1拍。"
 	if skill == "灵木护佑": return "25精力；治疗1血并获得1盾，盾持续8拍。自己或3格内队友刚受伤时触发；冷却36拍，后摇1拍。"
 	if skill == "掩护队友": return "25精力；为3格内被威胁的队友提供2盾，持续8拍；护盾取较高值，不累加。冷却24拍，后摇1拍。"
@@ -303,12 +303,12 @@ func refresh_ui() -> void:
 	if segment_active: status_label.text = "第 %03d → %03d 拍 · 播放中 %.0f%% · 到交点才结算" % [logic_frame, logic_frame + 1, accumulator / Beat.SECONDS * 100]
 	if not started: status_label.text = "开局布阵  ·  8×8 节拍战斗  |  N 单拍 / Shift+N 四拍"
 	var u: Dictionary = units[editor_unit]
-	character_label.text = "%s%d · %s格 · %s · %s · HP %d/%d · 盾%d" % ["蓝" if u.team == 0 else "红", u.member + 1, Beat.name_of(u.cell), Beat.posture(u), action_state_label(u), u.hp, Beat.MAX_HP, u.shield]
+	character_label.text = "%s%d · %s格 · %s · %s · HP %d/%d · 盾%d" % ["蓝" if u.team == 0 else "红", u.member + 1, Beat.name_of(u.cell), Beat.posture_label(u), action_state_label(u), u.hp, Beat.MAX_HP, u.shield]
 	var upcoming_action := "未选定"
 	if not beat_sim.next_segment.is_empty():
 		var upcoming: Dictionary = beat_sim.next_segment.units[u.uid]
 		upcoming_action = upcoming.phase if upcoming.hp > 0 else "无（已倒下）"
-	info_label.text = "所在格 %s · 端点姿态：%s · 生命%d/%d · 精力%d/100\n刚完成：%s → 下一拍：%s\n%s\n%s" % [Beat.name_of(u.cell), Beat.posture(u), u.hp, Beat.MAX_HP, u.energy, action_state_label(u), upcoming_action, u.reason, u.last_cancel]
+	info_label.text = "所在格 %s · 端点姿态：%s · 生命%d/%d · 精力%d/100\n刚完成：%s → 下一拍：%s\n%s\n%s" % [Beat.name_of(u.cell), Beat.posture_label(u), u.hp, Beat.MAX_HP, u.energy, action_state_label(u), upcoming_action, u.reason, u.last_cancel]
 
 	skill_help.text = ("普通士兵 · 5血 · 普攻1伤害 · 无大招。" if team_presets[u.team] == SOLDIER_PRESET else "5血 · 普攻1 · 重击2 · 大招2–3 · 敌方碰撞各扣1血。") + "\n移动2拍/格；换向先站立1拍；直走不断速。侧闪1拍。"
 	for child in get_children():

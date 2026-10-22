@@ -111,8 +111,14 @@ func reset(source_units: Array, source_loadouts: Array, walls: Array) -> void:
 static func posture(u: Dictionary) -> String:
 	# Endpoint posture constrains the segment about to begin, not the one completed.
 	if pp_locked(u): return "僵直姿态"
-	if u.mode == "后摇" or u.pose != "站稳": return "动作姿态"
+	if u.mode == "后摇" or u.pose == "动作": return "动作姿态"
+	if u.pose == "移动": return "移动姿态"
 	return "站立姿态"
+
+static func posture_label(u: Dictionary) -> String:
+	var kind := posture(u)
+	if kind != "移动姿态": return kind
+	return kind + "·" + str({Vector2i.RIGHT: "右", Vector2i.LEFT: "左", Vector2i.UP: "上", Vector2i.DOWN: "下"}.get(u.trend, "无"))
 
 static func pp_locked(u: Dictionary) -> bool:
 	# Decide from the stage about to execute, never from last beat's display pose.
@@ -220,8 +226,10 @@ func condition(u: Dictionary, target: int, text: String, snapshot: Array) -> boo
 	var ally := ally_of(u, snapshot)
 	match text:
 		"有射位": return target >= 0 and ranged(u, snapshot[target], "点射")
-		"站稳姿态": return u.pose == "站稳"
-		"移动姿态": return u.pose != "站稳"
+		"站稳姿态": return posture(u) == "站立姿态"
+		"移动姿态": return posture(u) == "移动姿态"
+		"动作姿态": return posture(u) == "动作姿态"
+		"僵直姿态": return posture(u) == "僵直姿态"
 		"自己精力≥80": return u.energy >= 80
 		"自己精力≥50": return u.energy >= 50
 		"自己精力≤30": return u.energy <= 30

@@ -197,6 +197,19 @@
 		"nine presets complete; speed independence; single beat stepping; deployment/edit persistence"
 	],
 	"default_real_beat_seconds": 0.5,
+	"dodge_movement_pose": {
+		"checks": [
+			"dodge right preserves directed movement, then 向右移动",
+			"dodge right preserves directed movement, then 向上移动",
+			"dodge right preserves directed movement, then 普通攻击"
+		],
+		"postures": [
+			"站立姿态",
+			"移动姿态",
+			"动作姿态",
+			"僵直姿态"
+		]
+	},
 	"matches": [
 		{
 			"beats": 78,

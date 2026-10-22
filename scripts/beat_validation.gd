@@ -263,6 +263,7 @@ static func run(game) -> void:
 	report.telegraphs = preload("res://scripts/beat_telegraph_validation.gd").run(game)
 	report.shooting = validate_shooting(game)
 	report.shot_postures = validate_shot_postures(game)
+	report.dodge_movement_pose = validate_dodge_pose(game)
 	report.boundary = validate_boundaries(game)
 	report.animate_then_settle = validate_live_steps(game)
 	report.soldier = validate_soldier(game)
@@ -273,6 +274,35 @@ static func run(game) -> void:
 	var file := FileAccess.open("res://reports/beat-validation.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(report, "\t"))
 	print("BEAT PASSED: soldier preset, 9-beat straight route/12-beat zigzag, turn-standing, smooth braking, two-beat committed movement, one-beat PP dodge, six symmetric cases, nine legacy presets and editor")
+
+static func validate_dodge_pose(game) -> Dictionary:
+	var checks: Array = []
+	for follow in ["向右移动", "向上移动", "普通攻击"]:
+		var sim = fixture(game)
+		sim.units[2].cell = Vector2i(6, 3)
+		sim.loadouts[0].reaction = [["侧闪", "无", "无"]]
+		warning(sim, sim.units[0].cell, 1)
+		sim.tick()
+		var u: Dictionary = sim.units[0]
+		assert(u.cell == Vector2i(3, 3) and u.trend == Vector2i.RIGHT and u.pose == "移动" and Beat.posture(u) == "移动姿态")
+		assert(sim.condition(u, 2, "移动姿态", sim.units) and not sim.condition(u, 2, "动作姿态", sim.units))
+		assert(Beat.posture_label(u) == "移动姿态·右")
+		ap(sim, 0, follow)
+		sim.tick()
+		if follow == "向右移动":
+			assert(sim.units[0].mode == "移动硬直" and sim.units[0].cell == Vector2i(3, 3) and sim.units[0].left == 1)
+			sim.tick()
+			assert(sim.units[0].cell == Vector2i(4, 3) and Beat.posture(sim.units[0]) == "移动姿态")
+		elif follow == "向上移动":
+			assert(sim.units[0].phase == "转向站立" and Beat.posture(sim.units[0]) == "站立姿态")
+			sim.tick()
+			assert(sim.units[0].mode == "移动硬直" and sim.units[0].trend == Vector2i.UP)
+		else:
+			assert(sim.units[0].phase == "射击站立" and sim.shots == 0 and Beat.posture(sim.units[0]) == "站立姿态")
+			sim.tick()
+			assert(sim.units[0].phase == "前摇" and sim.shots == 0)
+		checks.append("dodge right preserves directed movement, then " + follow)
+	return {"checks": checks, "postures": ["站立姿态", "移动姿态", "动作姿态", "僵直姿态"]}
 
 static func validate_live_steps(game) -> Dictionary:
 	var checks: Array = []
@@ -411,7 +441,7 @@ static func validate_shot_postures(game) -> Dictionary:
 	warning(sim, sim.units[0].cell, 3)
 	sim.tick()
 	assert(sim.units[0].phase == "侧闪跨格" and sim.units[0].pose == "移动" and sim.units[0].energy == 65 and sim.units[0].skill_cds["点射"] > 0 and sim.shots == 1)
-	assert(Beat.posture(sim.units[0]) == "动作姿态")
+	assert(Beat.posture(sim.units[0]) == "移动姿态")
 	sim.units[0].skill_cds["点射"] = 0.0
 	sim.loadouts[0].reaction.clear()
 	sim.units[2].cell = sim.units[0].cell + Vector2i(2, 0)
