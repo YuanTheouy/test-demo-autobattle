@@ -92,6 +92,11 @@ func reset(source_units: Array, source_loadouts: Array, walls: Array) -> void:
 		u.paid = 0.0
 		u.committed = false
 		u.attack_started = -1
+		u.init_index = 0
+		u.init_active = false
+		u.trace_init = []
+		u.trace_init.resize(Tactics.RULE_LIMIT)
+		u.trace_init.fill("未执行")
 		u.lock_cells = []
 		u.return_cell = u.cell
 		u.collision_at = Vector2i(-1, -1)
@@ -234,8 +239,10 @@ func condition(u: Dictionary, target: int, text: String, snapshot: Array) -> boo
 	match text:
 		"有射位": return target >= 0 and ranged(u, snapshot[target], "点射")
 		"敌人处于站立姿态": return target >= 0 and posture(snapshot[target]) == "站立姿态"
+		"敌人处于动作姿态": return target >= 0 and posture(snapshot[target]) == "动作姿态"
+		"敌人处于僵直姿态": return target >= 0 and posture(snapshot[target]) == "僵直姿态"
 		"站稳姿态": return posture(u) == "站立姿态"
-		"移动姿态": return posture(u) == "移动姿态"
+		"移动姿态", "自己处于移动姿态": return posture(u) == "移动姿态"
 		"敌人处于移动姿态", "沿移动方向预判1格": return target >= 0 and posture(snapshot[target]) == "移动姿态" and snapshot[target].trend in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]
 		"动作姿态": return posture(u) == "动作姿态"
 		"僵直姿态": return posture(u) == "僵直姿态"
@@ -303,12 +310,13 @@ func select_rule(u: Dictionary, kind: String, slot: int, skill: String) -> void:
 	assert(u.frame_triggers == 1, "Only one AP or PP selection per beat")
 	u.rule_kind = kind
 	u.rule_slot = slot
-	u.rule = ("AP" if kind == "active" else "PP") + "%d %s" % [slot + 1, skill]
+	u.rule = ("Init" if kind == "init" else ("AP" if kind == "active" else "PP")) + "%d %s" % [slot + 1, skill]
+	if kind == "init": u.init_active = true
 	u.active_skill = "点射" if skill == "普通攻击" else skill
 	u.intent = skill
 	u.frame_branch = u.rule
 	u.reason = "第%d拍 · %s" % [beat, u.rule]
-	var trace: Array = u.trace_ap if kind == "active" else u.trace_pp
+	var trace: Array = u.trace_init if kind == "init" else (u.trace_ap if kind == "active" else u.trace_pp)
 	trace[slot] = "本拍选中"
 	var key := "%d:%s" % [u.uid, skill]
 	activations[key] = int(activations.get(key, 0)) + 1
@@ -483,11 +491,12 @@ func cancel(u: Dictionary) -> void:
 		u.energy = minf(100, u.energy + refund)
 		if u.active_skill in ["天穹贯穿", "星火轰炸"]: u.ult_charge = 100.0
 	if u.rule_slot >= 0 and not old.is_empty():
-		var trace: Array = u.trace_ap if u.rule_kind == "active" else u.trace_pp
+		var trace: Array = u.trace_init if u.rule_kind == "init" else (u.trace_ap if u.rule_kind == "active" else u.trace_pp)
 		trace[u.rule_slot] = "%s取消·退%d" % [old, refund]
 	u.last_cancel = "%s取消，退%d精力" % [old if not old.is_empty() else "移动", refund]
 	u.last_cancel_frame = beat
 	u.mode = ""
+	u.init_active = false # Interrupted Init commands retry after the PP; never skip a half action.
 	u.paid = 0.0
 	u.left = 0
 	u.lock_cells = []
@@ -607,46 +616,50 @@ func try_pp(u: Dictionary, snapshot: Array, old_strikes: Array, proposals: Dicti
 		return true
 	return false
 
-func try_ap(u: Dictionary, snapshot: Array, proposals: Dictionary) -> void:
-	u.trace_ap.fill("未检查（上方优先）")
-	for slot in range(loadouts[u.uid].active.size()):
-		var rule: Array = loadouts[u.uid].active[slot]
+func try_ap(u: Dictionary, snapshot: Array, proposals: Dictionary, kind := "active") -> void:
+	var rows: Array = loadouts[u.uid].get(kind, [])
+	var trace: Array = u.trace_init if kind == "init" else u.trace_ap
+	if kind == "active": trace.fill("未检查（上方优先）")
+	var first: int = u.init_index if kind == "init" else 0
+	var last: int = mini(first + 1, rows.size()) if kind == "init" else rows.size()
+	for slot in range(first, last):
+		var rule: Array = rows[slot]
 		var skill: String = rule[0]
 		var actual := "点射" if skill == "普通攻击" else skill
 		var gate := ready(u, actual)
 		if actual == "点射" and gate == "需要站稳":
 			var aim_target := target_for(u, rule, snapshot, true)
-			if aim_target < 0: u.trace_ap[slot] = "没有符合条件的目标"; continue
-			select_rule(u, "active", slot, skill)
+			if aim_target < 0: trace[slot] = "没有符合条件的目标"; continue
+			select_rule(u, kind, slot, skill)
 			u.target = aim_target
 			stand(u, "射击站立")
 			u.frame_branch = "射击：先站立1拍"
 			u.reason += "；普通射击必须先站立，本拍不瞄准、不消耗精力或CD"
 			return
-		if not gate.is_empty(): u.trace_ap[slot] = gate; continue
+		if not gate.is_empty(): trace[slot] = gate; continue
 		var target := target_for(u, rule, snapshot, skill not in MOVE and skill != "站稳")
 		if skill == "站稳":
-			if u.pose == "站稳" or not condition(u, target, rule[1], snapshot) or not condition(u, target, rule[2], snapshot): u.trace_ap[slot] = "姿态/条件未满足"; continue
-			select_rule(u, "active", slot, skill)
+			if not condition(u, target, rule[1], snapshot) or not condition(u, target, rule[2], snapshot): trace[slot] = "条件未满足"; continue
+			select_rule(u, kind, slot, skill)
 			stand(u)
 			return
 		if skill in ["向左移动", "向右移动", "向上移动", "向下移动"]:
 			if not condition(u, target, rule[1], snapshot) or not condition(u, target, rule[2], snapshot): continue
 			var d: Vector2i = {"向左移动": Vector2i.LEFT, "向右移动": Vector2i.RIGHT, "向上移动": Vector2i.UP, "向下移动": Vector2i.DOWN}[skill]
-			if not legal(u.cell + d): u.trace_ap[slot] = "边界/掩体阻挡"; continue
-			select_rule(u, "active", slot, skill)
+			if not legal(u.cell + d): trace[slot] = "边界/掩体阻挡"; continue
+			select_rule(u, kind, slot, skill)
 			request_move(u, d, proposals)
 			return
-		if target < 0: u.trace_ap[slot] = "没有符合条件的目标"; continue
+		if target < 0: trace[slot] = "没有符合条件的目标"; continue
 		if skill in MOVE:
-			if skill == "搜寻": u.trace_ap[slot] = "敌人已知，无需搜寻"; continue
+			if skill == "搜寻": trace[slot] = "敌人已知，无需搜寻"; continue
 			if skill == "调整站位" and not ranged(u, snapshot[target], "点射"): continue
 			var d := path_direction(u, target, skill, snapshot)
 			if d == Vector2i.ZERO:
-				u.trace_ap[slot] = "没有可改善路径距离的合法一步" if skill in ["接敌", "远敌", "后撤"] else "没有合法移动方向"
+				trace[slot] = "没有可改善路径距离的合法一步" if skill in ["接敌", "远敌", "后撤"] else "没有合法移动方向"
 				continue
 			if skill == "调整站位" and move_score(u, u.cell + d, target, skill, snapshot) >= move_score(u, u.cell, target, skill, snapshot): continue
-			select_rule(u, "active", slot, skill)
+			select_rule(u, kind, slot, skill)
 			u.target = target
 			request_move(u, d, proposals)
 			if u.phase != "转向站立":
@@ -654,7 +667,7 @@ func try_ap(u: Dictionary, snapshot: Array, proposals: Dictionary) -> void:
 				if skill == "短冲刺": u.skill_cds[skill] = skill_cd(skill)
 			return
 		if skill == "留空": continue
-		select_rule(u, "active", slot, skill)
+		select_rule(u, kind, slot, skill)
 		start_attack(u, target, actual, aim_cell(u, snapshot[target], rule))
 		if "沿移动方向预判1格" in rule: u.reason += "；预判落点 " + name_of(u.lock_cells[0])
 		advance_attack(u)
@@ -663,7 +676,7 @@ func try_ap(u: Dictionary, snapshot: Array, proposals: Dictionary) -> void:
 	u.intent = "待命"
 	u.rule_kind = ""
 	u.rule_slot = -1
-	u.reason = "没有可执行的AP/PP；保留当前姿态"
+	u.reason = ("Init第%d项等待：" % (u.init_index + 1) + str(trace[u.init_index])) if kind == "init" else "没有可执行的AP/PP；保留当前姿态"
 
 func collide(ids: Array, destination: Vector2i, snapshot: Array, next_units: Array, damage: Array, moved: Dictionary) -> void:
 	for uid in ids:
@@ -671,6 +684,7 @@ func collide(ids: Array, destination: Vector2i, snapshot: Array, next_units: Arr
 		u.return_cell = snapshot[uid].cell
 		u.cell = destination if destination != Vector2i(-1, -1) else snapshot[uid].cell
 		u.mode = "碰撞"
+		u.init_active = false
 		u.phase = "碰撞硬直"
 		u.pose = "移动"
 		u.left = 1
@@ -781,7 +795,8 @@ func choose_next_segment() -> void:
 			manual.erase(u.uid)
 			advance_attack(u)
 			continue
-		try_ap(u, snapshot, proposals)
+		var init_rows: Array = loadouts[uid].get("init", [])
+		try_ap(u, snapshot, proposals, "init" if u.init_index < init_rows.size() else "active")
 	next_segment = {"key": key, "units": next_units, "moves": proposals, "supports": supports,
 		"strikes": strikes, "shots": shots, "manual": manual, "activations": activations}
 	beat = saved_beat
@@ -885,6 +900,12 @@ func tick() -> void:
 		if thorns[u.uid]:
 			if u.thorns <= 0: u.thorn_tick = 2.0
 			u.thorns = 4.0
+		# A sequence advances only after the entire command settles, never at selection.
+		if u.init_active and u.mode.is_empty():
+			if u.hp > 0 and u.phase not in ["转向站立", "射击站立", "退路保留"]:
+				u.trace_init[u.init_index] = "已完成"
+				u.init_index += 1
+			u.init_active = false
 		u.p = center(u.cell)
 		u.action_stage = u.mode if u.mode in ["前摇", "释放硬直", "后摇"] else ""
 		u.stage_frames = u.left

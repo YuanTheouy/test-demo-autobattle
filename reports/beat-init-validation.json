@@ -1,0 +1,1135 @@
+{
+	"checks": [
+		"standing while already standing consumes one beat and wins Loop priority every time",
+		"two standing commands then full two-beat move; no early commit, no transition gap, reset restarts sequence",
+		"Init attack waits for aiming, release and recovery; next command never starts on its completion beat",
+		"automatic turn-standing and shooting-standing are preparation, not completed Init commands",
+		"unavailable Init item waits without falling through to later commands or Loop",
+		"PP can interrupt Init; windup refund preserved, canceled command retries instead of being skipped",
+		"collision and bounce do not falsely complete Init movement",
+		"death prevents advancing the sequence",
+		"different Init lengths advance independently; reversed bot update order produces identical settled state",
+		"Init/Loop UI selection, actual menu callbacks, reorder/delete, per-bot isolation, edit preservation and animated single-step"
+	],
+	"dodge_coverage": {
+		"interpretation": "Only these 24 Init sequences and this fixed shooter/Loop were tested. Opening standing alone cannot improve flawless coverage: first lob lands at beat2 before delayed movement finishes.",
+		"loop": "远敌〔敌人站立〕→接敌",
+		"opponent": "stationary unconditional lob",
+		"rows": [
+			{
+				"first_move": "",
+				"spawn_pairs": 72,
+				"standing_beats": 0,
+				"unhurt_240_beats": 30
+			},
+			{
+				"first_move": "",
+				"spawn_pairs": 72,
+				"standing_beats": 1,
+				"unhurt_240_beats": 0
+			},
+			{
+				"first_move": "",
+				"spawn_pairs": 72,
+				"standing_beats": 2,
+				"unhurt_240_beats": 0
+			},
+			{
+				"first_move": "",
+				"spawn_pairs": 72,
+				"standing_beats": 3,
+				"unhurt_240_beats": 0
+			},
+			{
+				"first_move": "",
+				"spawn_pairs": 72,
+				"standing_beats": 4,
+				"unhurt_240_beats": 0
+			},
+			{
+				"first_move": "",
+				"spawn_pairs": 72,
+				"standing_beats": 5,
+				"unhurt_240_beats": 0
+			},
+			{
+				"first_move": "",
+				"spawn_pairs": 72,
+				"standing_beats": 6,
+				"unhurt_240_beats": 0
+			},
+			{
+				"first_move": "",
+				"spawn_pairs": 72,
+				"standing_beats": 7,
+				"unhurt_240_beats": 0
+			},
+			{
+				"first_move": "接敌",
+				"spawn_pairs": 72,
+				"standing_beats": 0,
+				"unhurt_240_beats": 30
+			},
+			{
+				"first_move": "接敌",
+				"spawn_pairs": 72,
+				"standing_beats": 1,
+				"unhurt_240_beats": 14
+			},
+			{
+				"first_move": "接敌",
+				"spawn_pairs": 72,
+				"standing_beats": 2,
+				"unhurt_240_beats": 26
+			},
+			{
+				"first_move": "接敌",
+				"spawn_pairs": 72,
+				"standing_beats": 3,
+				"unhurt_240_beats": 31
+			},
+			{
+				"first_move": "接敌",
+				"spawn_pairs": 72,
+				"standing_beats": 4,
+				"unhurt_240_beats": 0
+			},
+			{
+				"first_move": "接敌",
+				"spawn_pairs": 72,
+				"standing_beats": 5,
+				"unhurt_240_beats": 36
+			},
+			{
+				"first_move": "接敌",
+				"spawn_pairs": 72,
+				"standing_beats": 6,
+				"unhurt_240_beats": 17
+			},
+			{
+				"first_move": "接敌",
+				"spawn_pairs": 72,
+				"standing_beats": 7,
+				"unhurt_240_beats": 0
+			},
+			{
+				"first_move": "远敌",
+				"spawn_pairs": 72,
+				"standing_beats": 0,
+				"unhurt_240_beats": 16
+			},
+			{
+				"first_move": "远敌",
+				"spawn_pairs": 72,
+				"standing_beats": 1,
+				"unhurt_240_beats": 16
+			},
+			{
+				"first_move": "远敌",
+				"spawn_pairs": 72,
+				"standing_beats": 2,
+				"unhurt_240_beats": 22
+			},
+			{
+				"first_move": "远敌",
+				"spawn_pairs": 72,
+				"standing_beats": 3,
+				"unhurt_240_beats": 35
+			},
+			{
+				"first_move": "远敌",
+				"spawn_pairs": 72,
+				"standing_beats": 4,
+				"unhurt_240_beats": 7
+			},
+			{
+				"first_move": "远敌",
+				"spawn_pairs": 72,
+				"standing_beats": 5,
+				"unhurt_240_beats": 37
+			},
+			{
+				"first_move": "远敌",
+				"spawn_pairs": 72,
+				"standing_beats": 6,
+				"unhurt_240_beats": 27
+			},
+			{
+				"first_move": "远敌",
+				"spawn_pairs": 72,
+				"standing_beats": 7,
+				"unhurt_240_beats": 0
+			}
+		],
+		"solutions": [
+			{
+				"blue": "F6",
+				"init": [],
+				"red": "G7"
+			},
+			{
+				"blue": "F6",
+				"init": [],
+				"red": "G8"
+			},
+			{
+				"blue": "F6",
+				"init": [],
+				"red": "H7"
+			},
+			{
+				"blue": "F6",
+				"init": [],
+				"red": "H8"
+			},
+			{
+				"blue": "F7",
+				"init": [],
+				"red": "F6"
+			},
+			{
+				"blue": "F7",
+				"init": [],
+				"red": "F8"
+			},
+			{
+				"blue": "F7",
+				"init": [],
+				"red": "G7"
+			},
+			{
+				"blue": "F7",
+				"init": [],
+				"red": "H7"
+			},
+			{
+				"blue": "F8",
+				"init": [],
+				"red": "G6"
+			},
+			{
+				"blue": "F8",
+				"init": [],
+				"red": "G7"
+			},
+			{
+				"blue": "F8",
+				"init": [],
+				"red": "H6"
+			},
+			{
+				"blue": "F8",
+				"init": [],
+				"red": "H7"
+			},
+			{
+				"blue": "G6",
+				"init": [],
+				"red": "G7"
+			},
+			{
+				"blue": "G6",
+				"init": [],
+				"red": "H6"
+			},
+			{
+				"blue": "G6",
+				"init": [],
+				"red": "H7"
+			},
+			{
+				"blue": "G7",
+				"init": [],
+				"red": "H7"
+			},
+			{
+				"blue": "G8",
+				"init": [],
+				"red": "G7"
+			},
+			{
+				"blue": "G8",
+				"init": [],
+				"red": "H7"
+			},
+			{
+				"blue": "G8",
+				"init": [],
+				"red": "H8"
+			},
+			{
+				"blue": "H6",
+				"init": [],
+				"red": "F7"
+			},
+			{
+				"blue": "H6",
+				"init": [],
+				"red": "F8"
+			},
+			{
+				"blue": "H6",
+				"init": [],
+				"red": "G7"
+			},
+			{
+				"blue": "H6",
+				"init": [],
+				"red": "H7"
+			},
+			{
+				"blue": "H7",
+				"init": [],
+				"red": "G6"
+			},
+			{
+				"blue": "H7",
+				"init": [],
+				"red": "G7"
+			},
+			{
+				"blue": "H7",
+				"init": [],
+				"red": "G8"
+			},
+			{
+				"blue": "H8",
+				"init": [],
+				"red": "F6"
+			},
+			{
+				"blue": "H8",
+				"init": [],
+				"red": "F7"
+			},
+			{
+				"blue": "H8",
+				"init": [],
+				"red": "G7"
+			},
+			{
+				"blue": "H8",
+				"init": [],
+				"red": "H7"
+			},
+			{
+				"blue": "F6",
+				"init": [
+					[
+						"接敌",
+						"无",
+						"无"
+					]
+				],
+				"red": "F8"
+			},
+			{
+				"blue": "F6",
+				"init": [
+					[
+						"接敌",
+						"无",
+						"无"
+					]
+				],
+				"red": "H6"
+			},
+			{
+				"blue": "F7",
+				"init": [
+					[
+						"接敌",
+						"无",
+						"无"
+					]
+				],
+				"red": "H6"
+			},
+			{
+				"blue": "F7",
+				"init": [
+					[
+						"接敌",
+						"无",
+						"无"
+					]
+				],
+				"red": "H8"
+			},
+			{
+				"blue": "F8",
+				"init": [
+					[
+						"接敌",
+						"无",
+						"无"
+					]
+				],
+				"red": "F6"
+			},
+			{
+				"blue": "F8",
+				"init": [
+					[
+						"接敌",
+						"无",
+						"无"
+					]
+				],
+				"red": "H8"
+			},
+			{
+				"blue": "G6",
+				"init": [
+					[
+						"接敌",
+						"无",
+						"无"
+					]
+				],
+				"red": "F8"
+			},
+			{
+				"blue": "G6",
+				"init": [
+					[
+						"接敌",
+						"无",
+						"无"
+					]
+				],
+				"red": "G8"
+			},
+			{
+				"blue": "G7",
+				"init": [
+					[
+						"接敌",
+						"无",
+						"无"
+					]
+				],
+				"red": "F6"
+			},
+			{
+				"blue": "G7",
+				"init": [
+					[
+						"接敌",
+						"无",
+						"无"
+					]
+				],
+				"red": "F8"
+			},
+			{
+				"blue": "G7",
+				"init": [
+					[
+						"接敌",
+						"无",
+						"无"
+					]
+				],
+				"red": "H6"
+			},
+			{
+				"blue": "G7",
+				"init": [
+					[
+						"接敌",
+						"无",
+						"无"
+					]
+				],
+				"red": "H8"
+			},
+			{
+				"blue": "G8",
+				"init": [
+					[
+						"接敌",
+						"无",
+						"无"
+					]
+				],
+				"red": "F6"
+			},
+			{
+				"blue": "G8",
+				"init": [
+					[
+						"接敌",
+						"无",
+						"无"
+					]
+				],
+				"red": "G6"
+			},
+			{
+				"blue": "H7",
+				"init": [
+					[
+						"接敌",
+						"无",
+						"无"
+					]
+				],
+				"red": "F7"
+			},
+			{
+				"blue": "F7",
+				"init": [
+					[
+						"接敌",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					]
+				],
+				"red": "G6"
+			},
+			{
+				"blue": "F7",
+				"init": [
+					[
+						"接敌",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					]
+				],
+				"red": "G8"
+			},
+			{
+				"blue": "G6",
+				"init": [
+					[
+						"接敌",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					]
+				],
+				"red": "F7"
+			},
+			{
+				"blue": "G8",
+				"init": [
+					[
+						"接敌",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					]
+				],
+				"red": "F7"
+			},
+			{
+				"blue": "G6",
+				"init": [
+					[
+						"接敌",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					]
+				],
+				"red": "H8"
+			},
+			{
+				"blue": "G8",
+				"init": [
+					[
+						"接敌",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					]
+				],
+				"red": "H6"
+			},
+			{
+				"blue": "H7",
+				"init": [
+					[
+						"接敌",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					]
+				],
+				"red": "F6"
+			},
+			{
+				"blue": "H7",
+				"init": [
+					[
+						"接敌",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					]
+				],
+				"red": "F8"
+			},
+			{
+				"blue": "H6",
+				"init": [
+					[
+						"接敌",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					]
+				],
+				"red": "F6"
+			},
+			{
+				"blue": "H6",
+				"init": [
+					[
+						"接敌",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					]
+				],
+				"red": "G8"
+			},
+			{
+				"blue": "H6",
+				"init": [
+					[
+						"接敌",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					]
+				],
+				"red": "H8"
+			},
+			{
+				"blue": "H8",
+				"init": [
+					[
+						"接敌",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					]
+				],
+				"red": "F8"
+			},
+			{
+				"blue": "H8",
+				"init": [
+					[
+						"接敌",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					]
+				],
+				"red": "G6"
+			},
+			{
+				"blue": "H8",
+				"init": [
+					[
+						"接敌",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					]
+				],
+				"red": "H6"
+			},
+			{
+				"blue": "G6",
+				"init": [
+					[
+						"远敌",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					]
+				],
+				"red": "F6"
+			},
+			{
+				"blue": "G8",
+				"init": [
+					[
+						"远敌",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					]
+				],
+				"red": "F8"
+			},
+			{
+				"blue": "H7",
+				"init": [
+					[
+						"远敌",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					]
+				],
+				"red": "H6"
+			},
+			{
+				"blue": "H7",
+				"init": [
+					[
+						"远敌",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					]
+				],
+				"red": "H8"
+			},
+			{
+				"blue": "F6",
+				"init": [
+					[
+						"远敌",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					]
+				],
+				"red": "F7"
+			},
+			{
+				"blue": "F6",
+				"init": [
+					[
+						"远敌",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					]
+				],
+				"red": "G6"
+			},
+			{
+				"blue": "F8",
+				"init": [
+					[
+						"远敌",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					]
+				],
+				"red": "F7"
+			},
+			{
+				"blue": "F8",
+				"init": [
+					[
+						"远敌",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					]
+				],
+				"red": "G8"
+			},
+			{
+				"blue": "G7",
+				"init": [
+					[
+						"远敌",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					]
+				],
+				"red": "F7"
+			},
+			{
+				"blue": "G7",
+				"init": [
+					[
+						"远敌",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					]
+				],
+				"red": "G6"
+			},
+			{
+				"blue": "G7",
+				"init": [
+					[
+						"远敌",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					]
+				],
+				"red": "G8"
+			},
+			{
+				"blue": "H6",
+				"init": [
+					[
+						"远敌",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					]
+				],
+				"red": "G6"
+			},
+			{
+				"blue": "H8",
+				"init": [
+					[
+						"远敌",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					],
+					[
+						"站稳",
+						"无",
+						"无"
+					]
+				],
+				"red": "G8"
+			}
+		],
+		"solved_spawn_pairs": 72
+	}
+}

@@ -362,7 +362,7 @@
 		"modifier works in either condition column; invalid nearest target does not hide another valid moving target",
 		"prediction preserves mandatory standing preparation",
 		"prediction demo preset and both condition columns survive editor rebuilding",
-		"seven-condition menu; skill-specific subsets; switching skills preserves valid filters and clears unsupported prediction; standing filter excludes recovery",
+		"categorized menus; all four mutually exclusive enemy postures; real submenu selection/clearing; skill-specific subsets; retired aim remains replayable only",
 		"player skill menus expose only lob/approach/retreat/dodge plus empty; legacy presets hidden; visible lob label and AP/PP add/delete work; hidden skills remain implemented"
 	],
 	"shooting": {

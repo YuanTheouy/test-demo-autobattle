@@ -73,23 +73,33 @@ static func run(game) -> Array:
 	assert(game.loadouts[0].active[0] == ["普通攻击", "敌人处于移动姿态", "沿移动方向预判1格"])
 	for column in [1, 2]:
 		var menu: OptionButton = game.editor_rows[0].menus[column]
-		assert(menu.get_item_text(menu.selected) == game.loadouts[0].active[0][column])
+		assert(menu.text == ("旧实验：前方1格" if column == 2 else game.loadouts[0].active[0][column]))
 	checks.append("prediction demo preset and both condition columns survive editor rebuilding")
-	assert(game.SIMPLE_CONDITIONS.size() == 7)
+	assert(game.SIMPLE_CONDITIONS.size() == 9 and game.LEGACY_AIM not in game.SIMPLE_CONDITIONS)
 	for column in [1, 2]:
 		var menu: OptionButton = game.editor_rows[0].menus[column]
-		assert(menu.item_count == 7)
-		for item in range(menu.item_count): assert(menu.get_item_text(item) == game.SIMPLE_CONDITIONS[item])
+		assert(menu.item_count == 4 and menu.get_item_text(0) == "无")
+		for item in range(1, 4): assert(menu.get_item_text(item) == game.CONDITION_GROUPS.keys()[item - 1])
+		var posture_menu: PopupMenu = menu.get_popup().get_node(menu.get_popup().get_item_submenu(2))
+		assert(posture_menu.item_count == 4)
+		for item in range(4): assert(posture_menu.get_item_metadata(item) == game.CONDITION_GROUPS["敌人姿态"][item])
+	# Exercise the actual submenu callback, not a direct edit helper.
+	var posture_popup: PopupMenu = game.editor_rows[0].menus[1].get_popup().get_node("ConditionGroup1")
+	posture_popup.id_pressed.emit(2)
+	assert(game.loadouts[0].active[0][1] == "敌人处于动作姿态")
+	game.editor_rows[0].menus[1].item_selected.emit(0)
+	assert(game.loadouts[0].active[0][1] == "无")
+	game.edit_rule_cell(0, 1, "敌人处于移动姿态")
 	game.edit_rule_cell(0, 0, "接敌")
 	assert(game.loadouts[0].active[0] == ["接敌", "敌人处于移动姿态", "无"])
 	for column in [1, 2]:
 		var menu: OptionButton = game.editor_rows[0].menus[column]
-		assert(menu.item_count == 6)
+		assert(menu.item_count == 4)
 		for item in range(menu.item_count): assert(menu.get_item_text(item) != "沿移动方向预判1格")
 	game.edit_rule_cell(0, 1, "敌人处于站立姿态")
 	game.rebuild_editor()
 	assert(game.loadouts[0].active[0][1] == "敌人处于站立姿态")
-	assert(game.conditions_for_skill("站稳") == ["无", "自己HP≤2"])
+	assert(game.conditions_for_skill("站稳") == ["无", "自己HP≤2", "自己处于移动姿态"])
 	assert(game.conditions_for_skill("回春") == ["无", "自己HP≤2"])
 	var standing = fixture(game)
 	assert(not standing.condition(standing.units[0], 2, "敌人处于站立姿态", standing.units))
@@ -98,7 +108,13 @@ static func run(game) -> Array:
 	assert(standing.condition(standing.units[0], 2, "敌人处于站立姿态", standing.units))
 	standing.units[2].mode = "后摇"
 	assert(not standing.condition(standing.units[0], 2, "敌人处于站立姿态", standing.units))
-	checks.append("seven-condition menu; skill-specific subsets; switching skills preserves valid filters and clears unsupported prediction; standing filter excludes recovery")
+	for state in ["站立姿态", "移动姿态", "动作姿态", "僵直姿态"]:
+		standing.units[2].mode = "释放硬直" if state == "僵直姿态" else ("后摇" if state == "动作姿态" else "")
+		standing.units[2].pose = "移动" if state == "移动姿态" else "站稳"
+		standing.units[2].trend = Vector2i.RIGHT
+		for expected in ["站立姿态", "移动姿态", "动作姿态", "僵直姿态"]:
+			assert(standing.condition(standing.units[0], 2, "敌人处于" + expected, standing.units) == (state == expected))
+	checks.append("categorized menus; all four mutually exclusive enemy postures; real submenu selection/clearing; skill-specific subsets; retired aim remains replayable only")
 	game.apply_preset(0, game.SOLDIER_PRESET + 5)
 	game.choose_editor_unit(0)
 	for row in game.editor_rows:

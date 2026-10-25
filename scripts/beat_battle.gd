@@ -3,9 +3,16 @@ extends "res://scripts/battle.gd"
 const Beat = preload("res://scripts/beat_simulation.gd")
 const BASE_PLAYBACK_RATE := 0.5
 const SOLDIER_PRESET := 9
-const PLAYER_SKILLS := ["留空", "普通攻击", "接敌", "远敌", "侧闪"]
+const PLAYER_SKILLS := ["留空", "普通攻击", "接敌", "远敌", "侧闪", "站稳"]
+const INIT_SKILLS := ["留空", "站稳", "接敌", "远敌", "普通攻击"]
 const PLAYER_PRESETS := [9, 10, 11, 12, 13, 14]
-const SIMPLE_CONDITIONS := ["无", "自己HP≤2", "敌人处于站立姿态", "敌人处于移动姿态", "敌人距离≤2格", "敌人距离≥3格", "沿移动方向预判1格"]
+const SIMPLE_CONDITIONS := ["无", "自己HP≤2", "自己处于移动姿态", "敌人处于站立姿态", "敌人处于移动姿态", "敌人处于动作姿态", "敌人处于僵直姿态", "敌人距离≤2格", "敌人距离≥3格"]
+const CONDITION_GROUPS := {
+	"自身状态": ["自己HP≤2", "自己处于移动姿态"],
+	"敌人姿态": ["敌人处于站立姿态", "敌人处于移动姿态", "敌人处于动作姿态", "敌人处于僵直姿态"],
+	"敌人距离": ["敌人距离≤2格", "敌人距离≥3格"]
+}
+const LEGACY_AIM := "沿移动方向预判1格"
 # AP priorities from earlier benchmark, now without dodge; fifth demonstrates prediction.
 const DUEL_PRESET_NAMES := ["吊射→远敌", "接敌→吊射", "吊射→接敌", "近身远敌→吊射", "预判吊射→接敌"]
 const DUEL_PRESET_AP := [
@@ -24,6 +31,9 @@ var animation_preview_caption := ""
 var segment_active := false
 var steps_remaining := 0
 var segment_preview: Dictionary = {}
+var editor_zone := "loop"
+var init_tab: Button
+var loop_tab: Button
 
 func _ready() -> void:
 	team_presets = [SOLDIER_PRESET, SOLDIER_PRESET]
@@ -36,8 +46,13 @@ func _ready() -> void:
 	setup_loadouts()
 	setup_ui()
 	reset_round()
+	if "--beat-init-test" in OS.get_cmdline_user_args():
+		preload("res://scripts/beat_init_validation.gd").run(self)
+		get_tree().quit()
+		return
 	if "--beat-test" in OS.get_cmdline_user_args():
 		preload("res://scripts/beat_validation.gd").run(self)
+		preload("res://scripts/beat_init_validation.gd").run(self)
 		get_tree().quit()
 		return
 	if "--beat-telegraph-preview" in OS.get_cmdline_user_args():
@@ -103,7 +118,7 @@ func reset_walls() -> void:
 func add_stand_rule(loadout: Dictionary) -> void:
 	for rule in loadout.active:
 		if rule[0] in Beat.HIGH:
-			loadout.active.push_front(["站稳", "无", "无"])
+			loadout.active.push_front(["站稳", "自己处于移动姿态", "无"])
 			return
 
 func apply_preset(team: int, index: int) -> void:
@@ -116,6 +131,11 @@ func apply_preset(team: int, index: int) -> void:
 func setup_ui() -> void:
 	super.setup_ui()
 	for node in find_children("*", "Button", true, false):
+		if node.text == "清空":
+			for connection in node.pressed.get_connections(): node.pressed.disconnect(connection.callable)
+			node.pressed.connect(clear_editor_zone)
+			node.tooltip_text = "清空当前编辑区；另一区保留。修改后重开。"
+		if node.text == "仅基础": node.tooltip_text = "清空该角色Init，并恢复默认Loop。"
 		if node.text == "单帧 [N]":
 			node.text = "下一拍 [N]"
 			node.tooltip_text = "N完整播放1拍并在交点结算后暂停；Shift+N播放4拍。新基准1倍速每拍0.5秒；0.5倍每拍1秒，2倍每拍0.25秒。"
@@ -137,6 +157,16 @@ func setup_ui() -> void:
 		picker.item_selected.connect(func(index): apply_preset(team, picker.get_item_id(index)))
 		picker.tooltip_text = "仅展示当前开放的基础配置；切换会重开战斗并保留布阵。"
 	update_beat_menus()
+	var zones := HBoxContainer.new()
+	var panel := rule_count_label.get_parent()
+	panel.add_child(zones)
+	panel.move_child(zones, rule_count_label.get_index())
+	init_tab = add_button(zones, "Init · 开局指令", func(): set_editor_zone("init"))
+	loop_tab = add_button(zones, "Loop · 循环策略", func(): set_editor_zone("loop"))
+	for button in [init_tab, loop_tab]: button.toggle_mode = true
+	init_tab.tooltip_text = "按顺序执行，每项完成后进入下一项，全部完成后进入Loop。无法执行时等待，不跳过。PP在两区均生效。"
+	loop_tab.tooltip_text = "沿用原有AP/PP规则：每次决策从上到下检查，执行第一条可用规则。"
+	rebuild_editor()
 	soldier_hint = text_label(self, "普通士兵对练\n3血 · 单格吊射1伤害\n射程4格 · 射击3拍 · 独立CD6拍\n无大招", 14)
 	soldier_hint.position = Vector2(700, 35)
 	soldier_hint.modulate = Color("c8b997")
@@ -146,20 +176,51 @@ func setup_ui() -> void:
 func rebuild_editor() -> void:
 	# The legacy editor removes conditions it does not know; preserve beat-only ones.
 	for loadout in loadouts: simplify_loadout(loadout)
+	for loadout in loadouts:
+		if not loadout.has("init"): loadout.init = []
 	var saved := loadouts.duplicate(true)
 	super.rebuild_editor()
 	for uid in range(saved.size()): loadouts[uid] = saved[uid]
 	update_beat_menus()
+	if rule_count_label != null:
+		var profile: Dictionary = loadouts[editor_unit]
+		rule_count_label.text = ("Init %d / 12 · 从上到下执行一次，完成后进入Loop" % profile.init.size()) if editor_zone == "init" else ("Loop %d / 12 · AP优先级 / PP插入 · Init共%d项" % [profile.active.size() + profile.reaction.size(), profile.init.size()])
+	if init_tab != null:
+		init_tab.set_pressed_no_signal(editor_zone == "init")
+		loop_tab.set_pressed_no_signal(editor_zone == "loop")
+	if editor_zone == "init":
+		for row in editor_rows:
+			if row.slot >= 0: row.badge.text = "初"
+
+func set_editor_zone(zone: String) -> void:
+	editor_zone = zone
+	rebuild_editor()
+	refresh_ui()
+
+func clear_editor_zone() -> void:
+	var profile: Dictionary = loadouts[editor_unit]
+	if editor_zone == "init": profile.init = []
+	else:
+		profile.active = []
+		profile.reaction = []
+	rebuild_editor()
+	reset_round()
+
+func editor_entries() -> Array:
+	if editor_zone != "init": return super.editor_entries()
+	var entries: Array = []
+	for slot in range(loadouts[editor_unit].get("init", []).size()):
+		entries.append({"kind": "init", "slot": slot, "rule": loadouts[editor_unit].init[slot]})
+	return entries
 
 func small_hp_condition(text: String) -> String:
 	return text.replace("HP≤50", "HP≤2").replace("敌人距离≤2米", "敌人距离≤2格").replace("敌人距离≥3米", "敌人距离≥3格")
 
 func conditions_for_skill(skill: String) -> Array:
 	if skill == "留空": return ["无"]
-	if skill == "站稳" or skill in Beat.SUPPORT: return ["无", "自己HP≤2"]
-	var allowed := SIMPLE_CONDITIONS.duplicate()
-	if skill not in ["普通攻击", "点射"]: allowed.erase("沿移动方向预判1格")
-	return allowed
+	if skill == "站稳": return ["无", "自己HP≤2", "自己处于移动姿态"]
+	if skill in Beat.SUPPORT: return ["无", "自己HP≤2"]
+	return SIMPLE_CONDITIONS.duplicate()
 
 func simplify_loadout(loadout: Dictionary) -> void:
 	for kind in ["active", "reaction"]:
@@ -167,6 +228,8 @@ func simplify_loadout(loadout: Dictionary) -> void:
 			var allowed := conditions_for_skill(rule[0])
 			for column in [1, 2]:
 				rule[column] = small_hp_condition(rule[column])
+				# Existing demos remain replayable; the aim modifier is no longer offered as a condition.
+				if rule[column] == LEGACY_AIM and rule[0] in ["普通攻击", "点射"]: continue
 				if rule[column] not in allowed: rule[column] = "无"
 
 func update_beat_menus() -> void:
@@ -179,38 +242,65 @@ func update_beat_menus() -> void:
 			var menu: OptionButton = menus[column]
 			if column == 0:
 				menu.clear()
-				for skill in PLAYER_SKILLS:
+				for skill in (INIT_SKILLS if editor_zone == "init" else PLAYER_SKILLS):
 					menu.add_item(skill_label(skill))
 					menu.get_popup().set_item_tooltip(menu.item_count - 1, beat_help(skill))
 			else:
 				menu.clear()
 				menu.add_theme_font_size_override("font_size", 13)
-				for condition in conditions_for_skill(rule[0]):
-					menu.add_item(condition)
-					menu.get_popup().set_item_tooltip(menu.item_count - 1, condition_help(condition))
-				menu.disabled = not occupied
+				build_condition_menu(menu, rule[0], rule[column], index, column)
+				menu.disabled = not occupied or editor_zone == "init"
 			for item in range(menu.item_count):
 				if menu.get_item_text(item) == (skill_label(rule[column]) if column == 0 else rule[column]): menu.select(item)
+			if column > 0: menu.text = "旧实验：前方1格" if rule[column] == LEGACY_AIM else rule[column]
 			menu.tooltip_text = beat_help(rule[0]) if column == 0 else condition_help(rule[column])
 
+func build_condition_menu(menu: OptionButton, skill: String, current: String, row_index: int, column: int) -> void:
+	var popup := menu.get_popup()
+	for child in popup.get_children():
+		if child is PopupMenu:
+			popup.remove_child(child)
+			child.queue_free()
+	var allowed := conditions_for_skill(skill)
+	menu.add_item("无")
+	for group in CONDITION_GROUPS:
+		var values: Array = CONDITION_GROUPS[group].filter(func(value): return value in allowed)
+		if values.is_empty(): continue
+		var child := PopupMenu.new()
+		child.name = "ConditionGroup%d" % popup.get_child_count()
+		popup.add_child(child)
+		for value in values:
+			child.add_radio_check_item(value.trim_prefix("敌人处于") if group == "敌人姿态" else value)
+			child.set_item_metadata(child.item_count - 1, value)
+			child.set_item_checked(child.item_count - 1, value == current)
+			child.set_item_tooltip(child.item_count - 1, condition_help(value))
+		child.id_pressed.connect(func(item_id: int):
+			edit_rule_cell(row_index, column, child.get_item_metadata(child.get_item_index(item_id)))
+		)
+		popup.add_submenu_item(group, child.name)
+
 func skill_label(skill: String) -> String:
+	if skill == "站稳": return "站立"
 	return "吊射" if skill == "普通攻击" else skill
 
 func condition_help(condition: String) -> String:
 	match condition:
 		"无": return "不添加额外限制。"
 		"自己HP≤2": return "自身条件：自己剩余2血或1血时执行。"
+		"自己处于移动姿态": return "自身条件：仅在自己是移动姿态时执行。可用于Loop中按需站立，避免无条件站立一直占据第一优先级。"
 		"敌人处于站立姿态": return "目标条件：只选择当前处于站立姿态的敌人。"
 		"敌人处于移动姿态": return "目标条件：只选择当前有移动方向的敌人，不读取其下一拍动作。"
+		"敌人处于动作姿态": return "目标条件：只选择当前处于动作姿态的敌人，例如射击后摇；不等同于站立或移动。"
+		"敌人处于僵直姿态": return "目标条件：只选择当前处于僵直姿态的敌人，例如击发、碰撞；普通移动硬直仍归移动姿态。"
 		"敌人距离≤2格": return "目标条件：与敌人的曼哈顿距离不超过2格。"
 		"敌人距离≥3格": return "目标条件：与敌人的曼哈顿距离至少3格。"
-		"沿移动方向预判1格": return "瞄准修饰，仅吊射可用：按敌人公开移动方向瞄前方1格。锁定后不追踪；无移动方向、墙格、出界或超射程则跳过规则。"
+		"沿移动方向预判1格": return "旧实验瞄准修饰（已退出条件选项）：固定瞄前方1格，未按移动剩余拍数预测。仅兼容已有示范；选择其它条件可移除。"
 	return condition
 
 func beat_help(skill: String) -> String:
 	if skill in ["接敌", "远敌", "后撤"]: return "%s：按地形路径代价选择一个相邻空格，%s。每次只移动一格（2拍）；同向可续走，转向先站立1拍。无内置停止距离，不检查是否已能攻击；是否执行由条件和优先级决定。无可改善距离的一步时检查下条规则。" % [skill, "降低到目标的路径距离" if skill == "接敌" else "增加到目标的路径距离"]
-	if skill in ["普通攻击", "点射"]: return "单格吊射：曼哈顿距离≤4格，允许斜向选格、越墙，只命中瞄准时锁定的1格，不追踪目标。可用条件“沿移动方向预判1格”改变锁定落点。需站立：非站立先花1拍站立，再瞄准预警1拍 → 目标格结算1拍 → 后摇1拍，结束恢复站立。瞄准可被侧闪取消；击发不可取消；后摇可取消，但侧闪后需重新站立。消耗15精力。独立CD6拍，从开火起算，与后摇重叠；没有公共CD。"
-	if skill == "站稳": return "耗1拍，移动姿态恢复站稳；不跨格。高级技能必须先站稳。已站稳时跳过，可排序、改条件或删除。"
+	if skill in ["普通攻击", "点射"]: return "单格吊射：曼哈顿距离≤4格，允许斜向选格、越墙，只命中瞄准时锁定的1格，不追踪目标。条件只筛选执行时机和目标；旧固定一格预判仅兼容已有示范。需站立：非站立先花1拍站立，再瞄准预警1拍 → 目标格结算1拍 → 后摇1拍，结束恢复站立。瞄准可被侧闪取消；击发不可取消；后摇可取消，但侧闪后需重新站立。消耗15精力。独立CD6拍，从开火起算，与后摇重叠；没有公共CD。"
+	if skill == "站稳": return "站立：固定耗1拍、不跨格，结束为站立姿态。已经站立也会执行1拍。Init可连续排列用于调整开局时机；Loop无条件放第一项会持续站立。不会中断正在执行的移动或攻击。"
 	if skill in Beat.MOVE or skill in ["向左移动", "向右移动", "向上移动", "向下移动"]: return "普通移动2拍一格；同方向可以连续走，换方向前自动站立1拍。移动硬直只能用PP侧闪取消；侧闪1拍一格，结束为有方向的移动姿态，同向可接普通移动，换向先站立1拍。减速时普通移动额外1拍。"
 	if skill == "侧闪": return "真实预警触发，1拍跨入安全相邻格，耗20精力。前摇取消退款，后摇取消不退款，释放硬直/碰撞中禁用；无安全格不触发。结束保留侧闪方向的移动姿态，同向接普通移动无需站立；转向或普攻须先站立。"
 	if skill == "回春": return "25精力；治疗1血，上限3血。自己或3格内队友刚受伤时触发；冷却32拍，后摇1拍。"
@@ -232,10 +322,30 @@ func beat_help(skill: String) -> String:
 	return "%s：每发%d伤害 × %d发，%d精力；%s。前摇%d拍，释放%d拍，后摇%d拍，独立CD%d拍。%s" % [skill, beat_sim.damage_of(actual), hits_per_action, beat_sim.cost(actual), "需要站稳" if skill in Beat.HIGH else "移动姿态可用", beat_sim.windup(actual), hits_per_action, 2 if actual in Beat.HIGH or actual in ["强力射击", "落岩", "震山"] else 1, ceili(beat_sim.skill_cd(actual) / Beat.SECONDS), extra]
 
 func edit_rule_cell(index: int, column: int, value: String) -> void:
+	if index < 0 or index >= Tactics.RULE_LIMIT: return
+	var entries := editor_entries()
 	if column == 0:
 		if value == "吊射": value = "普通攻击"
-		if value not in PLAYER_SKILLS: return
-	super.edit_rule_cell(index, column, value)
+		if value == "站立": value = "站稳"
+		if value not in (INIT_SKILLS if editor_zone == "init" else PLAYER_SKILLS): return
+	else:
+		if editor_zone == "init" or index >= entries.size() or value not in conditions_for_skill(entries[index].rule[0]): return
+	if index >= entries.size() and (column != 0 or value == "留空"): return
+	var rule: Array = ["留空", "无", "无"] if index >= entries.size() else entries[index].rule.duplicate()
+	rule[column] = value
+	var profile: Dictionary = loadouts[editor_unit]
+	if editor_zone == "init":
+		if index < entries.size(): profile.init.remove_at(index)
+		if value != "留空": profile.init.insert(index, rule)
+	else:
+		var old_kind: String = "" if index >= entries.size() else entries[index].kind
+		var new_kind: String = Tactics.skill_kind(rule[0])
+		if old_kind == new_kind and not old_kind.is_empty(): profile[old_kind][entries[index].slot] = rule
+		else:
+			if not old_kind.is_empty(): profile[old_kind].remove_at(entries[index].slot)
+			if not new_kind.is_empty(): profile[new_kind].append(rule)
+	rebuild_editor()
+	reset_round()
 	skill_help.text = beat_help(value) if column == 0 else "条件：" + small_hp_condition(value)
 
 func show_editor_help(index: int) -> void:
@@ -349,6 +459,10 @@ func log_event(message: String) -> void:
 	logs.push_front("拍%03d  %s" % [logic_frame, message])
 	if logs.size() > 8: logs.resize(8)
 
+func rule_is_executing(u: Dictionary, kind: String, slot: int) -> bool:
+	if kind == "init": return u.hp > 0 and u.get("init_active", false) and u.rule_kind == "init" and u.rule_slot == slot
+	return super.rule_is_executing(u, kind, slot)
+
 func action_state_label(u: Dictionary) -> String:
 	if not u.has("pose"): return u.phase
 	if u.mode == "移动硬直": return "移动硬直·余%d拍" % u.left
@@ -392,8 +506,16 @@ func refresh_ui() -> void:
 		var bot: Dictionary = units[uid]
 		roster_buttons[uid].text = "%s %d · %s\nHP %d/%d · 盾%d · EN %d" % ["蓝方" if uid < 2 else "红方", uid % 2 + 1, bot.phase if bot.hp > 0 else "倒下", bot.hp, Beat.MAX_HP, bot.shield, bot.energy]
 	for row in editor_rows:
-		if row.slot >= 0 and u.rule_kind == row.kind and u.rule_slot == row.slot:
+		if editor_zone == "init" and row.slot >= 0:
+			row.state.text = str(u.get("trace_init", [])[row.slot]) if u.has("trace_init") else "未执行"
+			row.state.tooltip_text = "顺序执行；无法执行时等待，PP取消后重试本项。"
+		if row.slot >= 0 and rule_is_executing(u, row.kind, row.slot):
 			row.state.text = "▶ " + action_state_label(u)
+	var init_count: int = loadouts[editor_unit].get("init", []).size()
+	info_label.text += "\n执行区域：" + ("Init %d/%d" % [u.get("init_index", 0) + 1, init_count] if u.get("init_index", 0) < init_count else "Loop")
+	if init_tab != null:
+		init_tab.text = "Init · 开局指令 %d/%d" % [u.get("init_index", 0), init_count]
+		loop_tab.text = "Loop · 循环策略" + (" ◀" if started and u.get("init_index", 0) >= init_count else "")
 
 func beat_ultimate_available(uid: int) -> bool:
 	var u: Dictionary = units[uid]

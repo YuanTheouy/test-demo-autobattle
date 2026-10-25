@@ -27,11 +27,26 @@ func _ready() -> void:
 		apply_preset(1, SOLDIER_PRESET + 2)
 	if "--prediction-demo" in OS.get_cmdline_user_args():
 		load_prediction_demo()
-	var demo_button := add_button(self, "载入预判示范", load_prediction_demo)
+	if "--init-demo" in OS.get_cmdline_user_args() or "--init-demo-test" in OS.get_cmdline_user_args(): load_init_demo()
+	var demo_button := MenuButton.new()
+	demo_button.text = "载入示范"
+	demo_button.custom_minimum_size.y = 34
+	demo_button.add_theme_font_override("font", font)
+	add_child(demo_button)
 	demo_button.position = Vector2(650, 738)
-	demo_button.tooltip_text = "载入实测19拍对局：蓝F6预判/接敌，红H8吊射/远敌，双方3血、无侧闪。空格观看，N逐拍，R重播。"
+	demo_button.get_popup().add_item("Init走位躲弹", 0)
+	demo_button.get_popup().add_item("旧：预判吊射", 1)
+	demo_button.get_popup().id_pressed.connect(func(id: int):
+		if id == 0: load_init_demo()
+		else: load_prediction_demo()
+	)
+	demo_button.tooltip_text = "载入后暂停；空格观看、N逐拍、R重播。走位示范仅用普通移动和站立，双方PP为空。"
 	choose_editor_unit(0)
 	refresh_ui()
+	if "--init-demo-test" in OS.get_cmdline_user_args():
+		validate_init_demo()
+		get_tree().quit()
+		return
 	if "--watchable-preview" in OS.get_cmdline_user_args():
 		set_process(false)
 		set_physics_process(false)
@@ -52,6 +67,49 @@ func load_prediction_demo() -> void:
 	apply_preset(0, WATCHABLE_PRESETS[0])
 	apply_preset(1, WATCHABLE_PRESETS[1])
 	choose_editor_unit(0)
+	set_editor_zone("loop")
+
+func load_init_demo() -> void:
+	blue_attacks = false
+	deployment_cells = DUEL_SPAWNS.duplicate()
+	deployment_cells[0] = Vector2i(5, 5) # F6
+	deployment_cells[2] = Vector2i(5, 6) # F7
+	apply_preset(0, SOLDIER_PRESET)
+	apply_preset(1, SOLDIER_PRESET)
+	loadouts[0] = {
+		"init": [["远敌", "无", "无"], ["站稳", "无", "无"], ["站稳", "无", "无"], ["站稳", "无", "无"]],
+		"active": [["远敌", "敌人处于站立姿态", "无"], ["接敌", "无", "无"]], "reaction": []
+	}
+	loadouts[2] = {"init": [], "active": [["普通攻击", "无", "无"]], "reaction": []}
+	choose_editor_unit(0)
+	set_editor_zone("init")
+	reset_round()
+
+func validate_init_demo() -> void:
+	assert(not running and not started and editor_zone == "init" and editor_unit == 0)
+	assert(units[0].cell == Vector2i(5, 5) and units[2].cell == Vector2i(5, 6))
+	var saved: Array = loadouts.duplicate(true)
+	for endpoint in range(1, 241):
+		step_forward(1)
+		advance_playback(Beat.SECONDS / playback_rate())
+		assert(logic_frame == endpoint and not segment_active and not running)
+		assert(units[0].hp == Beat.MAX_HP and units[2].hp == Beat.MAX_HP)
+		assert(loadouts[0].reaction.is_empty() and loadouts[2].reaction.is_empty())
+		if endpoint <= 5: assert(units[0].init_index == maxi(0, endpoint - 1))
+	assert(beat_sim.shots == 30 and units[0].init_index == 4)
+	reset_round()
+	assert(loadouts == saved and units[0].init_index == 0 and logic_frame == 0 and not running)
+	loadouts[0].init = []
+	reset_round()
+	for endpoint in range(10): simulate(Beat.SECONDS, false)
+	assert(units[0].hp < Beat.MAX_HP)
+	load_init_demo()
+	var report := {"blue": "F6", "red": "F7", "blue_profile": loadouts[0], "red_profile": loadouts[2],
+		"animated_beats": 240, "incoming_shots": 30, "blue_hp": Beat.MAX_HP,
+		"checks": ["starts paused on blue Init", "full single-step playback preserves HP for 240 beats", "Init completes at endpoint5", "reset preserves setup and restarts Init", "same Loop without Init takes damage by beat10"]}
+	var file := FileAccess.open("res://reports/init-demo-validation.json", FileAccess.WRITE)
+	file.store_string(JSON.stringify(report, "\t"))
+	print("INIT DEMO PASSED: F6/F7, 240 animated beats, 30 shots, no damage; no-Init control hit by beat10; replay resets correctly")
 
 func make_arena_view():
 	return preload("res://scripts/puzzle_view.gd").new()
@@ -176,7 +234,7 @@ func validate_duel_presets() -> void:
 		assert(pair[1] == {"active": benchmark.candidates[candidate_ids[offset]].rules.active, "reaction": []}, "Preset members must own separate rules")
 		var red_before: Dictionary = loadouts[2].duplicate(true)
 		preset_menus[0].item_selected.emit(preset_menus[0].get_item_index(preset_index))
-		assert(loadouts[0] == {"active": benchmark.candidates[candidate_ids[offset]].rules.active, "reaction": []} and loadouts[2] == red_before)
+		assert(loadouts[0] == {"init": [], "active": benchmark.candidates[candidate_ids[offset]].rules.active, "reaction": []} and loadouts[2] == red_before)
 		preset_menus[1].item_selected.emit(preset_menus[1].get_item_index(SOLDIER_PRESET + 1 + (offset + 1) % candidate_ids.size()))
 		assert(preset_menus[0].get_selected_id() == preset_index)
 		assert(units.filter(func(u): return u.enabled and u.hp > 0).size() == 2)

@@ -1,0 +1,62 @@
+{
+	"animated_beats": 240,
+	"blue": "F6",
+	"blue_hp": 3,
+	"blue_profile": {
+		"active": [
+			[
+				"远敌",
+				"敌人处于站立姿态",
+				"无"
+			],
+			[
+				"接敌",
+				"无",
+				"无"
+			]
+		],
+		"init": [
+			[
+				"远敌",
+				"无",
+				"无"
+			],
+			[
+				"站稳",
+				"无",
+				"无"
+			],
+			[
+				"站稳",
+				"无",
+				"无"
+			],
+			[
+				"站稳",
+				"无",
+				"无"
+			]
+		],
+		"reaction": []
+	},
+	"checks": [
+		"starts paused on blue Init",
+		"full single-step playback preserves HP for 240 beats",
+		"Init completes at endpoint5",
+		"reset preserves setup and restarts Init",
+		"same Loop without Init takes damage by beat10"
+	],
+	"incoming_shots": 30,
+	"red": "F7",
+	"red_profile": {
+		"active": [
+			[
+				"普通攻击",
+				"无",
+				"无"
+			]
+		],
+		"init": [],
+		"reaction": []
+	}
+}
