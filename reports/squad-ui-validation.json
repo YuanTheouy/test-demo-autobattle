@@ -1,23 +1,19 @@
 {
 	"checks": [
-		"real task picker",
-		"real AP picker",
-		"real second condition",
-		"priority reorder",
-		"real PP condition",
-		"real posture and exception controls",
-		"template save/load retains other roles",
-		"preserved configuration on retry",
-		"one second playback before pause",
-		"0.5/1/2 speed histories identical",
-		"actual timeline navigation",
-		"historical state isolation",
-		"event actor navigation",
-		"causal audit",
-		"return to unchanged live result"
+		"four isolated tagged pages",
+		"real task/posture controls",
+		"single condition per IF and direct action editing",
+		"WAIT configuration displayed accurately",
+		"PP-only IF editor",
+		"version3 single-condition program template save/load preserves other roles",
+		"one-second playback before result",
+		"0.5/1/2 speed identical",
+		"timeline/event navigation",
+		"historical state isolated and controls locked",
+		"restart from review returns to editable live setup",
+		"actual branch and state causality audit"
 	],
-	"combos": 5,
-	"default_result": "蓝方胜利",
 	"passed": true,
-	"time": 32.9
+	"result": "时间到 · 战斗结束",
+	"time": 55.0
 }
