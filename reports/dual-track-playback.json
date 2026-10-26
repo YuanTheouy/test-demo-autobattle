@@ -1,0 +1,77 @@
+{
+	"checks": [
+		"parallel move/weapon tracks",
+		"all four comparison cells verified through actual UI playback",
+		"one actual dropdown edit changes only weapon condition",
+		"same initial-state reversal across two enemies",
+		"animation completes before cells/morale/beat settle",
+		"18-beat stop; no post-result simulation",
+		"0.5/1/2x deterministic playback"
+	],
+	"comparison": [
+		[
+			{
+				"concurrent": [
+					4,
+					5
+				],
+				"hits": [
+					0,
+					0
+				],
+				"morale": [
+					3,
+					3
+				],
+				"winner": -1
+			},
+			{
+				"concurrent": [
+					5,
+					5
+				],
+				"hits": [
+					2,
+					0
+				],
+				"morale": [
+					3,
+					1
+				],
+				"winner": 0
+			}
+		],
+		[
+			{
+				"concurrent": [
+					4,
+					6
+				],
+				"hits": [
+					1,
+					0
+				],
+				"morale": [
+					3,
+					2
+				],
+				"winner": 0
+			},
+			{
+				"concurrent": [
+					5,
+					6
+				],
+				"hits": [
+					0,
+					0
+				],
+				"morale": [
+					3,
+					3
+				],
+				"winner": -1
+			}
+		]
+	]
+}

@@ -1,0 +1,5151 @@
+{
+	"checks": [
+		"independent movement+aim+fire",
+		"two-beat crossing and public grid endpoints",
+		"planning does not publish future damage",
+		"same snapshot and team order independence",
+		"simultaneous morale loss and zero-morale stop; bots stay visible",
+		"18-beat bound even if nobody attacks",
+		"obstacles and occupancy stay legal",
+		"actual demo menu enters dual-track scene; actual back button returns to legacy scene"
+	],
+	"enemies": [
+		{
+			"move": {
+				"condition": "无",
+				"no": [
+					"站立"
+				],
+				"yes": [
+					"站立"
+				]
+			},
+			"weapon": {
+				"condition": "无",
+				"no": [
+					"等待"
+				],
+				"yes": [
+					"吊射"
+				]
+			}
+		},
+		{
+			"move": {
+				"condition": "敌人距离≥3格",
+				"no": [
+					"站立"
+				],
+				"yes": [
+					"接敌"
+				]
+			},
+			"weapon": {
+				"condition": "无",
+				"no": [
+					"等待"
+				],
+				"yes": [
+					"吊射"
+				]
+			}
+		},
+		{
+			"move": {
+				"condition": "敌人距离≤2格",
+				"no": [
+					"站立"
+				],
+				"yes": [
+					"远敌"
+				]
+			},
+			"weapon": {
+				"condition": "无",
+				"no": [
+					"等待"
+				],
+				"yes": [
+					"吊射"
+				]
+			}
+		},
+		{
+			"move": {
+				"condition": "无",
+				"no": [
+					"站立"
+				],
+				"yes": [
+					"接敌"
+				]
+			},
+			"weapon": {
+				"condition": "无",
+				"no": [
+					"等待"
+				],
+				"yes": [
+					"吊射"
+				]
+			}
+		}
+	],
+	"examples": [
+		{
+			"conditions": [
+				"敌人收招",
+				"敌人击发"
+			],
+			"enemies": [
+				3,
+				1
+			],
+			"margins": [
+				1,
+				2
+			],
+			"results": [
+				{
+					"beats": 18,
+					"concurrent": [
+						4,
+						6
+					],
+					"history": [
+						{
+							"beat": 1,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 0,
+									"cell": "(0, 1)",
+									"destination": "(0, 2)",
+									"direction": "(0, 1)",
+									"id": 0,
+									"lock": "(-1, -1)",
+									"move_action": "远敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"远敌",
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "等待1拍",
+									"weapon_branch": "no",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人收招 → 不成立"
+								},
+								{
+									"cd": 0,
+									"cell": "(1, 0)",
+									"destination": "(0, 0)",
+									"direction": "(-1, 0)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "接敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "无 → 成立",
+									"origin": "(1, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "瞄准",
+									"weapon_branch": "yes",
+									"weapon_mode": "击发",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 2,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [
+								{
+									"cell": "(0, 1)",
+									"from": "(1, 0)",
+									"hit": false,
+									"source": 1
+								}
+							],
+							"units": [
+								{
+									"cd": 0,
+									"cell": "(0, 2)",
+									"destination": "(0, 2)",
+									"direction": "(0, 1)",
+									"id": 0,
+									"lock": "(-1, -1)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "等待1拍",
+									"weapon_branch": "no",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人收招 → 不成立"
+								},
+								{
+									"cd": 6,
+									"cell": "(0, 0)",
+									"destination": "(0, 0)",
+									"direction": "(-1, 0)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "无 → 成立",
+									"origin": "(1, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "击发",
+									"weapon_branch": "yes",
+									"weapon_mode": "后摇",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 3,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 0,
+									"cell": "(0, 2)",
+									"destination": "(0, 2)",
+									"direction": "(0, 0)",
+									"id": 0,
+									"lock": "(0, 0)",
+									"move_action": "站立1拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 1,
+									"move_slot": 2,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "瞄准",
+									"weapon_branch": "yes",
+									"weapon_mode": "击发",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 5,
+									"cell": "(0, 0)",
+									"destination": "(0, 0)",
+									"direction": "(0, 0)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "换向先站立",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "转向",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "无 → 成立",
+									"origin": "(1, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "后摇",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 4,
+							"collision": false,
+							"morale": [
+								3,
+								2
+							],
+							"shots": [
+								{
+									"cell": "(0, 0)",
+									"from": "(0, 2)",
+									"hit": true,
+									"source": 0
+								}
+							],
+							"units": [
+								{
+									"cd": 6,
+									"cell": "(0, 2)",
+									"destination": "(1, 2)",
+									"direction": "(1, 0)",
+									"id": 0,
+									"lock": "(0, 0)",
+									"move_action": "远敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"远敌",
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(0, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "击发",
+									"weapon_branch": "yes",
+									"weapon_mode": "后摇",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 4,
+									"cell": "(0, 0)",
+									"destination": "(0, 1)",
+									"direction": "(0, 1)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "接敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "无 → 成立",
+									"origin": "(0, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 5,
+							"collision": false,
+							"morale": [
+								3,
+								2
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 5,
+									"cell": "(1, 2)",
+									"destination": "(1, 2)",
+									"direction": "(1, 0)",
+									"id": 0,
+									"lock": "(0, 0)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(0, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "后摇",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 3,
+									"cell": "(0, 1)",
+									"destination": "(0, 1)",
+									"direction": "(0, 1)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "无 → 成立",
+									"origin": "(0, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 6,
+							"collision": false,
+							"morale": [
+								3,
+								2
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 4,
+									"cell": "(1, 2)",
+									"destination": "(1, 2)",
+									"direction": "(0, 0)",
+									"id": 0,
+									"lock": "(0, 0)",
+									"move_action": "站立1拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 1,
+									"move_slot": 2,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(0, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 2,
+									"cell": "(0, 1)",
+									"destination": "(0, 2)",
+									"direction": "(0, 1)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "接敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "无 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 7,
+							"collision": false,
+							"morale": [
+								3,
+								2
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 3,
+									"cell": "(1, 2)",
+									"destination": "(1, 1)",
+									"direction": "(0, -1)",
+									"id": 0,
+									"lock": "(0, 0)",
+									"move_action": "接敌第1拍",
+									"move_branch": "no",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人站立 → 不成立",
+									"origin": "(1, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 1,
+									"cell": "(0, 2)",
+									"destination": "(0, 2)",
+									"direction": "(0, 1)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "无 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 8,
+							"collision": false,
+							"morale": [
+								3,
+								2
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 2,
+									"cell": "(1, 1)",
+									"destination": "(1, 1)",
+									"direction": "(0, -1)",
+									"id": 0,
+									"lock": "(0, 0)",
+									"move_action": "移动第2拍",
+									"move_branch": "no",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人站立 → 不成立",
+									"origin": "(1, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 0,
+									"cell": "(0, 2)",
+									"destination": "(0, 2)",
+									"direction": "(0, 0)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "接敌无路 · 等待",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": -1,
+									"move_test": "无 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 9,
+							"collision": false,
+							"morale": [
+								3,
+								2
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 1,
+									"cell": "(1, 1)",
+									"destination": "(1, 0)",
+									"direction": "(0, -1)",
+									"id": 0,
+									"lock": "(0, 0)",
+									"move_action": "远敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"远敌",
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(1, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 0,
+									"cell": "(0, 2)",
+									"destination": "(0, 1)",
+									"direction": "(0, -1)",
+									"id": 1,
+									"lock": "(1, 1)",
+									"move_action": "接敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "无 → 成立",
+									"origin": "(0, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "瞄准",
+									"weapon_branch": "yes",
+									"weapon_mode": "击发",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 10,
+							"collision": false,
+							"morale": [
+								3,
+								2
+							],
+							"shots": [
+								{
+									"cell": "(1, 1)",
+									"from": "(0, 2)",
+									"hit": false,
+									"source": 1
+								}
+							],
+							"units": [
+								{
+									"cd": 0,
+									"cell": "(1, 0)",
+									"destination": "(1, 0)",
+									"direction": "(0, -1)",
+									"id": 0,
+									"lock": "(0, 0)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(1, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 6,
+									"cell": "(0, 1)",
+									"destination": "(0, 1)",
+									"direction": "(0, -1)",
+									"id": 1,
+									"lock": "(1, 1)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "无 → 成立",
+									"origin": "(0, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "击发",
+									"weapon_branch": "yes",
+									"weapon_mode": "后摇",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 11,
+							"collision": false,
+							"morale": [
+								3,
+								2
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 0,
+									"cell": "(1, 0)",
+									"destination": "(1, 0)",
+									"direction": "(0, 0)",
+									"id": 0,
+									"lock": "(0, 1)",
+									"move_action": "站立1拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 1,
+									"move_slot": 2,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(1, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "瞄准",
+									"weapon_branch": "yes",
+									"weapon_mode": "击发",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 5,
+									"cell": "(0, 1)",
+									"destination": "(0, 0)",
+									"direction": "(0, -1)",
+									"id": 1,
+									"lock": "(1, 1)",
+									"move_action": "接敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "无 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "后摇",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 12,
+							"collision": false,
+							"morale": [
+								3,
+								2
+							],
+							"shots": [
+								{
+									"cell": "(0, 1)",
+									"from": "(1, 0)",
+									"hit": false,
+									"source": 0
+								}
+							],
+							"units": [
+								{
+									"cd": 6,
+									"cell": "(1, 0)",
+									"destination": "(1, 1)",
+									"direction": "(0, 1)",
+									"id": 0,
+									"lock": "(0, 1)",
+									"move_action": "接敌第1拍",
+									"move_branch": "no",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人站立 → 不成立",
+									"origin": "(1, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "击发",
+									"weapon_branch": "yes",
+									"weapon_mode": "后摇",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 4,
+									"cell": "(0, 0)",
+									"destination": "(0, 0)",
+									"direction": "(0, -1)",
+									"id": 1,
+									"lock": "(1, 1)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "无 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 13,
+							"collision": false,
+							"morale": [
+								3,
+								2
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 5,
+									"cell": "(1, 1)",
+									"destination": "(1, 1)",
+									"direction": "(0, 1)",
+									"id": 0,
+									"lock": "(0, 1)",
+									"move_action": "移动第2拍",
+									"move_branch": "no",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人站立 → 不成立",
+									"origin": "(1, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "后摇",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 3,
+									"cell": "(0, 0)",
+									"destination": "(0, 0)",
+									"direction": "(0, 0)",
+									"id": 1,
+									"lock": "(1, 1)",
+									"move_action": "接敌无路 · 等待",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": -1,
+									"move_test": "无 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 14,
+							"collision": false,
+							"morale": [
+								3,
+								2
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 4,
+									"cell": "(1, 1)",
+									"destination": "(1, 2)",
+									"direction": "(0, 1)",
+									"id": 0,
+									"lock": "(0, 1)",
+									"move_action": "远敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"远敌",
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(1, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 2,
+									"cell": "(0, 0)",
+									"destination": "(0, 1)",
+									"direction": "(0, 1)",
+									"id": 1,
+									"lock": "(1, 1)",
+									"move_action": "接敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "无 → 成立",
+									"origin": "(0, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 15,
+							"collision": false,
+							"morale": [
+								3,
+								2
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 3,
+									"cell": "(1, 2)",
+									"destination": "(1, 2)",
+									"direction": "(0, 1)",
+									"id": 0,
+									"lock": "(0, 1)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(1, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 1,
+									"cell": "(0, 1)",
+									"destination": "(0, 1)",
+									"direction": "(0, 1)",
+									"id": 1,
+									"lock": "(1, 1)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "无 → 成立",
+									"origin": "(0, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 16,
+							"collision": false,
+							"morale": [
+								3,
+								2
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 2,
+									"cell": "(1, 2)",
+									"destination": "(1, 2)",
+									"direction": "(0, 0)",
+									"id": 0,
+									"lock": "(0, 1)",
+									"move_action": "站立1拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 1,
+									"move_slot": 2,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(1, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 0,
+									"cell": "(0, 1)",
+									"destination": "(0, 2)",
+									"direction": "(0, 1)",
+									"id": 1,
+									"lock": "(1, 1)",
+									"move_action": "接敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "无 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 17,
+							"collision": false,
+							"morale": [
+								3,
+								2
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 1,
+									"cell": "(1, 2)",
+									"destination": "(1, 1)",
+									"direction": "(0, -1)",
+									"id": 0,
+									"lock": "(0, 1)",
+									"move_action": "接敌第1拍",
+									"move_branch": "no",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人站立 → 不成立",
+									"origin": "(1, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 0,
+									"cell": "(0, 2)",
+									"destination": "(0, 2)",
+									"direction": "(0, 1)",
+									"id": 1,
+									"lock": "(1, 2)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "无 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "瞄准",
+									"weapon_branch": "yes",
+									"weapon_mode": "击发",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 18,
+							"collision": false,
+							"morale": [
+								3,
+								2
+							],
+							"shots": [
+								{
+									"cell": "(1, 2)",
+									"from": "(0, 2)",
+									"hit": false,
+									"source": 1
+								}
+							],
+							"units": [
+								{
+									"cd": 0,
+									"cell": "(1, 1)",
+									"destination": "(1, 1)",
+									"direction": "(0, -1)",
+									"id": 0,
+									"lock": "(0, 1)",
+									"move_action": "移动第2拍",
+									"move_branch": "no",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人站立 → 不成立",
+									"origin": "(1, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 6,
+									"cell": "(0, 2)",
+									"destination": "(0, 2)",
+									"direction": "(0, 0)",
+									"id": 1,
+									"lock": "(1, 2)",
+									"move_action": "接敌无路 · 等待",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": -1,
+									"move_test": "无 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "击发",
+									"weapon_branch": "yes",
+									"weapon_mode": "后摇",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						}
+					],
+					"hits": [
+						1,
+						0
+					],
+					"morale": [
+						3,
+						2
+					],
+					"shots": [
+						2,
+						3
+					],
+					"winner": 0
+				},
+				{
+					"beats": 18,
+					"concurrent": [
+						5,
+						6
+					],
+					"history": [
+						{
+							"beat": 1,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 0,
+									"cell": "(0, 1)",
+									"destination": "(0, 2)",
+									"direction": "(0, 1)",
+									"id": 0,
+									"lock": "(-1, -1)",
+									"move_action": "远敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"远敌",
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "等待1拍",
+									"weapon_branch": "no",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人击发 → 不成立"
+								},
+								{
+									"cd": 0,
+									"cell": "(1, 0)",
+									"destination": "(0, 0)",
+									"direction": "(-1, 0)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "接敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "无 → 成立",
+									"origin": "(1, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "瞄准",
+									"weapon_branch": "yes",
+									"weapon_mode": "击发",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 2,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [
+								{
+									"cell": "(0, 1)",
+									"from": "(1, 0)",
+									"hit": false,
+									"source": 1
+								}
+							],
+							"units": [
+								{
+									"cd": 0,
+									"cell": "(0, 2)",
+									"destination": "(0, 2)",
+									"direction": "(0, 1)",
+									"id": 0,
+									"lock": "(1, 0)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "瞄准",
+									"weapon_branch": "yes",
+									"weapon_mode": "击发",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 6,
+									"cell": "(0, 0)",
+									"destination": "(0, 0)",
+									"direction": "(-1, 0)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "无 → 成立",
+									"origin": "(1, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "击发",
+									"weapon_branch": "yes",
+									"weapon_mode": "后摇",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 3,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [
+								{
+									"cell": "(1, 0)",
+									"from": "(0, 2)",
+									"hit": false,
+									"source": 0
+								}
+							],
+							"units": [
+								{
+									"cd": 6,
+									"cell": "(0, 2)",
+									"destination": "(0, 2)",
+									"direction": "(0, 0)",
+									"id": 0,
+									"lock": "(1, 0)",
+									"move_action": "站立1拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 1,
+									"move_slot": 2,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "击发",
+									"weapon_branch": "yes",
+									"weapon_mode": "后摇",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 5,
+									"cell": "(0, 0)",
+									"destination": "(0, 0)",
+									"direction": "(0, 0)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "换向先站立",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "转向",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "无 → 成立",
+									"origin": "(1, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "后摇",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 4,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 5,
+									"cell": "(0, 2)",
+									"destination": "(1, 2)",
+									"direction": "(1, 0)",
+									"id": 0,
+									"lock": "(1, 0)",
+									"move_action": "远敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"远敌",
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(0, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "后摇",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 4,
+									"cell": "(0, 0)",
+									"destination": "(0, 1)",
+									"direction": "(0, 1)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "接敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "无 → 成立",
+									"origin": "(0, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 5,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 4,
+									"cell": "(1, 2)",
+									"destination": "(1, 2)",
+									"direction": "(1, 0)",
+									"id": 0,
+									"lock": "(1, 0)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(0, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 3,
+									"cell": "(0, 1)",
+									"destination": "(0, 1)",
+									"direction": "(0, 1)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "无 → 成立",
+									"origin": "(0, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 6,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 3,
+									"cell": "(1, 2)",
+									"destination": "(1, 2)",
+									"direction": "(0, 0)",
+									"id": 0,
+									"lock": "(1, 0)",
+									"move_action": "站立1拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 1,
+									"move_slot": 2,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(0, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 2,
+									"cell": "(0, 1)",
+									"destination": "(0, 2)",
+									"direction": "(0, 1)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "接敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "无 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 7,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 2,
+									"cell": "(1, 2)",
+									"destination": "(1, 1)",
+									"direction": "(0, -1)",
+									"id": 0,
+									"lock": "(1, 0)",
+									"move_action": "接敌第1拍",
+									"move_branch": "no",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人站立 → 不成立",
+									"origin": "(1, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 1,
+									"cell": "(0, 2)",
+									"destination": "(0, 2)",
+									"direction": "(0, 1)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "无 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 8,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 1,
+									"cell": "(1, 1)",
+									"destination": "(1, 1)",
+									"direction": "(0, -1)",
+									"id": 0,
+									"lock": "(1, 0)",
+									"move_action": "移动第2拍",
+									"move_branch": "no",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人站立 → 不成立",
+									"origin": "(1, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 0,
+									"cell": "(0, 2)",
+									"destination": "(0, 2)",
+									"direction": "(0, 0)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "接敌无路 · 等待",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": -1,
+									"move_test": "无 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 9,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 0,
+									"cell": "(1, 1)",
+									"destination": "(1, 0)",
+									"direction": "(0, -1)",
+									"id": 0,
+									"lock": "(1, 0)",
+									"move_action": "远敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"远敌",
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(1, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 0,
+									"cell": "(0, 2)",
+									"destination": "(0, 1)",
+									"direction": "(0, -1)",
+									"id": 1,
+									"lock": "(1, 1)",
+									"move_action": "接敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "无 → 成立",
+									"origin": "(0, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "瞄准",
+									"weapon_branch": "yes",
+									"weapon_mode": "击发",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 10,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [
+								{
+									"cell": "(1, 1)",
+									"from": "(0, 2)",
+									"hit": false,
+									"source": 1
+								}
+							],
+							"units": [
+								{
+									"cd": 0,
+									"cell": "(1, 0)",
+									"destination": "(1, 0)",
+									"direction": "(0, -1)",
+									"id": 0,
+									"lock": "(0, 2)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(1, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "瞄准",
+									"weapon_branch": "yes",
+									"weapon_mode": "击发",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 6,
+									"cell": "(0, 1)",
+									"destination": "(0, 1)",
+									"direction": "(0, -1)",
+									"id": 1,
+									"lock": "(1, 1)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "无 → 成立",
+									"origin": "(0, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "击发",
+									"weapon_branch": "yes",
+									"weapon_mode": "后摇",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 11,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [
+								{
+									"cell": "(0, 2)",
+									"from": "(1, 0)",
+									"hit": false,
+									"source": 0
+								}
+							],
+							"units": [
+								{
+									"cd": 6,
+									"cell": "(1, 0)",
+									"destination": "(1, 0)",
+									"direction": "(0, 0)",
+									"id": 0,
+									"lock": "(0, 2)",
+									"move_action": "站立1拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 1,
+									"move_slot": 2,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(1, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "击发",
+									"weapon_branch": "yes",
+									"weapon_mode": "后摇",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 5,
+									"cell": "(0, 1)",
+									"destination": "(0, 0)",
+									"direction": "(0, -1)",
+									"id": 1,
+									"lock": "(1, 1)",
+									"move_action": "接敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "无 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "后摇",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 12,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 5,
+									"cell": "(1, 0)",
+									"destination": "(1, 1)",
+									"direction": "(0, 1)",
+									"id": 0,
+									"lock": "(0, 2)",
+									"move_action": "接敌第1拍",
+									"move_branch": "no",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人站立 → 不成立",
+									"origin": "(1, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "后摇",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 4,
+									"cell": "(0, 0)",
+									"destination": "(0, 0)",
+									"direction": "(0, -1)",
+									"id": 1,
+									"lock": "(1, 1)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "无 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 13,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 4,
+									"cell": "(1, 1)",
+									"destination": "(1, 1)",
+									"direction": "(0, 1)",
+									"id": 0,
+									"lock": "(0, 2)",
+									"move_action": "移动第2拍",
+									"move_branch": "no",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人站立 → 不成立",
+									"origin": "(1, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 3,
+									"cell": "(0, 0)",
+									"destination": "(0, 0)",
+									"direction": "(0, 0)",
+									"id": 1,
+									"lock": "(1, 1)",
+									"move_action": "接敌无路 · 等待",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": -1,
+									"move_test": "无 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 14,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 3,
+									"cell": "(1, 1)",
+									"destination": "(1, 2)",
+									"direction": "(0, 1)",
+									"id": 0,
+									"lock": "(0, 2)",
+									"move_action": "远敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"远敌",
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(1, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 2,
+									"cell": "(0, 0)",
+									"destination": "(0, 1)",
+									"direction": "(0, 1)",
+									"id": 1,
+									"lock": "(1, 1)",
+									"move_action": "接敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "无 → 成立",
+									"origin": "(0, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 15,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 2,
+									"cell": "(1, 2)",
+									"destination": "(1, 2)",
+									"direction": "(0, 1)",
+									"id": 0,
+									"lock": "(0, 2)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(1, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 1,
+									"cell": "(0, 1)",
+									"destination": "(0, 1)",
+									"direction": "(0, 1)",
+									"id": 1,
+									"lock": "(1, 1)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "无 → 成立",
+									"origin": "(0, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 16,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 1,
+									"cell": "(1, 2)",
+									"destination": "(1, 2)",
+									"direction": "(0, 0)",
+									"id": 0,
+									"lock": "(0, 2)",
+									"move_action": "站立1拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 1,
+									"move_slot": 2,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(1, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 0,
+									"cell": "(0, 1)",
+									"destination": "(0, 2)",
+									"direction": "(0, 1)",
+									"id": 1,
+									"lock": "(1, 1)",
+									"move_action": "接敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "无 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 17,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 0,
+									"cell": "(1, 2)",
+									"destination": "(1, 1)",
+									"direction": "(0, -1)",
+									"id": 0,
+									"lock": "(0, 2)",
+									"move_action": "接敌第1拍",
+									"move_branch": "no",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人站立 → 不成立",
+									"origin": "(1, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 0,
+									"cell": "(0, 2)",
+									"destination": "(0, 2)",
+									"direction": "(0, 1)",
+									"id": 1,
+									"lock": "(1, 2)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "无 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "瞄准",
+									"weapon_branch": "yes",
+									"weapon_mode": "击发",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 18,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [
+								{
+									"cell": "(1, 2)",
+									"from": "(0, 2)",
+									"hit": false,
+									"source": 1
+								}
+							],
+							"units": [
+								{
+									"cd": 0,
+									"cell": "(1, 1)",
+									"destination": "(1, 1)",
+									"direction": "(0, -1)",
+									"id": 0,
+									"lock": "(0, 2)",
+									"move_action": "移动第2拍",
+									"move_branch": "no",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人站立 → 不成立",
+									"origin": "(1, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "瞄准",
+									"weapon_branch": "yes",
+									"weapon_mode": "击发",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 6,
+									"cell": "(0, 2)",
+									"destination": "(0, 2)",
+									"direction": "(0, 0)",
+									"id": 1,
+									"lock": "(1, 2)",
+									"move_action": "接敌无路 · 等待",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": -1,
+									"move_test": "无 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "击发",
+									"weapon_branch": "yes",
+									"weapon_mode": "后摇",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						}
+					],
+					"hits": [
+						0,
+						0
+					],
+					"morale": [
+						3,
+						3
+					],
+					"shots": [
+						2,
+						3
+					],
+					"winner": -1
+				},
+				{
+					"beats": 18,
+					"concurrent": [
+						4,
+						5
+					],
+					"history": [
+						{
+							"beat": 1,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 0,
+									"cell": "(0, 1)",
+									"destination": "(0, 2)",
+									"direction": "(0, 1)",
+									"id": 0,
+									"lock": "(-1, -1)",
+									"move_action": "远敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"远敌",
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "等待1拍",
+									"weapon_branch": "no",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人收招 → 不成立"
+								},
+								{
+									"cd": 0,
+									"cell": "(1, 0)",
+									"destination": "(1, 0)",
+									"direction": "(0, 0)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "站立1拍",
+									"move_branch": "no",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人距离≥3格 → 不成立",
+									"origin": "(1, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "瞄准",
+									"weapon_branch": "yes",
+									"weapon_mode": "击发",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 2,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [
+								{
+									"cell": "(0, 1)",
+									"from": "(1, 0)",
+									"hit": false,
+									"source": 1
+								}
+							],
+							"units": [
+								{
+									"cd": 0,
+									"cell": "(0, 2)",
+									"destination": "(0, 2)",
+									"direction": "(0, 1)",
+									"id": 0,
+									"lock": "(-1, -1)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "等待1拍",
+									"weapon_branch": "no",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人收招 → 不成立"
+								},
+								{
+									"cd": 6,
+									"cell": "(1, 0)",
+									"destination": "(1, 0)",
+									"direction": "(0, 0)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "站立1拍",
+									"move_branch": "no",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人距离≥3格 → 不成立",
+									"origin": "(1, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "击发",
+									"weapon_branch": "yes",
+									"weapon_mode": "后摇",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 3,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 0,
+									"cell": "(0, 2)",
+									"destination": "(0, 2)",
+									"direction": "(0, 0)",
+									"id": 0,
+									"lock": "(1, 0)",
+									"move_action": "站立1拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 1,
+									"move_slot": 2,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "瞄准",
+									"weapon_branch": "yes",
+									"weapon_mode": "击发",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 5,
+									"cell": "(1, 0)",
+									"destination": "(0, 0)",
+									"direction": "(-1, 0)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "接敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人距离≥3格 → 成立",
+									"origin": "(1, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "后摇",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 4,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [
+								{
+									"cell": "(1, 0)",
+									"from": "(0, 2)",
+									"hit": false,
+									"source": 0
+								}
+							],
+							"units": [
+								{
+									"cd": 6,
+									"cell": "(0, 2)",
+									"destination": "(1, 2)",
+									"direction": "(1, 0)",
+									"id": 0,
+									"lock": "(1, 0)",
+									"move_action": "接敌第1拍",
+									"move_branch": "no",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人站立 → 不成立",
+									"origin": "(0, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "击发",
+									"weapon_branch": "yes",
+									"weapon_mode": "后摇",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 4,
+									"cell": "(0, 0)",
+									"destination": "(0, 0)",
+									"direction": "(-1, 0)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人距离≥3格 → 成立",
+									"origin": "(1, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 5,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 5,
+									"cell": "(1, 2)",
+									"destination": "(1, 2)",
+									"direction": "(1, 0)",
+									"id": 0,
+									"lock": "(1, 0)",
+									"move_action": "移动第2拍",
+									"move_branch": "no",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人站立 → 不成立",
+									"origin": "(0, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "后摇",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 3,
+									"cell": "(0, 0)",
+									"destination": "(0, 0)",
+									"direction": "(0, 0)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "站立1拍",
+									"move_branch": "no",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人距离≥3格 → 不成立",
+									"origin": "(1, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 6,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 4,
+									"cell": "(1, 2)",
+									"destination": "(2, 2)",
+									"direction": "(1, 0)",
+									"id": 0,
+									"lock": "(1, 0)",
+									"move_action": "远敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"远敌",
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(1, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 2,
+									"cell": "(0, 0)",
+									"destination": "(0, 1)",
+									"direction": "(0, 1)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "接敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人距离≥3格 → 成立",
+									"origin": "(0, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 7,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 3,
+									"cell": "(2, 2)",
+									"destination": "(2, 2)",
+									"direction": "(1, 0)",
+									"id": 0,
+									"lock": "(1, 0)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(1, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 1,
+									"cell": "(0, 1)",
+									"destination": "(0, 1)",
+									"direction": "(0, 1)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人距离≥3格 → 成立",
+									"origin": "(0, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 8,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 2,
+									"cell": "(2, 2)",
+									"destination": "(2, 2)",
+									"direction": "(0, 0)",
+									"id": 0,
+									"lock": "(1, 0)",
+									"move_action": "站立1拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 1,
+									"move_slot": 2,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(1, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 0,
+									"cell": "(0, 1)",
+									"destination": "(0, 2)",
+									"direction": "(0, 1)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "接敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人距离≥3格 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 9,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 1,
+									"cell": "(2, 2)",
+									"destination": "(2, 1)",
+									"direction": "(0, -1)",
+									"id": 0,
+									"lock": "(1, 0)",
+									"move_action": "接敌第1拍",
+									"move_branch": "no",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人站立 → 不成立",
+									"origin": "(2, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 0,
+									"cell": "(0, 2)",
+									"destination": "(0, 2)",
+									"direction": "(0, 1)",
+									"id": 1,
+									"lock": "(2, 2)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人距离≥3格 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "瞄准",
+									"weapon_branch": "yes",
+									"weapon_mode": "击发",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 10,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [
+								{
+									"cell": "(2, 2)",
+									"from": "(0, 2)",
+									"hit": false,
+									"source": 1
+								}
+							],
+							"units": [
+								{
+									"cd": 0,
+									"cell": "(2, 1)",
+									"destination": "(2, 1)",
+									"direction": "(0, -1)",
+									"id": 0,
+									"lock": "(1, 0)",
+									"move_action": "移动第2拍",
+									"move_branch": "no",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人站立 → 不成立",
+									"origin": "(2, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 6,
+									"cell": "(0, 2)",
+									"destination": "(0, 2)",
+									"direction": "(0, 0)",
+									"id": 1,
+									"lock": "(2, 2)",
+									"move_action": "站立1拍",
+									"move_branch": "no",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人距离≥3格 → 不成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "击发",
+									"weapon_branch": "yes",
+									"weapon_mode": "后摇",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 11,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 0,
+									"cell": "(2, 1)",
+									"destination": "(2, 0)",
+									"direction": "(0, -1)",
+									"id": 0,
+									"lock": "(0, 2)",
+									"move_action": "远敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"远敌",
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(2, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "瞄准",
+									"weapon_branch": "yes",
+									"weapon_mode": "击发",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 5,
+									"cell": "(0, 2)",
+									"destination": "(0, 1)",
+									"direction": "(0, -1)",
+									"id": 1,
+									"lock": "(2, 2)",
+									"move_action": "接敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人距离≥3格 → 成立",
+									"origin": "(0, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "后摇",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 12,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [
+								{
+									"cell": "(0, 2)",
+									"from": "(2, 1)",
+									"hit": false,
+									"source": 0
+								}
+							],
+							"units": [
+								{
+									"cd": 6,
+									"cell": "(2, 0)",
+									"destination": "(2, 0)",
+									"direction": "(0, -1)",
+									"id": 0,
+									"lock": "(0, 2)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(2, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "击发",
+									"weapon_branch": "yes",
+									"weapon_mode": "后摇",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 4,
+									"cell": "(0, 1)",
+									"destination": "(0, 1)",
+									"direction": "(0, -1)",
+									"id": 1,
+									"lock": "(2, 2)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人距离≥3格 → 成立",
+									"origin": "(0, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 13,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 5,
+									"cell": "(2, 0)",
+									"destination": "(2, 0)",
+									"direction": "(0, 0)",
+									"id": 0,
+									"lock": "(0, 2)",
+									"move_action": "站立1拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 1,
+									"move_slot": 2,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(2, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "后摇",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 3,
+									"cell": "(0, 1)",
+									"destination": "(0, 0)",
+									"direction": "(0, -1)",
+									"id": 1,
+									"lock": "(2, 2)",
+									"move_action": "接敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人距离≥3格 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 14,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 4,
+									"cell": "(2, 0)",
+									"destination": "(2, 1)",
+									"direction": "(0, 1)",
+									"id": 0,
+									"lock": "(0, 2)",
+									"move_action": "接敌第1拍",
+									"move_branch": "no",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人站立 → 不成立",
+									"origin": "(2, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 2,
+									"cell": "(0, 0)",
+									"destination": "(0, 0)",
+									"direction": "(0, -1)",
+									"id": 1,
+									"lock": "(2, 2)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人距离≥3格 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 15,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 3,
+									"cell": "(2, 1)",
+									"destination": "(2, 1)",
+									"direction": "(0, 1)",
+									"id": 0,
+									"lock": "(0, 2)",
+									"move_action": "移动第2拍",
+									"move_branch": "no",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人站立 → 不成立",
+									"origin": "(2, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 1,
+									"cell": "(0, 0)",
+									"destination": "(0, 0)",
+									"direction": "(0, 0)",
+									"id": 1,
+									"lock": "(2, 2)",
+									"move_action": "站立1拍",
+									"move_branch": "no",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人距离≥3格 → 不成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 16,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 2,
+									"cell": "(2, 1)",
+									"destination": "(2, 2)",
+									"direction": "(0, 1)",
+									"id": 0,
+									"lock": "(0, 2)",
+									"move_action": "远敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"远敌",
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(2, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 0,
+									"cell": "(0, 0)",
+									"destination": "(0, 1)",
+									"direction": "(0, 1)",
+									"id": 1,
+									"lock": "(2, 2)",
+									"move_action": "接敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人距离≥3格 → 成立",
+									"origin": "(0, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 17,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 1,
+									"cell": "(2, 2)",
+									"destination": "(2, 2)",
+									"direction": "(0, 1)",
+									"id": 0,
+									"lock": "(0, 2)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(2, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 0,
+									"cell": "(0, 1)",
+									"destination": "(0, 1)",
+									"direction": "(0, 1)",
+									"id": 1,
+									"lock": "(2, 1)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人距离≥3格 → 成立",
+									"origin": "(0, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "瞄准",
+									"weapon_branch": "yes",
+									"weapon_mode": "击发",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 18,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [
+								{
+									"cell": "(2, 1)",
+									"from": "(0, 1)",
+									"hit": false,
+									"source": 1
+								}
+							],
+							"units": [
+								{
+									"cd": 0,
+									"cell": "(2, 2)",
+									"destination": "(2, 2)",
+									"direction": "(0, 0)",
+									"id": 0,
+									"lock": "(0, 2)",
+									"move_action": "站立1拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 1,
+									"move_slot": 2,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(2, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人收招 → 成立"
+								},
+								{
+									"cd": 6,
+									"cell": "(0, 1)",
+									"destination": "(0, 2)",
+									"direction": "(0, 1)",
+									"id": 1,
+									"lock": "(2, 1)",
+									"move_action": "接敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人距离≥3格 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "击发",
+									"weapon_branch": "yes",
+									"weapon_mode": "后摇",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						}
+					],
+					"hits": [
+						0,
+						0
+					],
+					"morale": [
+						3,
+						3
+					],
+					"shots": [
+						2,
+						3
+					],
+					"winner": -1
+				},
+				{
+					"beats": 18,
+					"concurrent": [
+						5,
+						5
+					],
+					"history": [
+						{
+							"beat": 1,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 0,
+									"cell": "(0, 1)",
+									"destination": "(0, 2)",
+									"direction": "(0, 1)",
+									"id": 0,
+									"lock": "(-1, -1)",
+									"move_action": "远敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"远敌",
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "等待1拍",
+									"weapon_branch": "no",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人击发 → 不成立"
+								},
+								{
+									"cd": 0,
+									"cell": "(1, 0)",
+									"destination": "(1, 0)",
+									"direction": "(0, 0)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "站立1拍",
+									"move_branch": "no",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人距离≥3格 → 不成立",
+									"origin": "(1, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "瞄准",
+									"weapon_branch": "yes",
+									"weapon_mode": "击发",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 2,
+							"collision": false,
+							"morale": [
+								3,
+								3
+							],
+							"shots": [
+								{
+									"cell": "(0, 1)",
+									"from": "(1, 0)",
+									"hit": false,
+									"source": 1
+								}
+							],
+							"units": [
+								{
+									"cd": 0,
+									"cell": "(0, 2)",
+									"destination": "(0, 2)",
+									"direction": "(0, 1)",
+									"id": 0,
+									"lock": "(1, 0)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "瞄准",
+									"weapon_branch": "yes",
+									"weapon_mode": "击发",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 6,
+									"cell": "(1, 0)",
+									"destination": "(1, 0)",
+									"direction": "(0, 0)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "站立1拍",
+									"move_branch": "no",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人距离≥3格 → 不成立",
+									"origin": "(1, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "击发",
+									"weapon_branch": "yes",
+									"weapon_mode": "后摇",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 3,
+							"collision": false,
+							"morale": [
+								3,
+								2
+							],
+							"shots": [
+								{
+									"cell": "(1, 0)",
+									"from": "(0, 2)",
+									"hit": true,
+									"source": 0
+								}
+							],
+							"units": [
+								{
+									"cd": 6,
+									"cell": "(0, 2)",
+									"destination": "(0, 2)",
+									"direction": "(0, 0)",
+									"id": 0,
+									"lock": "(1, 0)",
+									"move_action": "站立1拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 1,
+									"move_slot": 2,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "击发",
+									"weapon_branch": "yes",
+									"weapon_mode": "后摇",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 5,
+									"cell": "(1, 0)",
+									"destination": "(0, 0)",
+									"direction": "(-1, 0)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "接敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人距离≥3格 → 成立",
+									"origin": "(1, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "后摇",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 4,
+							"collision": false,
+							"morale": [
+								3,
+								2
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 5,
+									"cell": "(0, 2)",
+									"destination": "(1, 2)",
+									"direction": "(1, 0)",
+									"id": 0,
+									"lock": "(1, 0)",
+									"move_action": "接敌第1拍",
+									"move_branch": "no",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人站立 → 不成立",
+									"origin": "(0, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "后摇",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 4,
+									"cell": "(0, 0)",
+									"destination": "(0, 0)",
+									"direction": "(-1, 0)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人距离≥3格 → 成立",
+									"origin": "(1, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 5,
+							"collision": false,
+							"morale": [
+								3,
+								2
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 4,
+									"cell": "(1, 2)",
+									"destination": "(1, 2)",
+									"direction": "(1, 0)",
+									"id": 0,
+									"lock": "(1, 0)",
+									"move_action": "移动第2拍",
+									"move_branch": "no",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人站立 → 不成立",
+									"origin": "(0, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 3,
+									"cell": "(0, 0)",
+									"destination": "(0, 0)",
+									"direction": "(0, 0)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "站立1拍",
+									"move_branch": "no",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人距离≥3格 → 不成立",
+									"origin": "(1, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 6,
+							"collision": false,
+							"morale": [
+								3,
+								2
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 3,
+									"cell": "(1, 2)",
+									"destination": "(2, 2)",
+									"direction": "(1, 0)",
+									"id": 0,
+									"lock": "(1, 0)",
+									"move_action": "远敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"远敌",
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(1, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 2,
+									"cell": "(0, 0)",
+									"destination": "(0, 1)",
+									"direction": "(0, 1)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "接敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人距离≥3格 → 成立",
+									"origin": "(0, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 7,
+							"collision": false,
+							"morale": [
+								3,
+								2
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 2,
+									"cell": "(2, 2)",
+									"destination": "(2, 2)",
+									"direction": "(1, 0)",
+									"id": 0,
+									"lock": "(1, 0)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(1, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 1,
+									"cell": "(0, 1)",
+									"destination": "(0, 1)",
+									"direction": "(0, 1)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人距离≥3格 → 成立",
+									"origin": "(0, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 8,
+							"collision": false,
+							"morale": [
+								3,
+								2
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 1,
+									"cell": "(2, 2)",
+									"destination": "(2, 2)",
+									"direction": "(0, 0)",
+									"id": 0,
+									"lock": "(1, 0)",
+									"move_action": "站立1拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 1,
+									"move_slot": 2,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(1, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 0,
+									"cell": "(0, 1)",
+									"destination": "(0, 2)",
+									"direction": "(0, 1)",
+									"id": 1,
+									"lock": "(0, 1)",
+									"move_action": "接敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人距离≥3格 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 9,
+							"collision": false,
+							"morale": [
+								3,
+								2
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 0,
+									"cell": "(2, 2)",
+									"destination": "(2, 1)",
+									"direction": "(0, -1)",
+									"id": 0,
+									"lock": "(1, 0)",
+									"move_action": "接敌第1拍",
+									"move_branch": "no",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人站立 → 不成立",
+									"origin": "(2, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 0,
+									"cell": "(0, 2)",
+									"destination": "(0, 2)",
+									"direction": "(0, 1)",
+									"id": 1,
+									"lock": "(2, 2)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人距离≥3格 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "瞄准",
+									"weapon_branch": "yes",
+									"weapon_mode": "击发",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 10,
+							"collision": false,
+							"morale": [
+								3,
+								2
+							],
+							"shots": [
+								{
+									"cell": "(2, 2)",
+									"from": "(0, 2)",
+									"hit": false,
+									"source": 1
+								}
+							],
+							"units": [
+								{
+									"cd": 0,
+									"cell": "(2, 1)",
+									"destination": "(2, 1)",
+									"direction": "(0, -1)",
+									"id": 0,
+									"lock": "(0, 2)",
+									"move_action": "移动第2拍",
+									"move_branch": "no",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人站立 → 不成立",
+									"origin": "(2, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "瞄准",
+									"weapon_branch": "yes",
+									"weapon_mode": "击发",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 6,
+									"cell": "(0, 2)",
+									"destination": "(0, 2)",
+									"direction": "(0, 0)",
+									"id": 1,
+									"lock": "(2, 2)",
+									"move_action": "站立1拍",
+									"move_branch": "no",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人距离≥3格 → 不成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "击发",
+									"weapon_branch": "yes",
+									"weapon_mode": "后摇",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 11,
+							"collision": false,
+							"morale": [
+								3,
+								1
+							],
+							"shots": [
+								{
+									"cell": "(0, 2)",
+									"from": "(2, 1)",
+									"hit": true,
+									"source": 0
+								}
+							],
+							"units": [
+								{
+									"cd": 6,
+									"cell": "(2, 1)",
+									"destination": "(2, 0)",
+									"direction": "(0, -1)",
+									"id": 0,
+									"lock": "(0, 2)",
+									"move_action": "远敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"远敌",
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(2, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "击发",
+									"weapon_branch": "yes",
+									"weapon_mode": "后摇",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 5,
+									"cell": "(0, 2)",
+									"destination": "(0, 1)",
+									"direction": "(0, -1)",
+									"id": 1,
+									"lock": "(2, 2)",
+									"move_action": "接敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人距离≥3格 → 成立",
+									"origin": "(0, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "后摇",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 12,
+							"collision": false,
+							"morale": [
+								3,
+								1
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 5,
+									"cell": "(2, 0)",
+									"destination": "(2, 0)",
+									"direction": "(0, -1)",
+									"id": 0,
+									"lock": "(0, 2)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(2, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "后摇",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 4,
+									"cell": "(0, 1)",
+									"destination": "(0, 1)",
+									"direction": "(0, -1)",
+									"id": 1,
+									"lock": "(2, 2)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人距离≥3格 → 成立",
+									"origin": "(0, 2)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 13,
+							"collision": false,
+							"morale": [
+								3,
+								1
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 4,
+									"cell": "(2, 0)",
+									"destination": "(2, 0)",
+									"direction": "(0, 0)",
+									"id": 0,
+									"lock": "(0, 2)",
+									"move_action": "站立1拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 1,
+									"move_slot": 2,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(2, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 3,
+									"cell": "(0, 1)",
+									"destination": "(0, 0)",
+									"direction": "(0, -1)",
+									"id": 1,
+									"lock": "(2, 2)",
+									"move_action": "接敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人距离≥3格 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 14,
+							"collision": false,
+							"morale": [
+								3,
+								1
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 3,
+									"cell": "(2, 0)",
+									"destination": "(2, 1)",
+									"direction": "(0, 1)",
+									"id": 0,
+									"lock": "(0, 2)",
+									"move_action": "接敌第1拍",
+									"move_branch": "no",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人站立 → 不成立",
+									"origin": "(2, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 2,
+									"cell": "(0, 0)",
+									"destination": "(0, 0)",
+									"direction": "(0, -1)",
+									"id": 1,
+									"lock": "(2, 2)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人距离≥3格 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 15,
+							"collision": false,
+							"morale": [
+								3,
+								1
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 2,
+									"cell": "(2, 1)",
+									"destination": "(2, 1)",
+									"direction": "(0, 1)",
+									"id": 0,
+									"lock": "(0, 2)",
+									"move_action": "移动第2拍",
+									"move_branch": "no",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人站立 → 不成立",
+									"origin": "(2, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 1,
+									"cell": "(0, 0)",
+									"destination": "(0, 0)",
+									"direction": "(0, 0)",
+									"id": 1,
+									"lock": "(2, 2)",
+									"move_action": "站立1拍",
+									"move_branch": "no",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人距离≥3格 → 不成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 16,
+							"collision": false,
+							"morale": [
+								3,
+								1
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 1,
+									"cell": "(2, 1)",
+									"destination": "(2, 2)",
+									"direction": "(0, 1)",
+									"id": 0,
+									"lock": "(0, 2)",
+									"move_action": "远敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"远敌",
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(2, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 0,
+									"cell": "(0, 0)",
+									"destination": "(0, 1)",
+									"direction": "(0, 1)",
+									"id": 1,
+									"lock": "(2, 2)",
+									"move_action": "接敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人距离≥3格 → 成立",
+									"origin": "(0, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 17,
+							"collision": false,
+							"morale": [
+								3,
+								1
+							],
+							"shots": [],
+							"units": [
+								{
+									"cd": 0,
+									"cell": "(2, 2)",
+									"destination": "(2, 2)",
+									"direction": "(0, 1)",
+									"id": 0,
+									"lock": "(0, 2)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [
+										"站立"
+									],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(2, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "冷却 · 等待",
+									"weapon_branch": "yes",
+									"weapon_mode": "",
+									"weapon_queue": [],
+									"weapon_running_slot": 0,
+									"weapon_slot": 1,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 0,
+									"cell": "(0, 1)",
+									"destination": "(0, 1)",
+									"direction": "(0, 1)",
+									"id": 1,
+									"lock": "(2, 1)",
+									"move_action": "移动第2拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 0,
+									"move_slot": 1,
+									"move_test": "敌人距离≥3格 → 成立",
+									"origin": "(0, 0)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "瞄准",
+									"weapon_branch": "yes",
+									"weapon_mode": "击发",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						},
+						{
+							"beat": 18,
+							"collision": false,
+							"morale": [
+								3,
+								1
+							],
+							"shots": [
+								{
+									"cell": "(2, 1)",
+									"from": "(0, 1)",
+									"hit": false,
+									"source": 1
+								}
+							],
+							"units": [
+								{
+									"cd": 0,
+									"cell": "(2, 2)",
+									"destination": "(2, 2)",
+									"direction": "(0, 0)",
+									"id": 0,
+									"lock": "(0, 1)",
+									"move_action": "站立1拍",
+									"move_branch": "yes",
+									"move_left": 0,
+									"move_mode": "",
+									"move_queue": [],
+									"move_running_slot": 1,
+									"move_slot": 2,
+									"move_test": "敌人站立 → 成立",
+									"origin": "(2, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "站立",
+									"weapon_action": "瞄准",
+									"weapon_branch": "yes",
+									"weapon_mode": "击发",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "敌人击发 → 成立"
+								},
+								{
+									"cd": 6,
+									"cell": "(0, 1)",
+									"destination": "(0, 2)",
+									"direction": "(0, 1)",
+									"id": 1,
+									"lock": "(2, 1)",
+									"move_action": "接敌第1拍",
+									"move_branch": "yes",
+									"move_left": 1,
+									"move_mode": "跨格",
+									"move_queue": [
+										"接敌"
+									],
+									"move_running_slot": 0,
+									"move_slot": 0,
+									"move_test": "敌人距离≥3格 → 成立",
+									"origin": "(0, 1)",
+									"pending_direction": "(0, 0)",
+									"pose": "移动",
+									"weapon_action": "击发",
+									"weapon_branch": "yes",
+									"weapon_mode": "后摇",
+									"weapon_queue": [
+										"吊射"
+									],
+									"weapon_running_slot": 0,
+									"weapon_slot": 0,
+									"weapon_test": "无 → 成立"
+								}
+							]
+						}
+					],
+					"hits": [
+						2,
+						0
+					],
+					"morale": [
+						3,
+						1
+					],
+					"shots": [
+						2,
+						3
+					],
+					"winner": 0
+				}
+			],
+			"spawns": [
+				"(0, 1)",
+				"(1, 0)"
+			]
+		}
+	],
+	"player_profile": {
+		"move": {
+			"condition": "敌人站立",
+			"no": [
+				"接敌"
+			],
+			"yes": [
+				"远敌",
+				"站立"
+			]
+		},
+		"weapon": {
+			"condition": "敌人收招",
+			"no": [
+				"等待"
+			],
+			"yes": [
+				"吊射"
+			]
+		}
+	},
+	"reversal_count": 10,
+	"searched": 2016
+}
