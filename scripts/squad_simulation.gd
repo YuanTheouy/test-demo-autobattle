@@ -5,6 +5,10 @@ const LIMIT := 55.0
 const WALLS := [Rect2(405, 130, 35, 140), Rect2(405, 455, 35, 70)]
 const TASKS := ["正面推进", "侧路突袭", "支援A队", "原地驻守"]
 const CONDITIONS := ["无", "目标被牵制", "目标正在施法", "友军HP≤60%", "自己无护盾"]
+const PP_SKILLS := {
+	"援护": {"stage": "受击前", "self": false, "range": 175.0, "cd": 6.0, "amount": 26.0},
+	"格挡": {"stage": "受击前", "self": true, "range": 0.0, "cd": 4.0, "amount": 18.0},
+	"回春": {"stage": "受击后", "self": false, "range": 230.0, "cd": 6.0, "amount": 8.0}}
 const SKILLS := {
 	"盾击": {"range": 100.0, "wind": 0.55, "flight": 0.0, "recover": 1.25, "cd": 2.0, "damage": 12.0},
 	"牵制": {"range": 185.0, "wind": 0.5, "flight": 0.0, "recover": 1.0, "cd": 5.0, "damage": 0.0},
@@ -28,43 +32,66 @@ var result := ""
 var sequence := 0
 var combo_count := 0
 var config: Dictionary = {}
+var decisions: Array = []
 
 static func defaults() -> Dictionary:
-	return {"tasks": ["正面推进", "侧路突袭"], "rules": [
-		[["牵制", "无"], ["盾击", "无"]],
-		[["火球", "目标被牵制"], ["火球", "无"]],
-		[["协同突袭", "目标被牵制"], ["突刺", "无"]],
-		[["治疗", "友军HP≤60%"], ["光弹", "无"]]],
-		"pp": ["援护", "留空", "留空", "回春"]}
+	return {"tasks": ["正面推进", "侧路突袭"], "postures": ["贴近交战", "贴近交战"], "exceptions": ["无", "无"], "rules": [
+		[["牵制", "无", "无"], ["盾击", "无", "无"], ["留空", "无", "无"]],
+		[["火球", "目标被牵制", "无"], ["火球", "无", "无"], ["留空", "无", "无"]],
+		[["协同突袭", "目标被牵制", "无"], ["等待牵制", "无", "无"], ["突刺", "无", "无"]],
+		[["治疗", "友军HP≤60%", "无"], ["光弹", "无", "无"], ["留空", "无", "无"]]],
+		"pp": [[["援护", "目标是后排", "无"], ["格挡", "无", "无"]],
+			[["留空", "无", "无"], ["留空", "无", "无"]],
+			[["留空", "无", "无"], ["留空", "无", "无"]],
+			[["回春", "无", "无"], ["留空", "无", "无"]]]}
 
 static func options(role: String) -> Array:
 	match role:
 		"盾兵": return ["留空", "牵制", "盾击"]
 		"法师": return ["留空", "火球"]
-		"刺客": return ["留空", "协同突袭", "突刺"]
+		"刺客": return ["留空", "协同突袭", "等待牵制", "突刺"]
 		_: return ["留空", "治疗", "光弹"]
 
 static func conditions_for(skill: String) -> Array:
 	if skill == "留空": return ["无"]
+	if skill == "等待牵制": return ["无"]
+	if PP_SKILLS.has(skill): return ["无", "目标是后排", "目标HP≤60%", "保留1PP", "自己HP≤50%"]
 	if skill == "治疗": return ["无", "友军HP≤60%"]
 	if skill == "牵制": return ["无", "自己无护盾", "目标正在施法"]
 	return ["无", "目标被牵制", "目标正在施法"]
 
+static func pp_options(role: String) -> Array:
+	if role == "盾兵": return ["留空", "援护", "格挡"]
+	if role == "牧师": return ["留空", "回春"]
+	return ["留空"]
+
+static func normalize(settings: Dictionary) -> Dictionary:
+	var value: Dictionary = (defaults() if settings.is_empty() else settings).duplicate(true)
+	if not value.has("postures"): value.postures = ["贴近交战", "贴近交战"]
+	if not value.has("exceptions"): value.exceptions = ["无", "无"]
+	for i in range(4):
+		for rule in value.rules[i]:
+			while rule.size() < 3: rule.append("无")
+		while value.rules[i].size() < 3: value.rules[i].append(["留空", "无", "无"])
+		if value.pp[i] is String: value.pp[i] = [[value.pp[i], "无", "无"], ["留空", "无", "无"]]
+	return value
+
 func reset(settings: Dictionary = {}) -> void:
-	config = (defaults() if settings.is_empty() else settings).duplicate(true)
+	config = normalize(settings)
 	clock = 0.0
 	steps = 0
 	sequence = 0
 	combo_count = 0
 	finished = false
 	result = ""
-	squads.clear(); units.clear(); events.clear(); impacts.clear(); effects.clear()
+	squads.clear(); units.clear(); events.clear(); impacts.clear(); effects.clear(); decisions.clear()
 	var positions := [Vector2(135, 335), Vector2(140, 530), Vector2(595, 335), Vector2(755, 210)]
 	var names := ["A · 盾法队", "B · 突袭队", "C · 守备队", "D · 雷法队"]
 	for i in range(4):
 		squads.append({"id": i, "team": 0 if i < 2 else 1, "name": names[i], "pos": positions[i],
 			"task": config.tasks[i] if i < 2 else "原地驻守", "target": -1, "route": [], "phase": 0,
-			"reason": "等待开始", "moving": false, "engaged": false})
+			"home": positions[i], "retreating": false, "posture": config.postures[i] if i < 2 else "贴近交战",
+			"exception": config.exceptions[i] if i < 2 else "无", "reason": "等待开始", "moving": false, "engaged": false})
 	var roles := ["盾兵", "法师", "刺客", "牧师", "卫兵", "弓手", "卫兵", "雷法"]
 	var health := [210.0, 100.0, 120.0, 100.0, 180.0, 100.0, 130.0, 100.0]
 	for i in range(8):
@@ -73,7 +100,9 @@ func reset(settings: Dictionary = {}) -> void:
 		else: rules = [["盾击" if i % 2 == 0 else ("箭击" if i == 5 else "雷击"), "无"]]
 		units.append({"id": i, "squad": i / 2, "team": 0 if i < 4 else 1, "role": roles[i],
 			"hp": health[i], "max_hp": health[i], "shield": 0.0, "rules": rules,
-			"pp": config.pp[i] if i < 4 else "留空", "pp_cd": 0.0, "pp_until": 0.0,
+			"pp_rules": config.pp[i].duplicate(true) if i < 4 else [], "pp": "", "pp_cd": 0.0, "pp_until": 0.0,
+			"pp_points": 2, "pp_next": 8.0, "pp_cooldowns": {}, "pp_slot": -1, "pp_checks": [], "reacted_event": -1,
+			"checks": [], "check_time": 0.0, "pp_check_time": 0.0, "cast_event": -1, "wait_event": -1, "wait_until": 0.0, "wait_spent": false,
 			"taunt_until": 0.0, "taunt_source": -1, "taunt_event": -1, "cooldowns": {}, "mode": "待机", "skill": "", "slot": -1,
 			"start": 0.0, "release": 0.0, "ready": 0.0, "target": -1, "why": "尚未选择技能"})
 	log_event("部署", "A队正面接敌；B队沿下侧通道突袭。所有角色共享时间。", -1, -1)
@@ -152,7 +181,16 @@ func move_squads() -> void:
 		var destination: Vector2 = old
 		var enemy: Vector2 = squads[s.target].pos
 		s.engaged = old.distance_to(enemy) <= 180
-		if s.task == "原地驻守": s.reason = "驻守阵地，不追击"
+		var hp := 0.0; var maximum := 0.0
+		for u in units:
+			if u.squad == s.id: hp += u.hp; maximum += u.max_hp
+		if s.exception != "无" and hp / maximum <= 0.35 and not s.retreating:
+			s.retreating = true
+			log_event("任务", "%s触发低血例外：撤回部署区，恢复至65%%才解除" % s.name, -1, -1)
+		if s.retreating and hp / maximum > 0.65: s.retreating = false
+		if s.retreating:
+			destination = s.home; s.reason = "低血例外：撤回部署区（高于65%解除）"
+		elif s.task == "原地驻守": s.reason = "驻守阵地，不追击"
 		elif s.task == "侧路突袭" and s.phase < 2:
 			var marks := [Vector2(350, 565), Vector2(765, 565)]
 			destination = marks[s.phase]
@@ -167,7 +205,9 @@ func move_squads() -> void:
 			destination = (squads[0].pos + Vector2(-55, 100)).clamp(Vector2(70, 180), Vector2(845, 565))
 			s.reason = "跟随A队侧后方，提供治疗与协同"
 		else:
-			if old.distance_to(enemy) > 100: destination = enemy + (old - enemy).normalized() * 98
+			var reach := 200.0 if s.posture == "保持距离" else 100.0
+			if old.distance_to(enemy) > reach or (s.posture == "保持距离" and old.distance_to(enemy) < reach - 20):
+				destination = enemy + (old - enemy).normalized() * (reach - 2)
 			s.reason = "接近%s" % squads[s.target].name if destination != old else "保持交战距离"
 		if old.distance_to(destination) > 3:
 			var route := path_to(old, destination)
@@ -184,7 +224,7 @@ func move_squads() -> void:
 		squads[i].moving = squads[i].pos.distance_to(proposals[i]) > 0.01
 		squads[i].pos = proposals[i]
 
-func candidates(uid: int, skill: String, condition: String) -> Array:
+func candidates(uid: int, skill: String, condition: String, in_range := true) -> Array:
 	var result_targets: Array = []
 	if not SKILLS.has(skill): return result_targets
 	var caster: Dictionary = units[uid]
@@ -198,7 +238,7 @@ func candidates(uid: int, skill: String, condition: String) -> Array:
 			if t.team == caster.team: continue
 			if condition == "目标被牵制" and t.taunt_until <= clock: continue
 			if condition == "目标正在施法" and t.mode != "施法": continue
-		if pos(uid).distance_to(pos(t.id)) <= SKILLS[skill].range: result_targets.append(t.id)
+		if not in_range or pos(uid).distance_to(pos(t.id)) <= SKILLS[skill].range: result_targets.append(t.id)
 	result_targets.sort_custom(func(a, b):
 		if skill == "治疗":
 			var ah: float = units[a].hp / units[a].max_hp; var bh: float = units[b].hp / units[b].max_hp
@@ -211,49 +251,123 @@ func candidates(uid: int, skill: String, condition: String) -> Array:
 		return a < b if is_equal_approx(ad, bd) else ad < bd)
 	return result_targets
 
+func assessment(uid: int, rule: Array, slot: int) -> Dictionary:
+	var skill: String = rule[0]
+	var c2: String = rule[2] if rule.size() > 2 else "无"
+	var row := {"slot": slot, "skill": skill, "condition1": rule[1], "condition2": c2,
+		"condition_ok": false, "range_ok": false, "cooldown": 0.0, "targets": [], "chosen": false, "reason": "空槽"}
+	if skill == "留空": return row
+	if skill == "等待牵制":
+		if units[uid].wait_spent: row.reason = "等待已用完；须先执行非等待动作"; return row
+		for ally in units:
+			if ally.hp > 0 and ally.team == units[uid].team and ally.mode == "施法" and ally.skill == "牵制" and ally.release - clock <= 1.0:
+				if units[ally.target].hp > 0 and pos(uid).distance_to(pos(ally.target)) <= 180:
+					row.condition_ok = true; row.range_ok = true; row.targets = [ally.target]; row.reason = "友军正施放牵制，目标在180范围内"; return row
+		row.reason = "没有1秒内即将完成的射程内牵制"; return row
+	var first := candidates(uid, skill, rule[1], false)
+	var second := candidates(uid, skill, c2, false)
+	var matching: Array = first.filter(func(id): return second.has(id))
+	row.condition_ok = not matching.is_empty()
+	row.targets = matching.filter(func(id): return pos(uid).distance_to(pos(id)) <= SKILLS[skill].range)
+	row.range_ok = not row.targets.is_empty()
+	row.cooldown = maxf(0, units[uid].cooldowns.get(skill, 0.0) - clock)
+	if not row.condition_ok: row.reason = "没有同时满足两个条件的合法目标"
+	elif not row.range_ok: row.reason = "条件满足，但目标超出射程"
+	elif row.cooldown > 0: row.reason = "条件和射程满足，但技能冷却%.1fs" % row.cooldown
+	else: row.reason = "可执行"
+	return row
+
 func choose_actions() -> void:
-	# All choices read the same post-impact snapshot; effects are applied in later ticks.
 	var planned: Array = []
 	for original in units:
-		if original.hp <= 0 or original.mode != "待机": continue
+		if original.hp <= 0 or original.mode not in ["待机", "等待"]: continue
 		var u: Dictionary = original.duplicate(true)
-		u.slot = -1
-		var reasons: Array[String] = []
+		u.check_time = clock
+		var waiting: bool = u.mode == "等待" and clock < u.wait_until - 0.0001
+		var max_slot: int = u.slot if waiting else u.rules.size()
+		if u.mode == "等待" and not waiting:
+			u.mode = "待机"
+			log_event("等待结束", "%s等待超时，跳过等待并寻找后备动作" % title(u.id), u.id, -1)
+		u.checks = []
+		var chosen := false
 		for i in u.rules.size():
-			var rule: Array = u.rules[i]; var skill: String = rule[0]
-			if skill == "留空": continue
-			if u.cooldowns.get(skill, 0.0) > clock:
-				reasons.append("%s冷却%.1fs" % [skill, u.cooldowns[skill] - clock]); continue
-			var targets := candidates(u.id, skill, rule[1])
-			if targets.is_empty(): reasons.append("%s无符合条件的射程内目标" % skill); continue
-			u.mode = "施法"; u.skill = skill; u.target = targets[0]; u.slot = i
-			u.start = clock; u.release = clock + SKILLS[skill].wind
-			u.ready = u.release + SKILLS[skill].flight + SKILLS[skill].recover
-			u.why = "AP%d %s → %s" % [i + 1, rule[1], title(u.target)]
-			log_event("AP", "%s：%s · %s" % [title(u.id), skill, u.why], u.id, u.target)
+			if i >= max_slot:
+				u.checks.append({"slot": i, "skill": u.rules[i][0], "chosen": false, "reason": "等待中：只重查等待之前的战术"}); continue
+			var row := assessment(u.id, u.rules[i], i)
+			# Copy the waiting lock from the planned state if it just timed out.
+			if u.rules[i][0] == "等待牵制" and u.wait_spent:
+				row.condition_ok = false; row.reason = "本轮等待已消耗，不能续期"
+			u.checks.append(row)
+			if not row.condition_ok or not row.range_ok or row.cooldown > 0: continue
+			row.chosen = true; chosen = true
+			u.slot = i; u.skill = row.skill; u.target = row.targets[0]
+			u.why = "AP%d %s / %s → %s" % [i + 1, row.condition1, row.condition2, title(u.target)]
+			if row.skill == "等待牵制":
+				u.mode = "等待"; u.wait_until = clock + 1.0; u.wait_spent = true
+				u.why = "最多等待1秒；提前出现可用的上方战术就结束等待"
+				u.wait_event = log_event("等待", "%s保留行动，等待牵制（最多1秒）" % title(u.id), u.id, u.target)
+			else:
+				u.mode = "施法"; u.wait_spent = false
+				if original.mode == "等待": log_event("等待结束", "%s提前结束等待 → %s" % [title(u.id), u.skill], u.id, u.target)
+				u.start = clock; u.release = clock + SKILLS[u.skill].wind
+				u.ready = u.release + SKILLS[u.skill].flight + SKILLS[u.skill].recover
+				u.cast_event = log_event("AP", "%s：%s · %s" % [title(u.id), u.skill, u.why], u.id, u.target, u.wait_event if original.mode == "等待" else -1)
+			for j in range(i + 1, u.rules.size()):
+				u.checks.append({"slot": j, "skill": u.rules[j][0], "chosen": false, "reason": "未检查：上方战术已选中"})
 			break
-		if u.mode == "待机": u.why = "；".join(reasons) if not reasons.is_empty() else "AP为空，等待"
+		if not chosen and not waiting:
+			u.mode = "待机"; u.slot = -1
+			var reasons: Array[String] = []
+			for row in u.checks:
+				if row.skill != "留空": reasons.append(row.skill + "：" + row.reason)
+			u.why = "；".join(reasons) if not reasons.is_empty() else "AP为空，等待"
+		if chosen: decisions.append({"time": clock, "actor": u.id, "kind": "主动", "checks": u.checks.duplicate(true)})
 		planned.append(u)
 	for u in planned: units[u.id] = u
 
-func react_before(target: int, source_event: int) -> void:
+func reaction(stage: String, target: int, source_event: int) -> void:
 	for u in units:
-		if u.hp <= 0 or u.pp != "援护" or u.team != units[target].team or u.id == target or u.pp_cd > clock: continue
-		if pos(u.id).distance_to(pos(target)) > 175: continue
-		u.pp_cd = clock + 6; u.pp_until = clock + 0.8
-		units[target].shield += 26
-		var id := log_event("PP", "%s援护%s，获得26护盾（不打断AP）" % [title(u.id), title(target)], u.id, target, source_event)
-		effects.append({"kind": "shield", "a": pos(u.id), "b": pos(target), "end": clock + 0.6, "start": clock, "team": u.team, "event": id})
-		break
+		if u.hp <= 0 or u.team != units[target].team: continue
+		if source_event > 0 and u.reacted_event == source_event: continue
+		var rows: Array = []
+		for i in u.pp_rules.size():
+			var rule: Array = u.pp_rules[i]; var skill: String = rule[0]
+			if not PP_SKILLS.has(skill): continue
+			var data: Dictionary = PP_SKILLS[skill]
+			if data.stage != stage: continue # intrinsic stage filter, not a player condition
+			var row := {"slot": i, "skill": skill, "chosen": false, "reason": "", "stage": stage, "event": source_event}
+			if data.self and u.id != target: row.reason = "固有要求：仅自己受击"
+			elif not data.self and skill == "援护" and u.id == target: row.reason = "固有要求：只能援护其他人"
+			elif pos(u.id).distance_to(pos(target)) > data.range and not data.self: row.reason = "目标超出反应范围"
+			elif units[target].hp <= 0: row.reason = "目标已阵亡"
+			elif skill == "回春" and units[target].hp >= units[target].max_hp: row.reason = "目标未受伤"
+			elif u.pp_points < 1: row.reason = "反应资源不足：需要1PP"
+			elif u.pp_cooldowns.get(skill, 0.0) > clock: row.reason = "技能冷却中"
+			else:
+				for condition in [rule[1], rule[2]]:
+					if condition == "目标是后排" and target % 2 == 0: row.reason = "额外条件不满足：目标不是后排"
+					elif condition == "目标HP≤60%" and units[target].hp / units[target].max_hp > 0.6: row.reason = "额外条件不满足：目标HP>60%"
+					elif condition == "保留1PP" and u.pp_points < 2: row.reason = "额外条件不满足：需至少2PP以保留1PP"
+					elif condition == "自己HP≤50%" and u.hp / u.max_hp > 0.5: row.reason = "额外条件不满足：自己HP>50%"
+			rows.append(row)
+			if not row.reason.is_empty(): continue
+			row.chosen = true; row.reason = "本事件合法，消耗1PP"
+			u.pp_points -= 1; u.pp_cooldowns[skill] = clock + data.cd
+			u.reacted_event = source_event
+			u.pp_until = clock + 0.8; u.pp_slot = i; u.pp = skill
+			if skill in ["格挡", "援护"]: units[target].shield += data.amount
+			else: units[target].hp = minf(units[target].max_hp, units[target].hp + data.amount)
+			var id := log_event("PP", "%s%s%s：%s%.0f，消耗1PP（剩%d）" % [title(u.id), skill, title(target), "护盾+" if skill != "回春" else "HP+", data.amount, u.pp_points], u.id, target, source_event)
+			effects.append({"kind": "shield", "a": pos(u.id), "b": pos(target), "end": clock + 0.6, "start": clock, "team": u.team, "event": id})
+			break # one reaction per caster per source event; effects don't generate hit events
+		if not rows.is_empty(): u.pp_checks = rows; u.pp_check_time = clock
+		if not rows.is_empty(): decisions.append({"time": clock, "actor": u.id, "kind": "反应", "event": source_event, "checks": rows.duplicate(true)})
+
+func react_before(target: int, source_event: int) -> void:
+	reaction("受击前", target, source_event)
 
 func react_after(target: int, source_event: int) -> void:
-	for u in units:
-		if u.hp <= 0 or u.pp != "回春" or u.team != units[target].team or u.pp_cd > clock: continue
-		if units[target].hp <= 0 or units[target].hp >= units[target].max_hp or pos(u.id).distance_to(pos(target)) > 230: continue
-		u.pp_cd = clock + 6; u.pp_until = clock + 0.8
-		units[target].hp = minf(units[target].max_hp, units[target].hp + 8)
-		log_event("PP", "%s回春%s，恢复8HP" % [title(u.id), title(target)], u.id, target, source_event)
-		break
+	reaction("受击后", target, source_event)
 
 func tick() -> void:
 	if finished: return
@@ -261,11 +375,13 @@ func tick() -> void:
 	effects = effects.filter(func(e): return e.end > clock)
 	move_squads()
 	for u in units:
+		if clock + 0.0001 >= u.pp_next:
+			u.pp_points = mini(2, u.pp_points + 1); u.pp_next += 8.0
 		if u.hp <= 0: u.mode = "阵亡"; continue
 		if u.mode == "施法" and clock + 0.0001 >= u.release:
 			u.mode = "收招"; u.cooldowns[u.skill] = clock + SKILLS[u.skill].cd
 			var impact := {"source": u.id, "target": u.target, "skill": u.skill, "due": clock + SKILLS[u.skill].flight,
-				"a": pos(u.id), "b": pos(u.target), "event": log_event("释放", "%s释放%s" % [title(u.id), u.skill], u.id, u.target)}
+				"a": pos(u.id), "b": pos(u.target), "event": log_event("释放", "%s释放%s" % [title(u.id), u.skill], u.id, u.target, u.cast_event)}
 			impacts.append(impact)
 			if SKILLS[u.skill].flight > 0:
 				effects.append({"kind": "projectile", "a": impact.a, "b": impact.b, "target": u.target, "start": clock, "end": impact.due, "team": u.team, "skill": u.skill})
@@ -316,3 +432,12 @@ func tick() -> void:
 
 func summary() -> Dictionary:
 	return {"time": clock, "result": result, "combos": combo_count, "hp": units.map(func(u): return snappedf(u.hp, 0.01)), "events": events.duplicate(true)}
+
+func snapshot() -> Dictionary:
+	return {"clock": clock, "steps": steps, "units": units.duplicate(true), "squads": squads.duplicate(true),
+		"effects": effects.duplicate(true), "combo_count": combo_count, "finished": finished, "result": result, "event_count": events.size()}
+
+func load_view(state: Dictionary, recorded_events: Array) -> void:
+	clock = state.clock; steps = state.steps; units = state.units.duplicate(true); squads = state.squads.duplicate(true)
+	effects = state.effects.duplicate(true); combo_count = state.combo_count; finished = state.finished; result = state.result
+	events = recorded_events.slice(0, state.event_count)

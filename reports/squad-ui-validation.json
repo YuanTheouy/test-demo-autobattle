@@ -2,9 +2,19 @@
 	"checks": [
 		"real task picker",
 		"real AP picker",
+		"real second condition",
+		"priority reorder",
+		"real PP condition",
+		"real posture and exception controls",
+		"template save/load retains other roles",
 		"preserved configuration on retry",
 		"one second playback before pause",
-		"0.5/1/2 speed histories identical"
+		"0.5/1/2 speed histories identical",
+		"actual timeline navigation",
+		"historical state isolation",
+		"event actor navigation",
+		"causal audit",
+		"return to unchanged live result"
 	],
 	"combos": 5,
 	"default_result": "蓝方胜利",
