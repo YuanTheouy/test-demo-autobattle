@@ -1,0 +1,13 @@
+{
+	"checks": [
+		"real task picker",
+		"real AP picker",
+		"preserved configuration on retry",
+		"one second playback before pause",
+		"0.5/1/2 speed histories identical"
+	],
+	"combos": 5,
+	"default_result": "蓝方胜利",
+	"passed": true,
+	"time": 32.9
+}

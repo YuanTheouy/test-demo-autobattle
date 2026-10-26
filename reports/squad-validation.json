@@ -1,0 +1,7362 @@
+{
+	"checks": [
+		"deterministic replay",
+		"formation bounds and walls",
+		"same-arena task variants",
+		"cross-squad combo causality",
+		"cross-squad healing",
+		"range filtering",
+		"result freeze",
+		"flank navigation",
+		"no damage during flight",
+		"snapshot action selection"
+	],
+	"outcomes": {
+		"flank": {
+			"combos": 5,
+			"events": [
+				{
+					"actor": -1,
+					"id": 1,
+					"kind": "部署",
+					"parent": -1,
+					"target": -1,
+					"text": "A队正面接敌；B队沿下侧通道突袭。所有角色共享时间。",
+					"time": 0.0
+				},
+				{
+					"actor": 1,
+					"id": 2,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师：火球 · AP2 无 → C·卫兵",
+					"time": 2.6
+				},
+				{
+					"actor": 0,
+					"id": 3,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：牵制 · AP1 无 → C·卫兵",
+					"time": 2.75
+				},
+				{
+					"actor": 5,
+					"id": 4,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手：箭击 · AP1 无 → A·盾兵",
+					"time": 2.85
+				},
+				{
+					"actor": 0,
+					"id": 5,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放牵制",
+					"time": 3.25
+				},
+				{
+					"actor": 0,
+					"id": 6,
+					"kind": "牵制",
+					"parent": 5,
+					"target": 4,
+					"text": "A·盾兵牵制C·卫兵 6秒，自身获得24护盾",
+					"time": 3.25
+				},
+				{
+					"actor": 1,
+					"id": 7,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师释放火球",
+					"time": 3.5
+				},
+				{
+					"actor": 5,
+					"id": 8,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手释放箭击",
+					"time": 3.5
+				},
+				{
+					"actor": 4,
+					"id": 9,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 3.8
+				},
+				{
+					"actor": 5,
+					"id": 10,
+					"kind": "命中",
+					"parent": 8,
+					"target": 0,
+					"text": "C·弓手命中A·盾兵：0伤害 / 护盾抵消14",
+					"time": 3.85
+				},
+				{
+					"actor": 1,
+					"id": 11,
+					"kind": "命中",
+					"parent": 7,
+					"target": 4,
+					"text": "A·法师命中C·卫兵：20伤害 / 护盾抵消0",
+					"time": 3.9
+				},
+				{
+					"actor": 0,
+					"id": 12,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：盾击 · AP2 无 → C·卫兵",
+					"time": 4.25
+				},
+				{
+					"actor": 4,
+					"id": 13,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵释放盾击",
+					"time": 4.35
+				},
+				{
+					"actor": 4,
+					"id": 14,
+					"kind": "命中",
+					"parent": 13,
+					"target": 0,
+					"text": "C·卫兵命中A·盾兵：2伤害 / 护盾抵消10",
+					"time": 4.35
+				},
+				{
+					"actor": 0,
+					"id": 15,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放盾击",
+					"time": 4.8
+				},
+				{
+					"actor": 0,
+					"id": 16,
+					"kind": "命中",
+					"parent": 15,
+					"target": 4,
+					"text": "A·盾兵命中C·卫兵：12伤害 / 护盾抵消0",
+					"time": 4.8
+				},
+				{
+					"actor": 5,
+					"id": 17,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手：箭击 · AP1 无 → A·盾兵",
+					"time": 6.2
+				},
+				{
+					"actor": 4,
+					"id": 18,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 6.35
+				},
+				{
+					"actor": 1,
+					"id": 19,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师：火球 · AP1 目标被牵制 → C·卫兵",
+					"time": 6.5
+				},
+				{
+					"actor": 0,
+					"id": 20,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：盾击 · AP2 无 → C·卫兵",
+					"time": 6.8
+				},
+				{
+					"actor": 5,
+					"id": 21,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手释放箭击",
+					"time": 6.85
+				},
+				{
+					"actor": 4,
+					"id": 22,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵释放盾击",
+					"time": 6.9
+				},
+				{
+					"actor": 4,
+					"id": 23,
+					"kind": "命中",
+					"parent": 22,
+					"target": 0,
+					"text": "C·卫兵命中A·盾兵：12伤害 / 护盾抵消0",
+					"time": 6.9
+				},
+				{
+					"actor": 5,
+					"id": 24,
+					"kind": "命中",
+					"parent": 21,
+					"target": 0,
+					"text": "C·弓手命中A·盾兵：14伤害 / 护盾抵消0",
+					"time": 7.2
+				},
+				{
+					"actor": 0,
+					"id": 25,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放盾击",
+					"time": 7.35
+				},
+				{
+					"actor": 0,
+					"id": 26,
+					"kind": "命中",
+					"parent": 25,
+					"target": 4,
+					"text": "A·盾兵命中C·卫兵：12伤害 / 护盾抵消0",
+					"time": 7.35
+				},
+				{
+					"actor": 1,
+					"id": 27,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师释放火球",
+					"time": 7.4
+				},
+				{
+					"actor": -1,
+					"id": 28,
+					"kind": "任务",
+					"parent": -1,
+					"target": -1,
+					"text": "B · 突袭队完成绕行，从侧面攻击正面敌人",
+					"time": 7.8
+				},
+				{
+					"actor": 1,
+					"id": 29,
+					"kind": "命中",
+					"parent": 27,
+					"target": 4,
+					"text": "A·法师命中C·卫兵：20伤害 / 护盾抵消0",
+					"time": 7.8
+				},
+				{
+					"actor": 3,
+					"id": 30,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "B·牧师：光弹 · AP2 无 → C·弓手",
+					"time": 8.45
+				},
+				{
+					"actor": 0,
+					"id": 31,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：牵制 · AP1 无 → C·卫兵",
+					"time": 8.6
+				},
+				{
+					"actor": 7,
+					"id": 32,
+					"kind": "AP",
+					"parent": -1,
+					"target": 2,
+					"text": "D·雷法：雷击 · AP1 无 → B·刺客",
+					"time": 8.7
+				},
+				{
+					"actor": 4,
+					"id": 33,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 8.9
+				},
+				{
+					"actor": 0,
+					"id": 34,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放牵制",
+					"time": 9.1
+				},
+				{
+					"actor": 3,
+					"id": 35,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "B·牧师释放光弹",
+					"time": 9.1
+				},
+				{
+					"actor": 0,
+					"id": 36,
+					"kind": "牵制",
+					"parent": 34,
+					"target": 4,
+					"text": "A·盾兵牵制C·卫兵 6秒，自身获得24护盾",
+					"time": 9.1
+				},
+				{
+					"actor": 3,
+					"id": 37,
+					"kind": "命中",
+					"parent": 35,
+					"target": 5,
+					"text": "B·牧师命中C·弓手：10伤害 / 护盾抵消0",
+					"time": 9.4
+				},
+				{
+					"actor": 4,
+					"id": 38,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵释放盾击",
+					"time": 9.45
+				},
+				{
+					"actor": 4,
+					"id": 39,
+					"kind": "命中",
+					"parent": 38,
+					"target": 0,
+					"text": "C·卫兵命中A·盾兵：0伤害 / 护盾抵消12",
+					"time": 9.45
+				},
+				{
+					"actor": 3,
+					"id": 40,
+					"kind": "PP",
+					"parent": 38,
+					"target": 0,
+					"text": "B·牧师回春A·盾兵，恢复8HP",
+					"time": 9.45
+				},
+				{
+					"actor": 2,
+					"id": 41,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "B·刺客：协同突袭 · AP1 目标被牵制 → C·卫兵",
+					"time": 9.55
+				},
+				{
+					"actor": 5,
+					"id": 42,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手：箭击 · AP1 无 → A·盾兵",
+					"time": 9.55
+				},
+				{
+					"actor": 2,
+					"id": 43,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "B·刺客释放协同突袭",
+					"time": 10.1
+				},
+				{
+					"actor": 7,
+					"id": 44,
+					"kind": "释放",
+					"parent": -1,
+					"target": 2,
+					"text": "D·雷法释放雷击",
+					"time": 10.1
+				},
+				{
+					"actor": 0,
+					"id": 45,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：盾击 · AP2 无 → C·卫兵",
+					"time": 10.1
+				},
+				{
+					"actor": 5,
+					"id": 46,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手释放箭击",
+					"time": 10.2
+				},
+				{
+					"actor": 2,
+					"causes": [
+						43,
+						36
+					],
+					"id": 47,
+					"kind": "连携",
+					"parent": 43,
+					"target": 4,
+					"text": "B·刺客利用A·盾兵的牵制 → 协同突袭32伤害",
+					"time": 10.25
+				},
+				{
+					"actor": 2,
+					"id": 48,
+					"kind": "命中",
+					"parent": 43,
+					"target": 4,
+					"text": "B·刺客命中C·卫兵：32伤害 / 护盾抵消0",
+					"time": 10.25
+				},
+				{
+					"actor": 7,
+					"id": 49,
+					"kind": "命中",
+					"parent": 44,
+					"target": 2,
+					"text": "D·雷法命中B·刺客：27伤害 / 护盾抵消0",
+					"time": 10.35
+				},
+				{
+					"actor": 1,
+					"id": 50,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师：火球 · AP1 目标被牵制 → C·卫兵",
+					"time": 10.4
+				},
+				{
+					"actor": 5,
+					"id": 51,
+					"kind": "命中",
+					"parent": 46,
+					"target": 0,
+					"text": "C·弓手命中A·盾兵：2伤害 / 护盾抵消12",
+					"time": 10.55
+				},
+				{
+					"actor": 0,
+					"id": 52,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放盾击",
+					"time": 10.65
+				},
+				{
+					"actor": 0,
+					"id": 53,
+					"kind": "命中",
+					"parent": 52,
+					"target": 4,
+					"text": "A·盾兵命中C·卫兵：12伤害 / 护盾抵消0",
+					"time": 10.65
+				},
+				{
+					"actor": 1,
+					"id": 54,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师释放火球",
+					"time": 11.3
+				},
+				{
+					"actor": 4,
+					"id": 55,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 11.45
+				},
+				{
+					"actor": 2,
+					"id": 56,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "B·刺客：突刺 · AP2 无 → C·弓手",
+					"time": 11.55
+				},
+				{
+					"actor": 1,
+					"id": 57,
+					"kind": "命中",
+					"parent": 54,
+					"target": 4,
+					"text": "A·法师命中C·卫兵：20伤害 / 护盾抵消0",
+					"time": 11.7
+				},
+				{
+					"actor": 3,
+					"id": 58,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "B·牧师：光弹 · AP2 无 → C·弓手",
+					"time": 11.7
+				},
+				{
+					"actor": 2,
+					"id": 59,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "B·刺客释放突刺",
+					"time": 11.9
+				},
+				{
+					"actor": 2,
+					"id": 60,
+					"kind": "命中",
+					"parent": 59,
+					"target": 5,
+					"text": "B·刺客命中C·弓手：14伤害 / 护盾抵消0",
+					"time": 11.9
+				},
+				{
+					"actor": 4,
+					"id": 61,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵释放盾击",
+					"time": 12.0
+				},
+				{
+					"actor": 4,
+					"id": 62,
+					"kind": "命中",
+					"parent": 61,
+					"target": 0,
+					"text": "C·卫兵命中A·盾兵：12伤害 / 护盾抵消0",
+					"time": 12.0
+				},
+				{
+					"actor": 3,
+					"id": 63,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "B·牧师释放光弹",
+					"time": 12.35
+				},
+				{
+					"actor": 3,
+					"id": 64,
+					"kind": "命中",
+					"parent": 63,
+					"target": 5,
+					"text": "B·牧师命中C·弓手：10伤害 / 护盾抵消0",
+					"time": 12.65
+				},
+				{
+					"actor": 0,
+					"id": 65,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：盾击 · AP2 无 → C·卫兵",
+					"time": 12.65
+				},
+				{
+					"actor": 5,
+					"id": 66,
+					"kind": "AP",
+					"parent": -1,
+					"target": 2,
+					"text": "C·弓手：箭击 · AP1 无 → B·刺客",
+					"time": 12.95
+				},
+				{
+					"actor": 0,
+					"id": 67,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放盾击",
+					"time": 13.2
+				},
+				{
+					"actor": 0,
+					"id": 68,
+					"kind": "命中",
+					"parent": 67,
+					"target": 4,
+					"text": "A·盾兵命中C·卫兵：12伤害 / 护盾抵消0",
+					"time": 13.2
+				},
+				{
+					"actor": 5,
+					"id": 69,
+					"kind": "释放",
+					"parent": -1,
+					"target": 2,
+					"text": "C·弓手释放箭击",
+					"time": 13.6
+				},
+				{
+					"actor": 2,
+					"id": 70,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "B·刺客：突刺 · AP2 无 → C·弓手",
+					"time": 13.7
+				},
+				{
+					"actor": 5,
+					"id": 71,
+					"kind": "命中",
+					"parent": 69,
+					"target": 2,
+					"text": "C·弓手命中B·刺客：14伤害 / 护盾抵消0",
+					"time": 13.95
+				},
+				{
+					"actor": 4,
+					"id": 72,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 14.0
+				},
+				{
+					"actor": 2,
+					"id": 73,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "B·刺客释放突刺",
+					"time": 14.05
+				},
+				{
+					"actor": 2,
+					"id": 74,
+					"kind": "命中",
+					"parent": 73,
+					"target": 5,
+					"text": "B·刺客命中C·弓手：14伤害 / 护盾抵消0",
+					"time": 14.05
+				},
+				{
+					"actor": 1,
+					"id": 75,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师：火球 · AP1 目标被牵制 → C·卫兵",
+					"time": 14.3
+				},
+				{
+					"actor": 7,
+					"id": 76,
+					"kind": "AP",
+					"parent": -1,
+					"target": 2,
+					"text": "D·雷法：雷击 · AP1 无 → B·刺客",
+					"time": 14.3
+				},
+				{
+					"actor": 0,
+					"id": 77,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：牵制 · AP1 无 → C·卫兵",
+					"time": 14.45
+				},
+				{
+					"actor": 4,
+					"id": 78,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵释放盾击",
+					"time": 14.55
+				},
+				{
+					"actor": 4,
+					"id": 79,
+					"kind": "命中",
+					"parent": 78,
+					"target": 0,
+					"text": "C·卫兵命中A·盾兵：12伤害 / 护盾抵消0",
+					"time": 14.55
+				},
+				{
+					"actor": 0,
+					"id": 80,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放牵制",
+					"time": 14.95
+				},
+				{
+					"actor": 0,
+					"id": 81,
+					"kind": "牵制",
+					"parent": 80,
+					"target": 4,
+					"text": "A·盾兵牵制C·卫兵 6秒，自身获得24护盾",
+					"time": 14.95
+				},
+				{
+					"actor": 3,
+					"id": 82,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "B·牧师：光弹 · AP2 无 → C·弓手",
+					"time": 14.95
+				},
+				{
+					"actor": 2,
+					"id": 83,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "B·刺客：协同突袭 · AP1 目标被牵制 → C·卫兵",
+					"time": 15.1
+				},
+				{
+					"actor": 1,
+					"id": 84,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师释放火球",
+					"time": 15.2
+				},
+				{
+					"actor": 3,
+					"id": 85,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "B·牧师释放光弹",
+					"time": 15.6
+				},
+				{
+					"actor": 1,
+					"id": 86,
+					"kind": "命中",
+					"parent": 84,
+					"target": 4,
+					"text": "A·法师命中C·卫兵：20伤害 / 护盾抵消0",
+					"time": 15.6
+				},
+				{
+					"actor": 2,
+					"id": 87,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "B·刺客释放协同突袭",
+					"time": 15.65
+				},
+				{
+					"actor": 7,
+					"id": 88,
+					"kind": "释放",
+					"parent": -1,
+					"target": 2,
+					"text": "D·雷法释放雷击",
+					"time": 15.7
+				},
+				{
+					"actor": 2,
+					"causes": [
+						87,
+						81
+					],
+					"id": 89,
+					"kind": "连携",
+					"parent": 87,
+					"target": 4,
+					"text": "B·刺客利用A·盾兵的牵制 → 协同突袭32伤害",
+					"time": 15.8
+				},
+				{
+					"actor": 2,
+					"id": 90,
+					"kind": "命中",
+					"parent": 87,
+					"target": 4,
+					"text": "B·刺客命中C·卫兵：32伤害 / 护盾抵消0",
+					"time": 15.8
+				},
+				{
+					"actor": 4,
+					"id": 91,
+					"kind": "阵亡",
+					"parent": -1,
+					"target": 4,
+					"text": "C·卫兵阵亡",
+					"time": 15.8
+				},
+				{
+					"actor": 3,
+					"id": 92,
+					"kind": "命中",
+					"parent": 85,
+					"target": 5,
+					"text": "B·牧师命中C·弓手：10伤害 / 护盾抵消0",
+					"time": 15.9
+				},
+				{
+					"actor": 7,
+					"id": 93,
+					"kind": "命中",
+					"parent": 88,
+					"target": 2,
+					"text": "D·雷法命中B·刺客：27伤害 / 护盾抵消0",
+					"time": 15.95
+				},
+				{
+					"actor": 3,
+					"id": 94,
+					"kind": "PP",
+					"parent": 88,
+					"target": 2,
+					"text": "B·牧师回春B·刺客，恢复8HP",
+					"time": 15.95
+				},
+				{
+					"actor": 5,
+					"id": 95,
+					"kind": "AP",
+					"parent": -1,
+					"target": 2,
+					"text": "C·弓手：箭击 · AP1 无 → B·刺客",
+					"time": 16.3
+				},
+				{
+					"actor": 5,
+					"id": 96,
+					"kind": "释放",
+					"parent": -1,
+					"target": 2,
+					"text": "C·弓手释放箭击",
+					"time": 16.95
+				},
+				{
+					"actor": 2,
+					"id": 97,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "B·刺客：突刺 · AP2 无 → C·弓手",
+					"time": 17.1
+				},
+				{
+					"actor": 5,
+					"id": 98,
+					"kind": "命中",
+					"parent": 96,
+					"target": 2,
+					"text": "C·弓手命中B·刺客：14伤害 / 护盾抵消0",
+					"time": 17.3
+				},
+				{
+					"actor": 3,
+					"id": 99,
+					"kind": "AP",
+					"parent": -1,
+					"target": 2,
+					"text": "B·牧师：治疗 · AP1 友军HP≤60% → B·刺客",
+					"time": 17.3
+				},
+				{
+					"actor": 2,
+					"id": 100,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "B·刺客释放突刺",
+					"time": 17.45
+				},
+				{
+					"actor": 2,
+					"id": 101,
+					"kind": "命中",
+					"parent": 100,
+					"target": 5,
+					"text": "B·刺客命中C·弓手：14伤害 / 护盾抵消0",
+					"time": 17.45
+				},
+				{
+					"actor": 3,
+					"id": 102,
+					"kind": "释放",
+					"parent": -1,
+					"target": 2,
+					"text": "B·牧师释放治疗",
+					"time": 17.95
+				},
+				{
+					"actor": 3,
+					"id": 103,
+					"kind": "治疗",
+					"parent": 102,
+					"target": 2,
+					"text": "B·牧师治疗B·刺客 +25HP",
+					"time": 18.15
+				},
+				{
+					"actor": 1,
+					"id": 104,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "A·法师：火球 · AP2 无 → C·弓手",
+					"time": 18.25
+				},
+				{
+					"actor": 1,
+					"id": 105,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "A·法师释放火球",
+					"time": 19.15
+				},
+				{
+					"actor": 2,
+					"id": 106,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "B·刺客：突刺 · AP2 无 → C·弓手",
+					"time": 19.25
+				},
+				{
+					"actor": 3,
+					"id": 107,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "B·牧师：光弹 · AP2 无 → C·弓手",
+					"time": 19.5
+				},
+				{
+					"actor": 1,
+					"id": 108,
+					"kind": "命中",
+					"parent": 105,
+					"target": 5,
+					"text": "A·法师命中C·弓手：20伤害 / 护盾抵消0",
+					"time": 19.55
+				},
+				{
+					"actor": 2,
+					"id": 109,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "B·刺客释放突刺",
+					"time": 19.6
+				},
+				{
+					"actor": 2,
+					"id": 110,
+					"kind": "命中",
+					"parent": 109,
+					"target": 5,
+					"text": "B·刺客命中C·弓手：14伤害 / 护盾抵消0",
+					"time": 19.6
+				},
+				{
+					"actor": 5,
+					"id": 111,
+					"kind": "阵亡",
+					"parent": -1,
+					"target": 5,
+					"text": "C·弓手阵亡",
+					"time": 19.6
+				},
+				{
+					"actor": 7,
+					"id": 112,
+					"kind": "AP",
+					"parent": -1,
+					"target": 2,
+					"text": "D·雷法：雷击 · AP1 无 → B·刺客",
+					"time": 19.9
+				},
+				{
+					"actor": 3,
+					"id": 113,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "B·牧师释放光弹",
+					"time": 20.15
+				},
+				{
+					"actor": 0,
+					"id": 114,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵：牵制 · AP1 无 → D·卫兵",
+					"time": 20.35
+				},
+				{
+					"actor": 0,
+					"id": 115,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵释放牵制",
+					"time": 20.85
+				},
+				{
+					"actor": 0,
+					"id": 116,
+					"kind": "牵制",
+					"parent": 115,
+					"target": 6,
+					"text": "A·盾兵牵制D·卫兵 6秒，自身获得24护盾",
+					"time": 20.85
+				},
+				{
+					"actor": 2,
+					"id": 117,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "B·刺客：协同突袭 · AP1 目标被牵制 → D·卫兵",
+					"time": 20.85
+				},
+				{
+					"actor": 6,
+					"id": 118,
+					"kind": "AP",
+					"parent": -1,
+					"target": 2,
+					"text": "D·卫兵：盾击 · AP1 无 → B·刺客",
+					"time": 21.05
+				},
+				{
+					"actor": 7,
+					"id": 119,
+					"kind": "释放",
+					"parent": -1,
+					"target": 2,
+					"text": "D·雷法释放雷击",
+					"time": 21.3
+				},
+				{
+					"actor": 2,
+					"id": 120,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "B·刺客释放协同突袭",
+					"time": 21.4
+				},
+				{
+					"actor": 0,
+					"id": 121,
+					"kind": "PP",
+					"parent": 119,
+					"target": 2,
+					"text": "A·盾兵援护B·刺客，获得26护盾（不打断AP）",
+					"time": 21.55
+				},
+				{
+					"actor": 7,
+					"id": 122,
+					"kind": "命中",
+					"parent": 119,
+					"target": 2,
+					"text": "D·雷法命中B·刺客：1伤害 / 护盾抵消26",
+					"time": 21.55
+				},
+				{
+					"actor": 2,
+					"causes": [
+						120,
+						116
+					],
+					"id": 123,
+					"kind": "连携",
+					"parent": 120,
+					"target": 6,
+					"text": "B·刺客利用A·盾兵的牵制 → 协同突袭32伤害",
+					"time": 21.55
+				},
+				{
+					"actor": 2,
+					"id": 124,
+					"kind": "命中",
+					"parent": 120,
+					"target": 6,
+					"text": "B·刺客命中D·卫兵：32伤害 / 护盾抵消0",
+					"time": 21.55
+				},
+				{
+					"actor": 6,
+					"id": 125,
+					"kind": "释放",
+					"parent": -1,
+					"target": 2,
+					"text": "D·卫兵释放盾击",
+					"time": 21.6
+				},
+				{
+					"actor": 6,
+					"id": 126,
+					"kind": "命中",
+					"parent": 125,
+					"target": 2,
+					"text": "D·卫兵命中B·刺客：12伤害 / 护盾抵消0",
+					"time": 21.6
+				},
+				{
+					"actor": 0,
+					"id": 127,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵：盾击 · AP2 无 → D·卫兵",
+					"time": 21.85
+				},
+				{
+					"actor": 3,
+					"id": 128,
+					"kind": "AP",
+					"parent": -1,
+					"target": 2,
+					"text": "B·牧师：治疗 · AP1 友军HP≤60% → B·刺客",
+					"time": 21.95
+				},
+				{
+					"actor": 1,
+					"id": 129,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·法师：火球 · AP1 目标被牵制 → D·卫兵",
+					"time": 22.15
+				},
+				{
+					"actor": 0,
+					"id": 130,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵释放盾击",
+					"time": 22.4
+				},
+				{
+					"actor": 0,
+					"id": 131,
+					"kind": "命中",
+					"parent": 130,
+					"target": 6,
+					"text": "A·盾兵命中D·卫兵：12伤害 / 护盾抵消0",
+					"time": 22.4
+				},
+				{
+					"actor": 3,
+					"id": 132,
+					"kind": "释放",
+					"parent": -1,
+					"target": 2,
+					"text": "B·牧师释放治疗",
+					"time": 22.6
+				},
+				{
+					"actor": 3,
+					"id": 133,
+					"kind": "治疗",
+					"parent": 132,
+					"target": 2,
+					"text": "B·牧师治疗B·刺客 +25HP",
+					"time": 22.8
+				},
+				{
+					"actor": 2,
+					"id": 134,
+					"kind": "AP",
+					"parent": -1,
+					"target": 7,
+					"text": "B·刺客：突刺 · AP2 无 → D·雷法",
+					"time": 22.85
+				},
+				{
+					"actor": 1,
+					"id": 135,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·法师释放火球",
+					"time": 23.05
+				},
+				{
+					"actor": 2,
+					"id": 136,
+					"kind": "释放",
+					"parent": -1,
+					"target": 7,
+					"text": "B·刺客释放突刺",
+					"time": 23.2
+				},
+				{
+					"actor": 2,
+					"id": 137,
+					"kind": "命中",
+					"parent": 136,
+					"target": 7,
+					"text": "B·刺客命中D·雷法：14伤害 / 护盾抵消0",
+					"time": 23.2
+				},
+				{
+					"actor": 1,
+					"id": 138,
+					"kind": "命中",
+					"parent": 135,
+					"target": 6,
+					"text": "A·法师命中D·卫兵：20伤害 / 护盾抵消0",
+					"time": 23.45
+				},
+				{
+					"actor": 6,
+					"id": 139,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "D·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 23.6
+				},
+				{
+					"actor": 6,
+					"id": 140,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "D·卫兵释放盾击",
+					"time": 24.15
+				},
+				{
+					"actor": 6,
+					"id": 141,
+					"kind": "命中",
+					"parent": 140,
+					"target": 0,
+					"text": "D·卫兵命中A·盾兵：0伤害 / 护盾抵消12",
+					"time": 24.15
+				},
+				{
+					"actor": 3,
+					"id": 142,
+					"kind": "PP",
+					"parent": 140,
+					"target": 0,
+					"text": "B·牧师回春A·盾兵，恢复8HP",
+					"time": 24.15
+				},
+				{
+					"actor": 3,
+					"id": 143,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "B·牧师：光弹 · AP2 无 → D·卫兵",
+					"time": 24.15
+				},
+				{
+					"actor": 0,
+					"id": 144,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵：盾击 · AP2 无 → D·卫兵",
+					"time": 24.4
+				},
+				{
+					"actor": 3,
+					"id": 145,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "B·牧师释放光弹",
+					"time": 24.8
+				},
+				{
+					"actor": 0,
+					"id": 146,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵释放盾击",
+					"time": 24.95
+				},
+				{
+					"actor": 0,
+					"id": 147,
+					"kind": "命中",
+					"parent": 146,
+					"target": 6,
+					"text": "A·盾兵命中D·卫兵：12伤害 / 护盾抵消0",
+					"time": 24.95
+				},
+				{
+					"actor": 2,
+					"id": 148,
+					"kind": "AP",
+					"parent": -1,
+					"target": 7,
+					"text": "B·刺客：突刺 · AP2 无 → D·雷法",
+					"time": 25.05
+				},
+				{
+					"actor": 3,
+					"id": 149,
+					"kind": "命中",
+					"parent": 145,
+					"target": 6,
+					"text": "B·牧师命中D·卫兵：10伤害 / 护盾抵消0",
+					"time": 25.1
+				},
+				{
+					"actor": 2,
+					"id": 150,
+					"kind": "释放",
+					"parent": -1,
+					"target": 7,
+					"text": "B·刺客释放突刺",
+					"time": 25.4
+				},
+				{
+					"actor": 2,
+					"id": 151,
+					"kind": "命中",
+					"parent": 150,
+					"target": 7,
+					"text": "B·刺客命中D·雷法：14伤害 / 护盾抵消0",
+					"time": 25.4
+				},
+				{
+					"actor": 7,
+					"id": 152,
+					"kind": "AP",
+					"parent": -1,
+					"target": 2,
+					"text": "D·雷法：雷击 · AP1 无 → B·刺客",
+					"time": 25.5
+				},
+				{
+					"actor": 1,
+					"id": 153,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·法师：火球 · AP1 目标被牵制 → D·卫兵",
+					"time": 26.05
+				},
+				{
+					"actor": 6,
+					"id": 154,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "D·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 26.15
+				},
+				{
+					"actor": 0,
+					"id": 155,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵：牵制 · AP1 无 → D·卫兵",
+					"time": 26.2
+				},
+				{
+					"actor": 2,
+					"id": 156,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "B·刺客：协同突袭 · AP1 目标被牵制 → D·卫兵",
+					"time": 26.45
+				},
+				{
+					"actor": 0,
+					"id": 157,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵释放牵制",
+					"time": 26.7
+				},
+				{
+					"actor": 6,
+					"id": 158,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "D·卫兵释放盾击",
+					"time": 26.7
+				},
+				{
+					"actor": 0,
+					"id": 159,
+					"kind": "牵制",
+					"parent": 157,
+					"target": 6,
+					"text": "A·盾兵牵制D·卫兵 6秒，自身获得24护盾",
+					"time": 26.7
+				},
+				{
+					"actor": 6,
+					"id": 160,
+					"kind": "命中",
+					"parent": 158,
+					"target": 0,
+					"text": "D·卫兵命中A·盾兵：0伤害 / 护盾抵消12",
+					"time": 26.7
+				},
+				{
+					"actor": 7,
+					"id": 161,
+					"kind": "释放",
+					"parent": -1,
+					"target": 2,
+					"text": "D·雷法释放雷击",
+					"time": 26.9
+				},
+				{
+					"actor": 1,
+					"id": 162,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·法师释放火球",
+					"time": 26.95
+				},
+				{
+					"actor": 2,
+					"id": 163,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "B·刺客释放协同突袭",
+					"time": 27.0
+				},
+				{
+					"actor": 7,
+					"id": 164,
+					"kind": "命中",
+					"parent": 161,
+					"target": 2,
+					"text": "D·雷法命中B·刺客：27伤害 / 护盾抵消0",
+					"time": 27.15
+				},
+				{
+					"actor": 2,
+					"causes": [
+						163,
+						159
+					],
+					"id": 165,
+					"kind": "连携",
+					"parent": 163,
+					"target": 6,
+					"text": "B·刺客利用A·盾兵的牵制 → 协同突袭32伤害",
+					"time": 27.15
+				},
+				{
+					"actor": 2,
+					"id": 166,
+					"kind": "命中",
+					"parent": 163,
+					"target": 6,
+					"text": "B·刺客命中D·卫兵：32伤害 / 护盾抵消0",
+					"time": 27.15
+				},
+				{
+					"actor": 3,
+					"id": 167,
+					"kind": "AP",
+					"parent": -1,
+					"target": 2,
+					"text": "B·牧师：治疗 · AP1 友军HP≤60% → B·刺客",
+					"time": 27.15
+				},
+				{
+					"actor": 1,
+					"id": 168,
+					"kind": "命中",
+					"parent": 162,
+					"target": 6,
+					"text": "A·法师命中D·卫兵：20伤害 / 护盾抵消0",
+					"time": 27.35
+				},
+				{
+					"actor": 6,
+					"id": 169,
+					"kind": "阵亡",
+					"parent": -1,
+					"target": 6,
+					"text": "D·卫兵阵亡",
+					"time": 27.35
+				},
+				{
+					"actor": 3,
+					"id": 170,
+					"kind": "释放",
+					"parent": -1,
+					"target": 2,
+					"text": "B·牧师释放治疗",
+					"time": 27.8
+				},
+				{
+					"actor": 3,
+					"id": 171,
+					"kind": "治疗",
+					"parent": 170,
+					"target": 2,
+					"text": "B·牧师治疗B·刺客 +25HP",
+					"time": 28.0
+				},
+				{
+					"actor": 2,
+					"id": 172,
+					"kind": "AP",
+					"parent": -1,
+					"target": 7,
+					"text": "B·刺客：突刺 · AP2 无 → D·雷法",
+					"time": 28.45
+				},
+				{
+					"actor": 2,
+					"id": 173,
+					"kind": "释放",
+					"parent": -1,
+					"target": 7,
+					"text": "B·刺客释放突刺",
+					"time": 28.8
+				},
+				{
+					"actor": 2,
+					"id": 174,
+					"kind": "命中",
+					"parent": 173,
+					"target": 7,
+					"text": "B·刺客命中D·雷法：14伤害 / 护盾抵消0",
+					"time": 28.8
+				},
+				{
+					"actor": 3,
+					"id": 175,
+					"kind": "AP",
+					"parent": -1,
+					"target": 7,
+					"text": "B·牧师：光弹 · AP2 无 → D·雷法",
+					"time": 29.35
+				},
+				{
+					"actor": 1,
+					"id": 176,
+					"kind": "AP",
+					"parent": -1,
+					"target": 7,
+					"text": "A·法师：火球 · AP2 无 → D·雷法",
+					"time": 29.95
+				},
+				{
+					"actor": 3,
+					"id": 177,
+					"kind": "释放",
+					"parent": -1,
+					"target": 7,
+					"text": "B·牧师释放光弹",
+					"time": 30.0
+				},
+				{
+					"actor": 3,
+					"id": 178,
+					"kind": "命中",
+					"parent": 177,
+					"target": 7,
+					"text": "B·牧师命中D·雷法：10伤害 / 护盾抵消0",
+					"time": 30.3
+				},
+				{
+					"actor": 2,
+					"id": 179,
+					"kind": "AP",
+					"parent": -1,
+					"target": 7,
+					"text": "B·刺客：突刺 · AP2 无 → D·雷法",
+					"time": 30.6
+				},
+				{
+					"actor": 1,
+					"id": 180,
+					"kind": "释放",
+					"parent": -1,
+					"target": 7,
+					"text": "A·法师释放火球",
+					"time": 30.85
+				},
+				{
+					"actor": 2,
+					"id": 181,
+					"kind": "释放",
+					"parent": -1,
+					"target": 7,
+					"text": "B·刺客释放突刺",
+					"time": 30.95
+				},
+				{
+					"actor": 2,
+					"id": 182,
+					"kind": "命中",
+					"parent": 181,
+					"target": 7,
+					"text": "B·刺客命中D·雷法：14伤害 / 护盾抵消0",
+					"time": 30.95
+				},
+				{
+					"actor": 7,
+					"id": 183,
+					"kind": "AP",
+					"parent": -1,
+					"target": 2,
+					"text": "D·雷法：雷击 · AP1 无 → B·刺客",
+					"time": 31.1
+				},
+				{
+					"actor": 1,
+					"id": 184,
+					"kind": "命中",
+					"parent": 180,
+					"target": 7,
+					"text": "A·法师命中D·雷法：20伤害 / 护盾抵消0",
+					"time": 31.25
+				},
+				{
+					"actor": 0,
+					"id": 185,
+					"kind": "AP",
+					"parent": -1,
+					"target": 7,
+					"text": "A·盾兵：牵制 · AP1 无 → D·雷法",
+					"time": 31.7
+				},
+				{
+					"actor": 0,
+					"id": 186,
+					"kind": "释放",
+					"parent": -1,
+					"target": 7,
+					"text": "A·盾兵释放牵制",
+					"time": 32.2
+				},
+				{
+					"actor": 0,
+					"id": 187,
+					"kind": "牵制",
+					"parent": 186,
+					"target": 7,
+					"text": "A·盾兵牵制D·雷法 6秒，自身获得24护盾",
+					"time": 32.2
+				},
+				{
+					"actor": 2,
+					"id": 188,
+					"kind": "AP",
+					"parent": -1,
+					"target": 7,
+					"text": "B·刺客：协同突袭 · AP1 目标被牵制 → D·雷法",
+					"time": 32.2
+				},
+				{
+					"actor": 7,
+					"id": 189,
+					"kind": "释放",
+					"parent": -1,
+					"target": 2,
+					"text": "D·雷法释放雷击",
+					"time": 32.5
+				},
+				{
+					"actor": 3,
+					"id": 190,
+					"kind": "AP",
+					"parent": -1,
+					"target": 7,
+					"text": "B·牧师：光弹 · AP2 无 → D·雷法",
+					"time": 32.6
+				},
+				{
+					"actor": 2,
+					"id": 191,
+					"kind": "释放",
+					"parent": -1,
+					"target": 7,
+					"text": "B·刺客释放协同突袭",
+					"time": 32.75
+				},
+				{
+					"actor": 0,
+					"id": 192,
+					"kind": "PP",
+					"parent": 189,
+					"target": 2,
+					"text": "A·盾兵援护B·刺客，获得26护盾（不打断AP）",
+					"time": 32.75
+				},
+				{
+					"actor": 7,
+					"id": 193,
+					"kind": "命中",
+					"parent": 189,
+					"target": 2,
+					"text": "D·雷法命中B·刺客：1伤害 / 护盾抵消26",
+					"time": 32.75
+				},
+				{
+					"actor": 3,
+					"id": 194,
+					"kind": "PP",
+					"parent": 189,
+					"target": 2,
+					"text": "B·牧师回春B·刺客，恢复8HP",
+					"time": 32.75
+				},
+				{
+					"actor": 2,
+					"causes": [
+						191,
+						187
+					],
+					"id": 195,
+					"kind": "连携",
+					"parent": 191,
+					"target": 7,
+					"text": "B·刺客利用A·盾兵的牵制 → 协同突袭32伤害",
+					"time": 32.9
+				},
+				{
+					"actor": 2,
+					"id": 196,
+					"kind": "命中",
+					"parent": 191,
+					"target": 7,
+					"text": "B·刺客命中D·雷法：32伤害 / 护盾抵消0",
+					"time": 32.9
+				},
+				{
+					"actor": 7,
+					"id": 197,
+					"kind": "阵亡",
+					"parent": -1,
+					"target": 7,
+					"text": "D·雷法阵亡",
+					"time": 32.9
+				},
+				{
+					"actor": -1,
+					"id": 198,
+					"kind": "结束",
+					"parent": -1,
+					"target": -1,
+					"text": "蓝方胜利",
+					"time": 32.9
+				}
+			],
+			"hp": [
+				172.0,
+				100.0,
+				88.0,
+				100.0,
+				0.0,
+				0.0,
+				0.0,
+				0.0
+			],
+			"result": "蓝方胜利",
+			"time": 32.9
+		},
+		"hold": {
+			"combos": 0,
+			"events": [
+				{
+					"actor": -1,
+					"id": 1,
+					"kind": "部署",
+					"parent": -1,
+					"target": -1,
+					"text": "A队正面接敌；B队沿下侧通道突袭。所有角色共享时间。",
+					"time": 0.0
+				},
+				{
+					"actor": 1,
+					"id": 2,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师：火球 · AP2 无 → C·卫兵",
+					"time": 2.6
+				},
+				{
+					"actor": 0,
+					"id": 3,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：牵制 · AP1 无 → C·卫兵",
+					"time": 2.75
+				},
+				{
+					"actor": 5,
+					"id": 4,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手：箭击 · AP1 无 → A·盾兵",
+					"time": 2.85
+				},
+				{
+					"actor": 0,
+					"id": 5,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放牵制",
+					"time": 3.25
+				},
+				{
+					"actor": 0,
+					"id": 6,
+					"kind": "牵制",
+					"parent": 5,
+					"target": 4,
+					"text": "A·盾兵牵制C·卫兵 6秒，自身获得24护盾",
+					"time": 3.25
+				},
+				{
+					"actor": 1,
+					"id": 7,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师释放火球",
+					"time": 3.5
+				},
+				{
+					"actor": 5,
+					"id": 8,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手释放箭击",
+					"time": 3.5
+				},
+				{
+					"actor": 4,
+					"id": 9,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 3.8
+				},
+				{
+					"actor": 5,
+					"id": 10,
+					"kind": "命中",
+					"parent": 8,
+					"target": 0,
+					"text": "C·弓手命中A·盾兵：0伤害 / 护盾抵消14",
+					"time": 3.85
+				},
+				{
+					"actor": 1,
+					"id": 11,
+					"kind": "命中",
+					"parent": 7,
+					"target": 4,
+					"text": "A·法师命中C·卫兵：20伤害 / 护盾抵消0",
+					"time": 3.9
+				},
+				{
+					"actor": 0,
+					"id": 12,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：盾击 · AP2 无 → C·卫兵",
+					"time": 4.25
+				},
+				{
+					"actor": 4,
+					"id": 13,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵释放盾击",
+					"time": 4.35
+				},
+				{
+					"actor": 4,
+					"id": 14,
+					"kind": "命中",
+					"parent": 13,
+					"target": 0,
+					"text": "C·卫兵命中A·盾兵：2伤害 / 护盾抵消10",
+					"time": 4.35
+				},
+				{
+					"actor": 0,
+					"id": 15,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放盾击",
+					"time": 4.8
+				},
+				{
+					"actor": 0,
+					"id": 16,
+					"kind": "命中",
+					"parent": 15,
+					"target": 4,
+					"text": "A·盾兵命中C·卫兵：12伤害 / 护盾抵消0",
+					"time": 4.8
+				},
+				{
+					"actor": 5,
+					"id": 17,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手：箭击 · AP1 无 → A·盾兵",
+					"time": 6.2
+				},
+				{
+					"actor": 4,
+					"id": 18,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 6.35
+				},
+				{
+					"actor": 1,
+					"id": 19,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师：火球 · AP1 目标被牵制 → C·卫兵",
+					"time": 6.5
+				},
+				{
+					"actor": 0,
+					"id": 20,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：盾击 · AP2 无 → C·卫兵",
+					"time": 6.8
+				},
+				{
+					"actor": 5,
+					"id": 21,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手释放箭击",
+					"time": 6.85
+				},
+				{
+					"actor": 4,
+					"id": 22,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵释放盾击",
+					"time": 6.9
+				},
+				{
+					"actor": 4,
+					"id": 23,
+					"kind": "命中",
+					"parent": 22,
+					"target": 0,
+					"text": "C·卫兵命中A·盾兵：12伤害 / 护盾抵消0",
+					"time": 6.9
+				},
+				{
+					"actor": 5,
+					"id": 24,
+					"kind": "命中",
+					"parent": 21,
+					"target": 0,
+					"text": "C·弓手命中A·盾兵：14伤害 / 护盾抵消0",
+					"time": 7.2
+				},
+				{
+					"actor": 0,
+					"id": 25,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放盾击",
+					"time": 7.35
+				},
+				{
+					"actor": 0,
+					"id": 26,
+					"kind": "命中",
+					"parent": 25,
+					"target": 4,
+					"text": "A·盾兵命中C·卫兵：12伤害 / 护盾抵消0",
+					"time": 7.35
+				},
+				{
+					"actor": 1,
+					"id": 27,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师释放火球",
+					"time": 7.4
+				},
+				{
+					"actor": 1,
+					"id": 28,
+					"kind": "命中",
+					"parent": 27,
+					"target": 4,
+					"text": "A·法师命中C·卫兵：20伤害 / 护盾抵消0",
+					"time": 7.8
+				},
+				{
+					"actor": 0,
+					"id": 29,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：牵制 · AP1 无 → C·卫兵",
+					"time": 8.6
+				},
+				{
+					"actor": 4,
+					"id": 30,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 8.9
+				},
+				{
+					"actor": 0,
+					"id": 31,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放牵制",
+					"time": 9.1
+				},
+				{
+					"actor": 0,
+					"id": 32,
+					"kind": "牵制",
+					"parent": 31,
+					"target": 4,
+					"text": "A·盾兵牵制C·卫兵 6秒，自身获得24护盾",
+					"time": 9.1
+				},
+				{
+					"actor": 4,
+					"id": 33,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵释放盾击",
+					"time": 9.45
+				},
+				{
+					"actor": 4,
+					"id": 34,
+					"kind": "命中",
+					"parent": 33,
+					"target": 0,
+					"text": "C·卫兵命中A·盾兵：0伤害 / 护盾抵消12",
+					"time": 9.45
+				},
+				{
+					"actor": 5,
+					"id": 35,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手：箭击 · AP1 无 → A·盾兵",
+					"time": 9.55
+				},
+				{
+					"actor": 0,
+					"id": 36,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：盾击 · AP2 无 → C·卫兵",
+					"time": 10.1
+				},
+				{
+					"actor": 5,
+					"id": 37,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手释放箭击",
+					"time": 10.2
+				},
+				{
+					"actor": 1,
+					"id": 38,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师：火球 · AP1 目标被牵制 → C·卫兵",
+					"time": 10.4
+				},
+				{
+					"actor": 5,
+					"id": 39,
+					"kind": "命中",
+					"parent": 37,
+					"target": 0,
+					"text": "C·弓手命中A·盾兵：2伤害 / 护盾抵消12",
+					"time": 10.55
+				},
+				{
+					"actor": 0,
+					"id": 40,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放盾击",
+					"time": 10.65
+				},
+				{
+					"actor": 0,
+					"id": 41,
+					"kind": "命中",
+					"parent": 40,
+					"target": 4,
+					"text": "A·盾兵命中C·卫兵：12伤害 / 护盾抵消0",
+					"time": 10.65
+				},
+				{
+					"actor": 1,
+					"id": 42,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师释放火球",
+					"time": 11.3
+				},
+				{
+					"actor": 4,
+					"id": 43,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 11.45
+				},
+				{
+					"actor": 1,
+					"id": 44,
+					"kind": "命中",
+					"parent": 42,
+					"target": 4,
+					"text": "A·法师命中C·卫兵：20伤害 / 护盾抵消0",
+					"time": 11.7
+				},
+				{
+					"actor": 4,
+					"id": 45,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵释放盾击",
+					"time": 12.0
+				},
+				{
+					"actor": 4,
+					"id": 46,
+					"kind": "命中",
+					"parent": 45,
+					"target": 0,
+					"text": "C·卫兵命中A·盾兵：12伤害 / 护盾抵消0",
+					"time": 12.0
+				},
+				{
+					"actor": 0,
+					"id": 47,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：盾击 · AP2 无 → C·卫兵",
+					"time": 12.65
+				},
+				{
+					"actor": 5,
+					"id": 48,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手：箭击 · AP1 无 → A·盾兵",
+					"time": 12.95
+				},
+				{
+					"actor": 0,
+					"id": 49,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放盾击",
+					"time": 13.2
+				},
+				{
+					"actor": 0,
+					"id": 50,
+					"kind": "命中",
+					"parent": 49,
+					"target": 4,
+					"text": "A·盾兵命中C·卫兵：12伤害 / 护盾抵消0",
+					"time": 13.2
+				},
+				{
+					"actor": 5,
+					"id": 51,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手释放箭击",
+					"time": 13.6
+				},
+				{
+					"actor": 5,
+					"id": 52,
+					"kind": "命中",
+					"parent": 51,
+					"target": 0,
+					"text": "C·弓手命中A·盾兵：14伤害 / 护盾抵消0",
+					"time": 13.95
+				},
+				{
+					"actor": 4,
+					"id": 53,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 14.0
+				},
+				{
+					"actor": 1,
+					"id": 54,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师：火球 · AP1 目标被牵制 → C·卫兵",
+					"time": 14.3
+				},
+				{
+					"actor": 0,
+					"id": 55,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：牵制 · AP1 无 → C·卫兵",
+					"time": 14.45
+				},
+				{
+					"actor": 4,
+					"id": 56,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵释放盾击",
+					"time": 14.55
+				},
+				{
+					"actor": 4,
+					"id": 57,
+					"kind": "命中",
+					"parent": 56,
+					"target": 0,
+					"text": "C·卫兵命中A·盾兵：12伤害 / 护盾抵消0",
+					"time": 14.55
+				},
+				{
+					"actor": 0,
+					"id": 58,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放牵制",
+					"time": 14.95
+				},
+				{
+					"actor": 0,
+					"id": 59,
+					"kind": "牵制",
+					"parent": 58,
+					"target": 4,
+					"text": "A·盾兵牵制C·卫兵 6秒，自身获得24护盾",
+					"time": 14.95
+				},
+				{
+					"actor": 1,
+					"id": 60,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师释放火球",
+					"time": 15.2
+				},
+				{
+					"actor": 1,
+					"id": 61,
+					"kind": "命中",
+					"parent": 60,
+					"target": 4,
+					"text": "A·法师命中C·卫兵：20伤害 / 护盾抵消0",
+					"time": 15.6
+				},
+				{
+					"actor": 0,
+					"id": 62,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：盾击 · AP2 无 → C·卫兵",
+					"time": 15.95
+				},
+				{
+					"actor": 5,
+					"id": 63,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手：箭击 · AP1 无 → A·盾兵",
+					"time": 16.3
+				},
+				{
+					"actor": 0,
+					"id": 64,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放盾击",
+					"time": 16.5
+				},
+				{
+					"actor": 0,
+					"id": 65,
+					"kind": "命中",
+					"parent": 64,
+					"target": 4,
+					"text": "A·盾兵命中C·卫兵：12伤害 / 护盾抵消0",
+					"time": 16.5
+				},
+				{
+					"actor": 4,
+					"id": 66,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 16.55
+				},
+				{
+					"actor": 5,
+					"id": 67,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手释放箭击",
+					"time": 16.95
+				},
+				{
+					"actor": 4,
+					"id": 68,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵释放盾击",
+					"time": 17.1
+				},
+				{
+					"actor": 4,
+					"id": 69,
+					"kind": "命中",
+					"parent": 68,
+					"target": 0,
+					"text": "C·卫兵命中A·盾兵：0伤害 / 护盾抵消12",
+					"time": 17.1
+				},
+				{
+					"actor": 5,
+					"id": 70,
+					"kind": "命中",
+					"parent": 67,
+					"target": 0,
+					"text": "C·弓手命中A·盾兵：2伤害 / 护盾抵消12",
+					"time": 17.3
+				},
+				{
+					"actor": 1,
+					"id": 71,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师：火球 · AP1 目标被牵制 → C·卫兵",
+					"time": 18.25
+				},
+				{
+					"actor": 0,
+					"id": 72,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：盾击 · AP2 无 → C·卫兵",
+					"time": 18.5
+				},
+				{
+					"actor": 0,
+					"id": 73,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放盾击",
+					"time": 19.05
+				},
+				{
+					"actor": 0,
+					"id": 74,
+					"kind": "命中",
+					"parent": 73,
+					"target": 4,
+					"text": "A·盾兵命中C·卫兵：12伤害 / 护盾抵消0",
+					"time": 19.05
+				},
+				{
+					"actor": 4,
+					"id": 75,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 19.1
+				},
+				{
+					"actor": 1,
+					"id": 76,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师释放火球",
+					"time": 19.15
+				},
+				{
+					"actor": 1,
+					"id": 77,
+					"kind": "命中",
+					"parent": 76,
+					"target": 4,
+					"text": "A·法师命中C·卫兵：20伤害 / 护盾抵消0",
+					"time": 19.55
+				},
+				{
+					"actor": 4,
+					"id": 78,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵释放盾击",
+					"time": 19.65
+				},
+				{
+					"actor": 4,
+					"id": 79,
+					"kind": "命中",
+					"parent": 78,
+					"target": 0,
+					"text": "C·卫兵命中A·盾兵：12伤害 / 护盾抵消0",
+					"time": 19.65
+				},
+				{
+					"actor": 5,
+					"id": 80,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手：箭击 · AP1 无 → A·盾兵",
+					"time": 19.65
+				},
+				{
+					"actor": 5,
+					"id": 81,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手释放箭击",
+					"time": 20.3
+				},
+				{
+					"actor": 0,
+					"id": 82,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：牵制 · AP1 无 → C·卫兵",
+					"time": 20.3
+				},
+				{
+					"actor": 5,
+					"id": 83,
+					"kind": "命中",
+					"parent": 81,
+					"target": 0,
+					"text": "C·弓手命中A·盾兵：14伤害 / 护盾抵消0",
+					"time": 20.65
+				},
+				{
+					"actor": 0,
+					"id": 84,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放牵制",
+					"time": 20.8
+				},
+				{
+					"actor": 0,
+					"id": 85,
+					"kind": "牵制",
+					"parent": 84,
+					"target": 4,
+					"text": "A·盾兵牵制C·卫兵 6秒，自身获得24护盾",
+					"time": 20.8
+				},
+				{
+					"actor": 4,
+					"id": 86,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 21.65
+				},
+				{
+					"actor": 0,
+					"id": 87,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：盾击 · AP2 无 → C·卫兵",
+					"time": 21.8
+				},
+				{
+					"actor": 1,
+					"id": 88,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师：火球 · AP1 目标被牵制 → C·卫兵",
+					"time": 22.15
+				},
+				{
+					"actor": 4,
+					"id": 89,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵释放盾击",
+					"time": 22.2
+				},
+				{
+					"actor": 4,
+					"id": 90,
+					"kind": "命中",
+					"parent": 89,
+					"target": 0,
+					"text": "C·卫兵命中A·盾兵：0伤害 / 护盾抵消12",
+					"time": 22.2
+				},
+				{
+					"actor": 0,
+					"id": 91,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放盾击",
+					"time": 22.35
+				},
+				{
+					"actor": 0,
+					"id": 92,
+					"kind": "命中",
+					"parent": 91,
+					"target": 4,
+					"text": "A·盾兵命中C·卫兵：12伤害 / 护盾抵消0",
+					"time": 22.35
+				},
+				{
+					"actor": 4,
+					"id": 93,
+					"kind": "阵亡",
+					"parent": -1,
+					"target": 4,
+					"text": "C·卫兵阵亡",
+					"time": 22.35
+				},
+				{
+					"actor": 5,
+					"id": 94,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手：箭击 · AP1 无 → A·盾兵",
+					"time": 23.0
+				},
+				{
+					"actor": 1,
+					"id": 95,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师释放火球",
+					"time": 23.05
+				},
+				{
+					"actor": 5,
+					"id": 96,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手释放箭击",
+					"time": 23.65
+				},
+				{
+					"actor": 5,
+					"id": 97,
+					"kind": "命中",
+					"parent": 96,
+					"target": 0,
+					"text": "C·弓手命中A·盾兵：2伤害 / 护盾抵消12",
+					"time": 24.0
+				},
+				{
+					"actor": 0,
+					"id": 98,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "A·盾兵：牵制 · AP1 无 → C·弓手",
+					"time": 25.8
+				},
+				{
+					"actor": 1,
+					"id": 99,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "A·法师：火球 · AP2 无 → C·弓手",
+					"time": 26.05
+				},
+				{
+					"actor": 0,
+					"id": 100,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "A·盾兵释放牵制",
+					"time": 26.3
+				},
+				{
+					"actor": 0,
+					"id": 101,
+					"kind": "牵制",
+					"parent": 100,
+					"target": 5,
+					"text": "A·盾兵牵制C·弓手 6秒，自身获得24护盾",
+					"time": 26.3
+				},
+				{
+					"actor": 5,
+					"id": 102,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手：箭击 · AP1 无 → A·盾兵",
+					"time": 26.35
+				},
+				{
+					"actor": 1,
+					"id": 103,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "A·法师释放火球",
+					"time": 26.95
+				},
+				{
+					"actor": 5,
+					"id": 104,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手释放箭击",
+					"time": 27.0
+				},
+				{
+					"actor": 1,
+					"id": 105,
+					"kind": "命中",
+					"parent": 103,
+					"target": 5,
+					"text": "A·法师命中C·弓手：20伤害 / 护盾抵消0",
+					"time": 27.35
+				},
+				{
+					"actor": 5,
+					"id": 106,
+					"kind": "命中",
+					"parent": 104,
+					"target": 0,
+					"text": "C·弓手命中A·盾兵：0伤害 / 护盾抵消14",
+					"time": 27.35
+				},
+				{
+					"actor": 5,
+					"id": 107,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手：箭击 · AP1 无 → A·盾兵",
+					"time": 29.7
+				},
+				{
+					"actor": 1,
+					"id": 108,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "A·法师：火球 · AP1 目标被牵制 → C·弓手",
+					"time": 29.95
+				},
+				{
+					"actor": 5,
+					"id": 109,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手释放箭击",
+					"time": 30.35
+				},
+				{
+					"actor": 5,
+					"id": 110,
+					"kind": "命中",
+					"parent": 109,
+					"target": 0,
+					"text": "C·弓手命中A·盾兵：4伤害 / 护盾抵消10",
+					"time": 30.7
+				},
+				{
+					"actor": 1,
+					"id": 111,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "A·法师释放火球",
+					"time": 30.85
+				},
+				{
+					"actor": 1,
+					"id": 112,
+					"kind": "命中",
+					"parent": 111,
+					"target": 5,
+					"text": "A·法师命中C·弓手：20伤害 / 护盾抵消0",
+					"time": 31.25
+				},
+				{
+					"actor": 0,
+					"id": 113,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "A·盾兵：牵制 · AP1 无 → C·弓手",
+					"time": 31.3
+				},
+				{
+					"actor": 0,
+					"id": 114,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "A·盾兵释放牵制",
+					"time": 31.8
+				},
+				{
+					"actor": 0,
+					"id": 115,
+					"kind": "牵制",
+					"parent": 114,
+					"target": 5,
+					"text": "A·盾兵牵制C·弓手 6秒，自身获得24护盾",
+					"time": 31.8
+				},
+				{
+					"actor": 5,
+					"id": 116,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手：箭击 · AP1 无 → A·盾兵",
+					"time": 33.05
+				},
+				{
+					"actor": 5,
+					"id": 117,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手释放箭击",
+					"time": 33.7
+				},
+				{
+					"actor": 1,
+					"id": 118,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "A·法师：火球 · AP1 目标被牵制 → C·弓手",
+					"time": 33.85
+				},
+				{
+					"actor": 5,
+					"id": 119,
+					"kind": "命中",
+					"parent": 117,
+					"target": 0,
+					"text": "C·弓手命中A·盾兵：0伤害 / 护盾抵消14",
+					"time": 34.05
+				},
+				{
+					"actor": 1,
+					"id": 120,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "A·法师释放火球",
+					"time": 34.75
+				},
+				{
+					"actor": 1,
+					"id": 121,
+					"kind": "命中",
+					"parent": 120,
+					"target": 5,
+					"text": "A·法师命中C·弓手：20伤害 / 护盾抵消0",
+					"time": 35.15
+				},
+				{
+					"actor": 5,
+					"id": 122,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手：箭击 · AP1 无 → A·盾兵",
+					"time": 36.45
+				},
+				{
+					"actor": 0,
+					"id": 123,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "A·盾兵：牵制 · AP1 无 → C·弓手",
+					"time": 36.8
+				},
+				{
+					"actor": 5,
+					"id": 124,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手释放箭击",
+					"time": 37.1
+				},
+				{
+					"actor": 0,
+					"id": 125,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "A·盾兵释放牵制",
+					"time": 37.3
+				},
+				{
+					"actor": 0,
+					"id": 126,
+					"kind": "牵制",
+					"parent": 125,
+					"target": 5,
+					"text": "A·盾兵牵制C·弓手 6秒，自身获得24护盾",
+					"time": 37.3
+				},
+				{
+					"actor": 5,
+					"id": 127,
+					"kind": "命中",
+					"parent": 124,
+					"target": 0,
+					"text": "C·弓手命中A·盾兵：0伤害 / 护盾抵消14",
+					"time": 37.45
+				},
+				{
+					"actor": 1,
+					"id": 128,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "A·法师：火球 · AP1 目标被牵制 → C·弓手",
+					"time": 37.75
+				},
+				{
+					"actor": 1,
+					"id": 129,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "A·法师释放火球",
+					"time": 38.65
+				},
+				{
+					"actor": 1,
+					"id": 130,
+					"kind": "命中",
+					"parent": 129,
+					"target": 5,
+					"text": "A·法师命中C·弓手：20伤害 / 护盾抵消0",
+					"time": 39.05
+				},
+				{
+					"actor": 5,
+					"id": 131,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手：箭击 · AP1 无 → A·盾兵",
+					"time": 39.8
+				},
+				{
+					"actor": 5,
+					"id": 132,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手释放箭击",
+					"time": 40.45
+				},
+				{
+					"actor": 5,
+					"id": 133,
+					"kind": "命中",
+					"parent": 132,
+					"target": 0,
+					"text": "C·弓手命中A·盾兵：0伤害 / 护盾抵消14",
+					"time": 40.8
+				},
+				{
+					"actor": 1,
+					"id": 134,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "A·法师：火球 · AP1 目标被牵制 → C·弓手",
+					"time": 41.65
+				},
+				{
+					"actor": 0,
+					"id": 135,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "A·盾兵：牵制 · AP1 无 → C·弓手",
+					"time": 42.3
+				},
+				{
+					"actor": 1,
+					"id": 136,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "A·法师释放火球",
+					"time": 42.55
+				},
+				{
+					"actor": 0,
+					"id": 137,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "A·盾兵释放牵制",
+					"time": 42.8
+				},
+				{
+					"actor": 0,
+					"id": 138,
+					"kind": "牵制",
+					"parent": 137,
+					"target": 5,
+					"text": "A·盾兵牵制C·弓手 6秒，自身获得24护盾",
+					"time": 42.8
+				},
+				{
+					"actor": 1,
+					"id": 139,
+					"kind": "命中",
+					"parent": 136,
+					"target": 5,
+					"text": "A·法师命中C·弓手：20伤害 / 护盾抵消0",
+					"time": 42.95
+				},
+				{
+					"actor": 5,
+					"id": 140,
+					"kind": "阵亡",
+					"parent": -1,
+					"target": 5,
+					"text": "C·弓手阵亡",
+					"time": 42.95
+				},
+				{
+					"actor": 7,
+					"id": 141,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "D·雷法：雷击 · AP1 无 → A·盾兵",
+					"time": 43.05
+				},
+				{
+					"actor": 7,
+					"id": 142,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "D·雷法释放雷击",
+					"time": 44.45
+				},
+				{
+					"actor": 7,
+					"id": 143,
+					"kind": "命中",
+					"parent": 142,
+					"target": 0,
+					"text": "D·雷法命中A·盾兵：0伤害 / 护盾抵消27",
+					"time": 44.7
+				},
+				{
+					"actor": 0,
+					"id": 144,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵：盾击 · AP2 无 → D·卫兵",
+					"time": 44.75
+				},
+				{
+					"actor": 6,
+					"id": 145,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "D·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 44.75
+				},
+				{
+					"actor": 0,
+					"id": 146,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵释放盾击",
+					"time": 45.3
+				},
+				{
+					"actor": 6,
+					"id": 147,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "D·卫兵释放盾击",
+					"time": 45.3
+				},
+				{
+					"actor": 0,
+					"id": 148,
+					"kind": "命中",
+					"parent": 146,
+					"target": 6,
+					"text": "A·盾兵命中D·卫兵：12伤害 / 护盾抵消0",
+					"time": 45.3
+				},
+				{
+					"actor": 6,
+					"id": 149,
+					"kind": "命中",
+					"parent": 147,
+					"target": 0,
+					"text": "D·卫兵命中A·盾兵：9伤害 / 护盾抵消3",
+					"time": 45.3
+				},
+				{
+					"actor": 1,
+					"id": 150,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·法师：火球 · AP2 无 → D·卫兵",
+					"time": 45.55
+				},
+				{
+					"actor": 1,
+					"id": 151,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·法师释放火球",
+					"time": 46.45
+				},
+				{
+					"actor": 1,
+					"id": 152,
+					"kind": "命中",
+					"parent": 151,
+					"target": 6,
+					"text": "A·法师命中D·卫兵：20伤害 / 护盾抵消0",
+					"time": 46.85
+				},
+				{
+					"actor": 0,
+					"id": 153,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵：盾击 · AP2 无 → D·卫兵",
+					"time": 47.3
+				},
+				{
+					"actor": 6,
+					"id": 154,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "D·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 47.3
+				},
+				{
+					"actor": 0,
+					"id": 155,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵释放盾击",
+					"time": 47.85
+				},
+				{
+					"actor": 6,
+					"id": 156,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "D·卫兵释放盾击",
+					"time": 47.85
+				},
+				{
+					"actor": 0,
+					"id": 157,
+					"kind": "命中",
+					"parent": 155,
+					"target": 6,
+					"text": "A·盾兵命中D·卫兵：12伤害 / 护盾抵消0",
+					"time": 47.85
+				},
+				{
+					"actor": 6,
+					"id": 158,
+					"kind": "命中",
+					"parent": 156,
+					"target": 0,
+					"text": "D·卫兵命中A·盾兵：12伤害 / 护盾抵消0",
+					"time": 47.85
+				},
+				{
+					"actor": 7,
+					"id": 159,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "D·雷法：雷击 · AP1 无 → A·盾兵",
+					"time": 48.65
+				},
+				{
+					"actor": 0,
+					"id": 160,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵：牵制 · AP1 无 → D·卫兵",
+					"time": 49.1
+				},
+				{
+					"actor": 1,
+					"id": 161,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·法师：火球 · AP2 无 → D·卫兵",
+					"time": 49.45
+				},
+				{
+					"actor": 0,
+					"id": 162,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵释放牵制",
+					"time": 49.6
+				},
+				{
+					"actor": 0,
+					"id": 163,
+					"kind": "牵制",
+					"parent": 162,
+					"target": 6,
+					"text": "A·盾兵牵制D·卫兵 6秒，自身获得24护盾",
+					"time": 49.6
+				},
+				{
+					"actor": 6,
+					"id": 164,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "D·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 49.85
+				},
+				{
+					"actor": 7,
+					"id": 165,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "D·雷法释放雷击",
+					"time": 50.05
+				},
+				{
+					"actor": 7,
+					"id": 166,
+					"kind": "命中",
+					"parent": 165,
+					"target": 0,
+					"text": "D·雷法命中A·盾兵：3伤害 / 护盾抵消24",
+					"time": 50.3
+				},
+				{
+					"actor": 1,
+					"id": 167,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·法师释放火球",
+					"time": 50.35
+				},
+				{
+					"actor": 6,
+					"id": 168,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "D·卫兵释放盾击",
+					"time": 50.4
+				},
+				{
+					"actor": 6,
+					"id": 169,
+					"kind": "命中",
+					"parent": 168,
+					"target": 0,
+					"text": "D·卫兵命中A·盾兵：12伤害 / 护盾抵消0",
+					"time": 50.4
+				},
+				{
+					"actor": 0,
+					"id": 170,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵：盾击 · AP2 无 → D·卫兵",
+					"time": 50.6
+				},
+				{
+					"actor": 1,
+					"id": 171,
+					"kind": "命中",
+					"parent": 167,
+					"target": 6,
+					"text": "A·法师命中D·卫兵：20伤害 / 护盾抵消0",
+					"time": 50.75
+				},
+				{
+					"actor": 0,
+					"id": 172,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵释放盾击",
+					"time": 51.15
+				},
+				{
+					"actor": 0,
+					"id": 173,
+					"kind": "命中",
+					"parent": 172,
+					"target": 6,
+					"text": "A·盾兵命中D·卫兵：12伤害 / 护盾抵消0",
+					"time": 51.15
+				},
+				{
+					"actor": 6,
+					"id": 174,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "D·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 52.4
+				},
+				{
+					"actor": 6,
+					"id": 175,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "D·卫兵释放盾击",
+					"time": 52.95
+				},
+				{
+					"actor": 6,
+					"id": 176,
+					"kind": "命中",
+					"parent": 175,
+					"target": 0,
+					"text": "D·卫兵命中A·盾兵：12伤害 / 护盾抵消0",
+					"time": 52.95
+				},
+				{
+					"actor": 0,
+					"id": 177,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵：盾击 · AP2 无 → D·卫兵",
+					"time": 53.15
+				},
+				{
+					"actor": 1,
+					"id": 178,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·法师：火球 · AP1 目标被牵制 → D·卫兵",
+					"time": 53.35
+				},
+				{
+					"actor": 0,
+					"id": 179,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵释放盾击",
+					"time": 53.7
+				},
+				{
+					"actor": 0,
+					"id": 180,
+					"kind": "命中",
+					"parent": 179,
+					"target": 6,
+					"text": "A·盾兵命中D·卫兵：12伤害 / 护盾抵消0",
+					"time": 53.7
+				},
+				{
+					"actor": 1,
+					"id": 181,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·法师释放火球",
+					"time": 54.25
+				},
+				{
+					"actor": 7,
+					"id": 182,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "D·雷法：雷击 · AP1 无 → A·盾兵",
+					"time": 54.3
+				},
+				{
+					"actor": 1,
+					"id": 183,
+					"kind": "命中",
+					"parent": 181,
+					"target": 6,
+					"text": "A·法师命中D·卫兵：20伤害 / 护盾抵消0",
+					"time": 54.65
+				},
+				{
+					"actor": 0,
+					"id": 184,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵：牵制 · AP1 无 → D·卫兵",
+					"time": 54.95
+				},
+				{
+					"actor": 6,
+					"id": 185,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "D·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 54.95
+				},
+				{
+					"actor": -1,
+					"id": 186,
+					"kind": "结束",
+					"parent": -1,
+					"target": -1,
+					"text": "时间到 · 战斗结束",
+					"time": 55.0
+				}
+			],
+			"hp": [
+				60.0,
+				100.0,
+				120.0,
+				100.0,
+				0.0,
+				0.0,
+				22.0,
+				100.0
+			],
+			"result": "时间到 · 战斗结束",
+			"time": 55.0
+		},
+		"no_combo": {
+			"combos": 0,
+			"events": [
+				{
+					"actor": -1,
+					"id": 1,
+					"kind": "部署",
+					"parent": -1,
+					"target": -1,
+					"text": "A队正面接敌；B队沿下侧通道突袭。所有角色共享时间。",
+					"time": 0.0
+				},
+				{
+					"actor": 1,
+					"id": 2,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师：火球 · AP2 无 → C·卫兵",
+					"time": 2.6
+				},
+				{
+					"actor": 0,
+					"id": 3,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：牵制 · AP1 无 → C·卫兵",
+					"time": 2.75
+				},
+				{
+					"actor": 5,
+					"id": 4,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手：箭击 · AP1 无 → A·盾兵",
+					"time": 2.85
+				},
+				{
+					"actor": 0,
+					"id": 5,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放牵制",
+					"time": 3.25
+				},
+				{
+					"actor": 0,
+					"id": 6,
+					"kind": "牵制",
+					"parent": 5,
+					"target": 4,
+					"text": "A·盾兵牵制C·卫兵 6秒，自身获得24护盾",
+					"time": 3.25
+				},
+				{
+					"actor": 1,
+					"id": 7,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师释放火球",
+					"time": 3.5
+				},
+				{
+					"actor": 5,
+					"id": 8,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手释放箭击",
+					"time": 3.5
+				},
+				{
+					"actor": 4,
+					"id": 9,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 3.8
+				},
+				{
+					"actor": 5,
+					"id": 10,
+					"kind": "命中",
+					"parent": 8,
+					"target": 0,
+					"text": "C·弓手命中A·盾兵：0伤害 / 护盾抵消14",
+					"time": 3.85
+				},
+				{
+					"actor": 1,
+					"id": 11,
+					"kind": "命中",
+					"parent": 7,
+					"target": 4,
+					"text": "A·法师命中C·卫兵：20伤害 / 护盾抵消0",
+					"time": 3.9
+				},
+				{
+					"actor": 0,
+					"id": 12,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：盾击 · AP2 无 → C·卫兵",
+					"time": 4.25
+				},
+				{
+					"actor": 4,
+					"id": 13,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵释放盾击",
+					"time": 4.35
+				},
+				{
+					"actor": 4,
+					"id": 14,
+					"kind": "命中",
+					"parent": 13,
+					"target": 0,
+					"text": "C·卫兵命中A·盾兵：2伤害 / 护盾抵消10",
+					"time": 4.35
+				},
+				{
+					"actor": 0,
+					"id": 15,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放盾击",
+					"time": 4.8
+				},
+				{
+					"actor": 0,
+					"id": 16,
+					"kind": "命中",
+					"parent": 15,
+					"target": 4,
+					"text": "A·盾兵命中C·卫兵：12伤害 / 护盾抵消0",
+					"time": 4.8
+				},
+				{
+					"actor": 5,
+					"id": 17,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手：箭击 · AP1 无 → A·盾兵",
+					"time": 6.2
+				},
+				{
+					"actor": 4,
+					"id": 18,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 6.35
+				},
+				{
+					"actor": 1,
+					"id": 19,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师：火球 · AP1 目标被牵制 → C·卫兵",
+					"time": 6.5
+				},
+				{
+					"actor": 0,
+					"id": 20,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：盾击 · AP2 无 → C·卫兵",
+					"time": 6.8
+				},
+				{
+					"actor": 5,
+					"id": 21,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手释放箭击",
+					"time": 6.85
+				},
+				{
+					"actor": 4,
+					"id": 22,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵释放盾击",
+					"time": 6.9
+				},
+				{
+					"actor": 4,
+					"id": 23,
+					"kind": "命中",
+					"parent": 22,
+					"target": 0,
+					"text": "C·卫兵命中A·盾兵：12伤害 / 护盾抵消0",
+					"time": 6.9
+				},
+				{
+					"actor": 5,
+					"id": 24,
+					"kind": "命中",
+					"parent": 21,
+					"target": 0,
+					"text": "C·弓手命中A·盾兵：14伤害 / 护盾抵消0",
+					"time": 7.2
+				},
+				{
+					"actor": 0,
+					"id": 25,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放盾击",
+					"time": 7.35
+				},
+				{
+					"actor": 0,
+					"id": 26,
+					"kind": "命中",
+					"parent": 25,
+					"target": 4,
+					"text": "A·盾兵命中C·卫兵：12伤害 / 护盾抵消0",
+					"time": 7.35
+				},
+				{
+					"actor": 1,
+					"id": 27,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师释放火球",
+					"time": 7.4
+				},
+				{
+					"actor": -1,
+					"id": 28,
+					"kind": "任务",
+					"parent": -1,
+					"target": -1,
+					"text": "B · 突袭队完成绕行，从侧面攻击正面敌人",
+					"time": 7.8
+				},
+				{
+					"actor": 1,
+					"id": 29,
+					"kind": "命中",
+					"parent": 27,
+					"target": 4,
+					"text": "A·法师命中C·卫兵：20伤害 / 护盾抵消0",
+					"time": 7.8
+				},
+				{
+					"actor": 3,
+					"id": 30,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "B·牧师：光弹 · AP2 无 → C·弓手",
+					"time": 8.45
+				},
+				{
+					"actor": 0,
+					"id": 31,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：牵制 · AP1 无 → C·卫兵",
+					"time": 8.6
+				},
+				{
+					"actor": 7,
+					"id": 32,
+					"kind": "AP",
+					"parent": -1,
+					"target": 2,
+					"text": "D·雷法：雷击 · AP1 无 → B·刺客",
+					"time": 8.7
+				},
+				{
+					"actor": 4,
+					"id": 33,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 8.9
+				},
+				{
+					"actor": 0,
+					"id": 34,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放牵制",
+					"time": 9.1
+				},
+				{
+					"actor": 3,
+					"id": 35,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "B·牧师释放光弹",
+					"time": 9.1
+				},
+				{
+					"actor": 0,
+					"id": 36,
+					"kind": "牵制",
+					"parent": 34,
+					"target": 4,
+					"text": "A·盾兵牵制C·卫兵 6秒，自身获得24护盾",
+					"time": 9.1
+				},
+				{
+					"actor": 3,
+					"id": 37,
+					"kind": "命中",
+					"parent": 35,
+					"target": 5,
+					"text": "B·牧师命中C·弓手：10伤害 / 护盾抵消0",
+					"time": 9.4
+				},
+				{
+					"actor": 4,
+					"id": 38,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵释放盾击",
+					"time": 9.45
+				},
+				{
+					"actor": 4,
+					"id": 39,
+					"kind": "命中",
+					"parent": 38,
+					"target": 0,
+					"text": "C·卫兵命中A·盾兵：0伤害 / 护盾抵消12",
+					"time": 9.45
+				},
+				{
+					"actor": 3,
+					"id": 40,
+					"kind": "PP",
+					"parent": 38,
+					"target": 0,
+					"text": "B·牧师回春A·盾兵，恢复8HP",
+					"time": 9.45
+				},
+				{
+					"actor": 5,
+					"id": 41,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手：箭击 · AP1 无 → A·盾兵",
+					"time": 9.55
+				},
+				{
+					"actor": 2,
+					"id": 42,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "B·刺客：突刺 · AP2 无 → C·弓手",
+					"time": 9.65
+				},
+				{
+					"actor": 2,
+					"id": 43,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "B·刺客释放突刺",
+					"time": 10.0
+				},
+				{
+					"actor": 2,
+					"id": 44,
+					"kind": "命中",
+					"parent": 43,
+					"target": 5,
+					"text": "B·刺客命中C·弓手：14伤害 / 护盾抵消0",
+					"time": 10.0
+				},
+				{
+					"actor": 7,
+					"id": 45,
+					"kind": "释放",
+					"parent": -1,
+					"target": 2,
+					"text": "D·雷法释放雷击",
+					"time": 10.1
+				},
+				{
+					"actor": 0,
+					"id": 46,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：盾击 · AP2 无 → C·卫兵",
+					"time": 10.1
+				},
+				{
+					"actor": 5,
+					"id": 47,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手释放箭击",
+					"time": 10.2
+				},
+				{
+					"actor": 7,
+					"id": 48,
+					"kind": "命中",
+					"parent": 45,
+					"target": 2,
+					"text": "D·雷法命中B·刺客：27伤害 / 护盾抵消0",
+					"time": 10.35
+				},
+				{
+					"actor": 1,
+					"id": 49,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师：火球 · AP1 目标被牵制 → C·卫兵",
+					"time": 10.4
+				},
+				{
+					"actor": 5,
+					"id": 50,
+					"kind": "命中",
+					"parent": 47,
+					"target": 0,
+					"text": "C·弓手命中A·盾兵：2伤害 / 护盾抵消12",
+					"time": 10.55
+				},
+				{
+					"actor": 0,
+					"id": 51,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放盾击",
+					"time": 10.65
+				},
+				{
+					"actor": 0,
+					"id": 52,
+					"kind": "命中",
+					"parent": 51,
+					"target": 4,
+					"text": "A·盾兵命中C·卫兵：12伤害 / 护盾抵消0",
+					"time": 10.65
+				},
+				{
+					"actor": 1,
+					"id": 53,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师释放火球",
+					"time": 11.3
+				},
+				{
+					"actor": 4,
+					"id": 54,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 11.45
+				},
+				{
+					"actor": 1,
+					"id": 55,
+					"kind": "命中",
+					"parent": 53,
+					"target": 4,
+					"text": "A·法师命中C·卫兵：20伤害 / 护盾抵消0",
+					"time": 11.7
+				},
+				{
+					"actor": 3,
+					"id": 56,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "B·牧师：光弹 · AP2 无 → C·弓手",
+					"time": 11.7
+				},
+				{
+					"actor": 2,
+					"id": 57,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "B·刺客：突刺 · AP2 无 → C·弓手",
+					"time": 11.8
+				},
+				{
+					"actor": 4,
+					"id": 58,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵释放盾击",
+					"time": 12.0
+				},
+				{
+					"actor": 4,
+					"id": 59,
+					"kind": "命中",
+					"parent": 58,
+					"target": 0,
+					"text": "C·卫兵命中A·盾兵：12伤害 / 护盾抵消0",
+					"time": 12.0
+				},
+				{
+					"actor": 2,
+					"id": 60,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "B·刺客释放突刺",
+					"time": 12.15
+				},
+				{
+					"actor": 2,
+					"id": 61,
+					"kind": "命中",
+					"parent": 60,
+					"target": 5,
+					"text": "B·刺客命中C·弓手：14伤害 / 护盾抵消0",
+					"time": 12.15
+				},
+				{
+					"actor": 3,
+					"id": 62,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "B·牧师释放光弹",
+					"time": 12.35
+				},
+				{
+					"actor": 3,
+					"id": 63,
+					"kind": "命中",
+					"parent": 62,
+					"target": 5,
+					"text": "B·牧师命中C·弓手：10伤害 / 护盾抵消0",
+					"time": 12.65
+				},
+				{
+					"actor": 0,
+					"id": 64,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：盾击 · AP2 无 → C·卫兵",
+					"time": 12.65
+				},
+				{
+					"actor": 5,
+					"id": 65,
+					"kind": "AP",
+					"parent": -1,
+					"target": 2,
+					"text": "C·弓手：箭击 · AP1 无 → B·刺客",
+					"time": 12.95
+				},
+				{
+					"actor": 0,
+					"id": 66,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放盾击",
+					"time": 13.2
+				},
+				{
+					"actor": 0,
+					"id": 67,
+					"kind": "命中",
+					"parent": 66,
+					"target": 4,
+					"text": "A·盾兵命中C·卫兵：12伤害 / 护盾抵消0",
+					"time": 13.2
+				},
+				{
+					"actor": 5,
+					"id": 68,
+					"kind": "释放",
+					"parent": -1,
+					"target": 2,
+					"text": "C·弓手释放箭击",
+					"time": 13.6
+				},
+				{
+					"actor": 5,
+					"id": 69,
+					"kind": "命中",
+					"parent": 68,
+					"target": 2,
+					"text": "C·弓手命中B·刺客：14伤害 / 护盾抵消0",
+					"time": 13.95
+				},
+				{
+					"actor": 2,
+					"id": 70,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "B·刺客：突刺 · AP2 无 → C·弓手",
+					"time": 13.95
+				},
+				{
+					"actor": 4,
+					"id": 71,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 14.0
+				},
+				{
+					"actor": 2,
+					"id": 72,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "B·刺客释放突刺",
+					"time": 14.3
+				},
+				{
+					"actor": 2,
+					"id": 73,
+					"kind": "命中",
+					"parent": 72,
+					"target": 5,
+					"text": "B·刺客命中C·弓手：14伤害 / 护盾抵消0",
+					"time": 14.3
+				},
+				{
+					"actor": 1,
+					"id": 74,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师：火球 · AP1 目标被牵制 → C·卫兵",
+					"time": 14.3
+				},
+				{
+					"actor": 7,
+					"id": 75,
+					"kind": "AP",
+					"parent": -1,
+					"target": 2,
+					"text": "D·雷法：雷击 · AP1 无 → B·刺客",
+					"time": 14.3
+				},
+				{
+					"actor": 0,
+					"id": 76,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：牵制 · AP1 无 → C·卫兵",
+					"time": 14.45
+				},
+				{
+					"actor": 4,
+					"id": 77,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵释放盾击",
+					"time": 14.55
+				},
+				{
+					"actor": 4,
+					"id": 78,
+					"kind": "命中",
+					"parent": 77,
+					"target": 0,
+					"text": "C·卫兵命中A·盾兵：12伤害 / 护盾抵消0",
+					"time": 14.55
+				},
+				{
+					"actor": 0,
+					"id": 79,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放牵制",
+					"time": 14.95
+				},
+				{
+					"actor": 0,
+					"id": 80,
+					"kind": "牵制",
+					"parent": 79,
+					"target": 4,
+					"text": "A·盾兵牵制C·卫兵 6秒，自身获得24护盾",
+					"time": 14.95
+				},
+				{
+					"actor": 3,
+					"id": 81,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "B·牧师：光弹 · AP2 无 → C·弓手",
+					"time": 14.95
+				},
+				{
+					"actor": 1,
+					"id": 82,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师释放火球",
+					"time": 15.2
+				},
+				{
+					"actor": 3,
+					"id": 83,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "B·牧师释放光弹",
+					"time": 15.6
+				},
+				{
+					"actor": 1,
+					"id": 84,
+					"kind": "命中",
+					"parent": 82,
+					"target": 4,
+					"text": "A·法师命中C·卫兵：20伤害 / 护盾抵消0",
+					"time": 15.6
+				},
+				{
+					"actor": 7,
+					"id": 85,
+					"kind": "释放",
+					"parent": -1,
+					"target": 2,
+					"text": "D·雷法释放雷击",
+					"time": 15.7
+				},
+				{
+					"actor": 3,
+					"id": 86,
+					"kind": "命中",
+					"parent": 83,
+					"target": 5,
+					"text": "B·牧师命中C·弓手：10伤害 / 护盾抵消0",
+					"time": 15.9
+				},
+				{
+					"actor": 7,
+					"id": 87,
+					"kind": "命中",
+					"parent": 85,
+					"target": 2,
+					"text": "D·雷法命中B·刺客：27伤害 / 护盾抵消0",
+					"time": 15.95
+				},
+				{
+					"actor": 3,
+					"id": 88,
+					"kind": "PP",
+					"parent": 85,
+					"target": 2,
+					"text": "B·牧师回春B·刺客，恢复8HP",
+					"time": 15.95
+				},
+				{
+					"actor": 0,
+					"id": 89,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：盾击 · AP2 无 → C·卫兵",
+					"time": 15.95
+				},
+				{
+					"actor": 2,
+					"id": 90,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "B·刺客：突刺 · AP2 无 → C·弓手",
+					"time": 16.1
+				},
+				{
+					"actor": 5,
+					"id": 91,
+					"kind": "AP",
+					"parent": -1,
+					"target": 2,
+					"text": "C·弓手：箭击 · AP1 无 → B·刺客",
+					"time": 16.3
+				},
+				{
+					"actor": 2,
+					"id": 92,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "B·刺客释放突刺",
+					"time": 16.45
+				},
+				{
+					"actor": 2,
+					"id": 93,
+					"kind": "命中",
+					"parent": 92,
+					"target": 5,
+					"text": "B·刺客命中C·弓手：14伤害 / 护盾抵消0",
+					"time": 16.45
+				},
+				{
+					"actor": 0,
+					"id": 94,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放盾击",
+					"time": 16.5
+				},
+				{
+					"actor": 0,
+					"id": 95,
+					"kind": "命中",
+					"parent": 94,
+					"target": 4,
+					"text": "A·盾兵命中C·卫兵：12伤害 / 护盾抵消0",
+					"time": 16.5
+				},
+				{
+					"actor": 4,
+					"id": 96,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 16.55
+				},
+				{
+					"actor": 5,
+					"id": 97,
+					"kind": "释放",
+					"parent": -1,
+					"target": 2,
+					"text": "C·弓手释放箭击",
+					"time": 16.95
+				},
+				{
+					"actor": 4,
+					"id": 98,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵释放盾击",
+					"time": 17.1
+				},
+				{
+					"actor": 4,
+					"id": 99,
+					"kind": "命中",
+					"parent": 98,
+					"target": 0,
+					"text": "C·卫兵命中A·盾兵：0伤害 / 护盾抵消12",
+					"time": 17.1
+				},
+				{
+					"actor": 5,
+					"id": 100,
+					"kind": "命中",
+					"parent": 97,
+					"target": 2,
+					"text": "C·弓手命中B·刺客：14伤害 / 护盾抵消0",
+					"time": 17.3
+				},
+				{
+					"actor": 3,
+					"id": 101,
+					"kind": "AP",
+					"parent": -1,
+					"target": 2,
+					"text": "B·牧师：治疗 · AP1 友军HP≤60% → B·刺客",
+					"time": 17.3
+				},
+				{
+					"actor": 3,
+					"id": 102,
+					"kind": "释放",
+					"parent": -1,
+					"target": 2,
+					"text": "B·牧师释放治疗",
+					"time": 17.95
+				},
+				{
+					"actor": 3,
+					"id": 103,
+					"kind": "治疗",
+					"parent": 102,
+					"target": 2,
+					"text": "B·牧师治疗B·刺客 +25HP",
+					"time": 18.15
+				},
+				{
+					"actor": 1,
+					"id": 104,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师：火球 · AP1 目标被牵制 → C·卫兵",
+					"time": 18.25
+				},
+				{
+					"actor": 2,
+					"id": 105,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "B·刺客：突刺 · AP2 无 → C·弓手",
+					"time": 18.25
+				},
+				{
+					"actor": 0,
+					"id": 106,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：盾击 · AP2 无 → C·卫兵",
+					"time": 18.5
+				},
+				{
+					"actor": 2,
+					"id": 107,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "B·刺客释放突刺",
+					"time": 18.6
+				},
+				{
+					"actor": 2,
+					"id": 108,
+					"kind": "命中",
+					"parent": 107,
+					"target": 5,
+					"text": "B·刺客命中C·弓手：14伤害 / 护盾抵消0",
+					"time": 18.6
+				},
+				{
+					"actor": 5,
+					"id": 109,
+					"kind": "阵亡",
+					"parent": -1,
+					"target": 5,
+					"text": "C·弓手阵亡",
+					"time": 18.6
+				},
+				{
+					"actor": 0,
+					"id": 110,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放盾击",
+					"time": 19.05
+				},
+				{
+					"actor": 0,
+					"id": 111,
+					"kind": "命中",
+					"parent": 110,
+					"target": 4,
+					"text": "A·盾兵命中C·卫兵：12伤害 / 护盾抵消0",
+					"time": 19.05
+				},
+				{
+					"actor": 4,
+					"id": 112,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 19.1
+				},
+				{
+					"actor": 1,
+					"id": 113,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师释放火球",
+					"time": 19.15
+				},
+				{
+					"actor": 3,
+					"id": 114,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "B·牧师：光弹 · AP2 无 → C·卫兵",
+					"time": 19.5
+				},
+				{
+					"actor": 1,
+					"id": 115,
+					"kind": "命中",
+					"parent": 113,
+					"target": 4,
+					"text": "A·法师命中C·卫兵：20伤害 / 护盾抵消0",
+					"time": 19.55
+				},
+				{
+					"actor": 4,
+					"id": 116,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵释放盾击",
+					"time": 19.65
+				},
+				{
+					"actor": 4,
+					"id": 117,
+					"kind": "命中",
+					"parent": 116,
+					"target": 0,
+					"text": "C·卫兵命中A·盾兵：0伤害 / 护盾抵消12",
+					"time": 19.65
+				},
+				{
+					"actor": 7,
+					"id": 118,
+					"kind": "AP",
+					"parent": -1,
+					"target": 2,
+					"text": "D·雷法：雷击 · AP1 无 → B·刺客",
+					"time": 19.9
+				},
+				{
+					"actor": 3,
+					"id": 119,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "B·牧师释放光弹",
+					"time": 20.15
+				},
+				{
+					"actor": 0,
+					"id": 120,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：牵制 · AP1 无 → C·卫兵",
+					"time": 20.3
+				},
+				{
+					"actor": 3,
+					"id": 121,
+					"kind": "命中",
+					"parent": 119,
+					"target": 4,
+					"text": "B·牧师命中C·卫兵：10伤害 / 护盾抵消0",
+					"time": 20.45
+				},
+				{
+					"actor": 4,
+					"id": 122,
+					"kind": "阵亡",
+					"parent": -1,
+					"target": 4,
+					"text": "C·卫兵阵亡",
+					"time": 20.45
+				},
+				{
+					"actor": 0,
+					"id": 123,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放牵制",
+					"time": 20.8
+				},
+				{
+					"actor": 7,
+					"id": 124,
+					"kind": "释放",
+					"parent": -1,
+					"target": 2,
+					"text": "D·雷法释放雷击",
+					"time": 21.3
+				},
+				{
+					"actor": 0,
+					"id": 125,
+					"kind": "PP",
+					"parent": 124,
+					"target": 2,
+					"text": "A·盾兵援护B·刺客，获得26护盾（不打断AP）",
+					"time": 21.55
+				},
+				{
+					"actor": 7,
+					"id": 126,
+					"kind": "命中",
+					"parent": 124,
+					"target": 2,
+					"text": "D·雷法命中B·刺客：1伤害 / 护盾抵消26",
+					"time": 21.55
+				},
+				{
+					"actor": 2,
+					"id": 127,
+					"kind": "AP",
+					"parent": -1,
+					"target": 7,
+					"text": "B·刺客：突刺 · AP2 无 → D·雷法",
+					"time": 21.55
+				},
+				{
+					"actor": 2,
+					"id": 128,
+					"kind": "释放",
+					"parent": -1,
+					"target": 7,
+					"text": "B·刺客释放突刺",
+					"time": 21.9
+				},
+				{
+					"actor": 2,
+					"id": 129,
+					"kind": "命中",
+					"parent": 128,
+					"target": 7,
+					"text": "B·刺客命中D·雷法：14伤害 / 护盾抵消0",
+					"time": 21.9
+				},
+				{
+					"actor": 6,
+					"id": 130,
+					"kind": "AP",
+					"parent": -1,
+					"target": 2,
+					"text": "D·卫兵：盾击 · AP1 无 → B·刺客",
+					"time": 21.9
+				},
+				{
+					"actor": 3,
+					"id": 131,
+					"kind": "AP",
+					"parent": -1,
+					"target": 2,
+					"text": "B·牧师：治疗 · AP1 友军HP≤60% → B·刺客",
+					"time": 21.95
+				},
+				{
+					"actor": 1,
+					"id": 132,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·法师：火球 · AP2 无 → D·卫兵",
+					"time": 22.15
+				},
+				{
+					"actor": 0,
+					"id": 133,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵：盾击 · AP2 无 → D·卫兵",
+					"time": 22.25
+				},
+				{
+					"actor": 6,
+					"id": 134,
+					"kind": "释放",
+					"parent": -1,
+					"target": 2,
+					"text": "D·卫兵释放盾击",
+					"time": 22.45
+				},
+				{
+					"actor": 6,
+					"id": 135,
+					"kind": "命中",
+					"parent": 134,
+					"target": 2,
+					"text": "D·卫兵命中B·刺客：12伤害 / 护盾抵消0",
+					"time": 22.45
+				},
+				{
+					"actor": 3,
+					"id": 136,
+					"kind": "PP",
+					"parent": 134,
+					"target": 2,
+					"text": "B·牧师回春B·刺客，恢复8HP",
+					"time": 22.45
+				},
+				{
+					"actor": 3,
+					"id": 137,
+					"kind": "释放",
+					"parent": -1,
+					"target": 2,
+					"text": "B·牧师释放治疗",
+					"time": 22.6
+				},
+				{
+					"actor": 0,
+					"id": 138,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵释放盾击",
+					"time": 22.8
+				},
+				{
+					"actor": 3,
+					"id": 139,
+					"kind": "治疗",
+					"parent": 137,
+					"target": 2,
+					"text": "B·牧师治疗B·刺客 +25HP",
+					"time": 22.8
+				},
+				{
+					"actor": 0,
+					"id": 140,
+					"kind": "命中",
+					"parent": 138,
+					"target": 6,
+					"text": "A·盾兵命中D·卫兵：12伤害 / 护盾抵消0",
+					"time": 22.8
+				},
+				{
+					"actor": 1,
+					"id": 141,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·法师释放火球",
+					"time": 23.05
+				},
+				{
+					"actor": 1,
+					"id": 142,
+					"kind": "命中",
+					"parent": 141,
+					"target": 6,
+					"text": "A·法师命中D·卫兵：20伤害 / 护盾抵消0",
+					"time": 23.45
+				},
+				{
+					"actor": 2,
+					"id": 143,
+					"kind": "AP",
+					"parent": -1,
+					"target": 7,
+					"text": "B·刺客：突刺 · AP2 无 → D·雷法",
+					"time": 23.7
+				},
+				{
+					"actor": 2,
+					"id": 144,
+					"kind": "释放",
+					"parent": -1,
+					"target": 7,
+					"text": "B·刺客释放突刺",
+					"time": 24.05
+				},
+				{
+					"actor": 2,
+					"id": 145,
+					"kind": "命中",
+					"parent": 144,
+					"target": 7,
+					"text": "B·刺客命中D·雷法：14伤害 / 护盾抵消0",
+					"time": 24.05
+				},
+				{
+					"actor": 3,
+					"id": 146,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "B·牧师：光弹 · AP2 无 → D·卫兵",
+					"time": 24.15
+				},
+				{
+					"actor": 6,
+					"id": 147,
+					"kind": "AP",
+					"parent": -1,
+					"target": 2,
+					"text": "D·卫兵：盾击 · AP1 无 → B·刺客",
+					"time": 24.45
+				},
+				{
+					"actor": 3,
+					"id": 148,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "B·牧师释放光弹",
+					"time": 24.8
+				},
+				{
+					"actor": 0,
+					"id": 149,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵：盾击 · AP2 无 → D·卫兵",
+					"time": 24.8
+				},
+				{
+					"actor": 6,
+					"id": 150,
+					"kind": "释放",
+					"parent": -1,
+					"target": 2,
+					"text": "D·卫兵释放盾击",
+					"time": 25.0
+				},
+				{
+					"actor": 6,
+					"id": 151,
+					"kind": "命中",
+					"parent": 150,
+					"target": 2,
+					"text": "D·卫兵命中B·刺客：12伤害 / 护盾抵消0",
+					"time": 25.0
+				},
+				{
+					"actor": 3,
+					"id": 152,
+					"kind": "命中",
+					"parent": 148,
+					"target": 6,
+					"text": "B·牧师命中D·卫兵：10伤害 / 护盾抵消0",
+					"time": 25.1
+				},
+				{
+					"actor": 0,
+					"id": 153,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵释放盾击",
+					"time": 25.35
+				},
+				{
+					"actor": 0,
+					"id": 154,
+					"kind": "命中",
+					"parent": 153,
+					"target": 6,
+					"text": "A·盾兵命中D·卫兵：12伤害 / 护盾抵消0",
+					"time": 25.35
+				},
+				{
+					"actor": 7,
+					"id": 155,
+					"kind": "AP",
+					"parent": -1,
+					"target": 2,
+					"text": "D·雷法：雷击 · AP1 无 → B·刺客",
+					"time": 25.5
+				},
+				{
+					"actor": 2,
+					"id": 156,
+					"kind": "AP",
+					"parent": -1,
+					"target": 7,
+					"text": "B·刺客：突刺 · AP2 无 → D·雷法",
+					"time": 25.85
+				},
+				{
+					"actor": 1,
+					"id": 157,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·法师：火球 · AP2 无 → D·卫兵",
+					"time": 26.05
+				},
+				{
+					"actor": 2,
+					"id": 158,
+					"kind": "释放",
+					"parent": -1,
+					"target": 7,
+					"text": "B·刺客释放突刺",
+					"time": 26.2
+				},
+				{
+					"actor": 2,
+					"id": 159,
+					"kind": "命中",
+					"parent": 158,
+					"target": 7,
+					"text": "B·刺客命中D·雷法：14伤害 / 护盾抵消0",
+					"time": 26.2
+				},
+				{
+					"actor": 0,
+					"id": 160,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵：牵制 · AP1 无 → D·卫兵",
+					"time": 26.6
+				},
+				{
+					"actor": 7,
+					"id": 161,
+					"kind": "释放",
+					"parent": -1,
+					"target": 2,
+					"text": "D·雷法释放雷击",
+					"time": 26.9
+				},
+				{
+					"actor": 1,
+					"id": 162,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·法师释放火球",
+					"time": 26.95
+				},
+				{
+					"actor": 6,
+					"id": 163,
+					"kind": "AP",
+					"parent": -1,
+					"target": 2,
+					"text": "D·卫兵：盾击 · AP1 无 → B·刺客",
+					"time": 27.0
+				},
+				{
+					"actor": 0,
+					"id": 164,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵释放牵制",
+					"time": 27.1
+				},
+				{
+					"actor": 0,
+					"id": 165,
+					"kind": "牵制",
+					"parent": 164,
+					"target": 6,
+					"text": "A·盾兵牵制D·卫兵 6秒，自身获得24护盾",
+					"time": 27.1
+				},
+				{
+					"actor": 7,
+					"id": 166,
+					"kind": "命中",
+					"parent": 161,
+					"target": 2,
+					"text": "D·雷法命中B·刺客：27伤害 / 护盾抵消0",
+					"time": 27.15
+				},
+				{
+					"actor": 3,
+					"id": 167,
+					"kind": "AP",
+					"parent": -1,
+					"target": 2,
+					"text": "B·牧师：治疗 · AP1 友军HP≤60% → B·刺客",
+					"time": 27.15
+				},
+				{
+					"actor": 1,
+					"id": 168,
+					"kind": "命中",
+					"parent": 162,
+					"target": 6,
+					"text": "A·法师命中D·卫兵：20伤害 / 护盾抵消0",
+					"time": 27.35
+				},
+				{
+					"actor": 6,
+					"id": 169,
+					"kind": "释放",
+					"parent": -1,
+					"target": 2,
+					"text": "D·卫兵释放盾击",
+					"time": 27.55
+				},
+				{
+					"actor": 0,
+					"id": 170,
+					"kind": "PP",
+					"parent": 169,
+					"target": 2,
+					"text": "A·盾兵援护B·刺客，获得26护盾（不打断AP）",
+					"time": 27.55
+				},
+				{
+					"actor": 6,
+					"id": 171,
+					"kind": "命中",
+					"parent": 169,
+					"target": 2,
+					"text": "D·卫兵命中B·刺客：0伤害 / 护盾抵消12",
+					"time": 27.55
+				},
+				{
+					"actor": 3,
+					"id": 172,
+					"kind": "释放",
+					"parent": -1,
+					"target": 2,
+					"text": "B·牧师释放治疗",
+					"time": 27.8
+				},
+				{
+					"actor": 3,
+					"id": 173,
+					"kind": "治疗",
+					"parent": 172,
+					"target": 2,
+					"text": "B·牧师治疗B·刺客 +25HP",
+					"time": 28.0
+				},
+				{
+					"actor": 2,
+					"id": 174,
+					"kind": "AP",
+					"parent": -1,
+					"target": 7,
+					"text": "B·刺客：突刺 · AP2 无 → D·雷法",
+					"time": 28.05
+				},
+				{
+					"actor": 0,
+					"id": 175,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵：盾击 · AP2 无 → D·卫兵",
+					"time": 28.1
+				},
+				{
+					"actor": 2,
+					"id": 176,
+					"kind": "释放",
+					"parent": -1,
+					"target": 7,
+					"text": "B·刺客释放突刺",
+					"time": 28.4
+				},
+				{
+					"actor": 2,
+					"id": 177,
+					"kind": "命中",
+					"parent": 176,
+					"target": 7,
+					"text": "B·刺客命中D·雷法：14伤害 / 护盾抵消0",
+					"time": 28.4
+				},
+				{
+					"actor": 0,
+					"id": 178,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵释放盾击",
+					"time": 28.65
+				},
+				{
+					"actor": 0,
+					"id": 179,
+					"kind": "命中",
+					"parent": 178,
+					"target": 6,
+					"text": "A·盾兵命中D·卫兵：12伤害 / 护盾抵消0",
+					"time": 28.65
+				},
+				{
+					"actor": 3,
+					"id": 180,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "B·牧师：光弹 · AP2 无 → D·卫兵",
+					"time": 29.35
+				},
+				{
+					"actor": 6,
+					"id": 181,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "D·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 29.55
+				},
+				{
+					"actor": 1,
+					"id": 182,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·法师：火球 · AP1 目标被牵制 → D·卫兵",
+					"time": 29.95
+				},
+				{
+					"actor": 3,
+					"id": 183,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "B·牧师释放光弹",
+					"time": 30.0
+				},
+				{
+					"actor": 6,
+					"id": 184,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "D·卫兵释放盾击",
+					"time": 30.1
+				},
+				{
+					"actor": 6,
+					"id": 185,
+					"kind": "命中",
+					"parent": 184,
+					"target": 0,
+					"text": "D·卫兵命中A·盾兵：0伤害 / 护盾抵消12",
+					"time": 30.1
+				},
+				{
+					"actor": 3,
+					"id": 186,
+					"kind": "PP",
+					"parent": 184,
+					"target": 0,
+					"text": "B·牧师回春A·盾兵，恢复8HP",
+					"time": 30.1
+				},
+				{
+					"actor": 2,
+					"id": 187,
+					"kind": "AP",
+					"parent": -1,
+					"target": 7,
+					"text": "B·刺客：突刺 · AP2 无 → D·雷法",
+					"time": 30.2
+				},
+				{
+					"actor": 3,
+					"id": 188,
+					"kind": "命中",
+					"parent": 183,
+					"target": 6,
+					"text": "B·牧师命中D·卫兵：10伤害 / 护盾抵消0",
+					"time": 30.3
+				},
+				{
+					"actor": 2,
+					"id": 189,
+					"kind": "释放",
+					"parent": -1,
+					"target": 7,
+					"text": "B·刺客释放突刺",
+					"time": 30.55
+				},
+				{
+					"actor": 2,
+					"id": 190,
+					"kind": "命中",
+					"parent": 189,
+					"target": 7,
+					"text": "B·刺客命中D·雷法：14伤害 / 护盾抵消0",
+					"time": 30.55
+				},
+				{
+					"actor": 0,
+					"id": 191,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵：盾击 · AP2 无 → D·卫兵",
+					"time": 30.65
+				},
+				{
+					"actor": 1,
+					"id": 192,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·法师释放火球",
+					"time": 30.85
+				},
+				{
+					"actor": 7,
+					"id": 193,
+					"kind": "AP",
+					"parent": -1,
+					"target": 2,
+					"text": "D·雷法：雷击 · AP1 无 → B·刺客",
+					"time": 31.1
+				},
+				{
+					"actor": 0,
+					"id": 194,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵释放盾击",
+					"time": 31.2
+				},
+				{
+					"actor": 0,
+					"id": 195,
+					"kind": "命中",
+					"parent": 194,
+					"target": 6,
+					"text": "A·盾兵命中D·卫兵：12伤害 / 护盾抵消0",
+					"time": 31.2
+				},
+				{
+					"actor": 1,
+					"id": 196,
+					"kind": "命中",
+					"parent": 192,
+					"target": 6,
+					"text": "A·法师命中D·卫兵：20伤害 / 护盾抵消0",
+					"time": 31.25
+				},
+				{
+					"actor": 6,
+					"id": 197,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "D·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 32.1
+				},
+				{
+					"actor": 2,
+					"id": 198,
+					"kind": "AP",
+					"parent": -1,
+					"target": 7,
+					"text": "B·刺客：突刺 · AP2 无 → D·雷法",
+					"time": 32.35
+				},
+				{
+					"actor": 0,
+					"id": 199,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵：牵制 · AP1 无 → D·卫兵",
+					"time": 32.45
+				},
+				{
+					"actor": 7,
+					"id": 200,
+					"kind": "释放",
+					"parent": -1,
+					"target": 2,
+					"text": "D·雷法释放雷击",
+					"time": 32.5
+				},
+				{
+					"actor": 3,
+					"id": 201,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "B·牧师：光弹 · AP2 无 → D·卫兵",
+					"time": 32.6
+				},
+				{
+					"actor": 6,
+					"id": 202,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "D·卫兵释放盾击",
+					"time": 32.65
+				},
+				{
+					"actor": 6,
+					"id": 203,
+					"kind": "命中",
+					"parent": 202,
+					"target": 0,
+					"text": "D·卫兵命中A·盾兵：0伤害 / 护盾抵消12",
+					"time": 32.65
+				},
+				{
+					"actor": 2,
+					"id": 204,
+					"kind": "释放",
+					"parent": -1,
+					"target": 7,
+					"text": "B·刺客释放突刺",
+					"time": 32.7
+				},
+				{
+					"actor": 2,
+					"id": 205,
+					"kind": "命中",
+					"parent": 204,
+					"target": 7,
+					"text": "B·刺客命中D·雷法：14伤害 / 护盾抵消0",
+					"time": 32.7
+				},
+				{
+					"actor": 7,
+					"id": 206,
+					"kind": "命中",
+					"parent": 200,
+					"target": 2,
+					"text": "D·雷法命中B·刺客：13伤害 / 护盾抵消14",
+					"time": 32.75
+				},
+				{
+					"actor": 0,
+					"id": 207,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵释放牵制",
+					"time": 32.95
+				},
+				{
+					"actor": 0,
+					"id": 208,
+					"kind": "牵制",
+					"parent": 207,
+					"target": 6,
+					"text": "A·盾兵牵制D·卫兵 6秒，自身获得24护盾",
+					"time": 32.95
+				},
+				{
+					"actor": 3,
+					"id": 209,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "B·牧师释放光弹",
+					"time": 33.25
+				},
+				{
+					"actor": 3,
+					"id": 210,
+					"kind": "命中",
+					"parent": 209,
+					"target": 6,
+					"text": "B·牧师命中D·卫兵：10伤害 / 护盾抵消0",
+					"time": 33.55
+				},
+				{
+					"actor": 6,
+					"id": 211,
+					"kind": "阵亡",
+					"parent": -1,
+					"target": 6,
+					"text": "D·卫兵阵亡",
+					"time": 33.55
+				},
+				{
+					"actor": 1,
+					"id": 212,
+					"kind": "AP",
+					"parent": -1,
+					"target": 7,
+					"text": "A·法师：火球 · AP2 无 → D·雷法",
+					"time": 33.85
+				},
+				{
+					"actor": 2,
+					"id": 213,
+					"kind": "AP",
+					"parent": -1,
+					"target": 7,
+					"text": "B·刺客：突刺 · AP2 无 → D·雷法",
+					"time": 34.5
+				},
+				{
+					"actor": 1,
+					"id": 214,
+					"kind": "释放",
+					"parent": -1,
+					"target": 7,
+					"text": "A·法师释放火球",
+					"time": 34.75
+				},
+				{
+					"actor": 2,
+					"id": 215,
+					"kind": "释放",
+					"parent": -1,
+					"target": 7,
+					"text": "B·刺客释放突刺",
+					"time": 34.85
+				},
+				{
+					"actor": 2,
+					"id": 216,
+					"kind": "命中",
+					"parent": 215,
+					"target": 7,
+					"text": "B·刺客命中D·雷法：14伤害 / 护盾抵消0",
+					"time": 34.85
+				},
+				{
+					"actor": 3,
+					"id": 217,
+					"kind": "AP",
+					"parent": -1,
+					"target": 2,
+					"text": "B·牧师：治疗 · AP1 友军HP≤60% → B·刺客",
+					"time": 34.95
+				},
+				{
+					"actor": 1,
+					"id": 218,
+					"kind": "命中",
+					"parent": 214,
+					"target": 7,
+					"text": "A·法师命中D·雷法：20伤害 / 护盾抵消0",
+					"time": 35.15
+				},
+				{
+					"actor": 7,
+					"id": 219,
+					"kind": "阵亡",
+					"parent": -1,
+					"target": 7,
+					"text": "D·雷法阵亡",
+					"time": 35.15
+				},
+				{
+					"actor": -1,
+					"id": 220,
+					"kind": "结束",
+					"parent": -1,
+					"target": -1,
+					"text": "蓝方胜利",
+					"time": 35.15
+				}
+			],
+			"hp": [
+				172.0,
+				100.0,
+				64.0,
+				100.0,
+				0.0,
+				0.0,
+				0.0,
+				0.0
+			],
+			"result": "蓝方胜利",
+			"time": 35.15
+		},
+		"support": {
+			"combos": 1,
+			"events": [
+				{
+					"actor": -1,
+					"id": 1,
+					"kind": "部署",
+					"parent": -1,
+					"target": -1,
+					"text": "A队正面接敌；B队沿下侧通道突袭。所有角色共享时间。",
+					"time": 0.0
+				},
+				{
+					"actor": 1,
+					"id": 2,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师：火球 · AP2 无 → C·卫兵",
+					"time": 2.6
+				},
+				{
+					"actor": 0,
+					"id": 3,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：牵制 · AP1 无 → C·卫兵",
+					"time": 2.75
+				},
+				{
+					"actor": 5,
+					"id": 4,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手：箭击 · AP1 无 → A·盾兵",
+					"time": 2.85
+				},
+				{
+					"actor": 0,
+					"id": 5,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放牵制",
+					"time": 3.25
+				},
+				{
+					"actor": 0,
+					"id": 6,
+					"kind": "牵制",
+					"parent": 5,
+					"target": 4,
+					"text": "A·盾兵牵制C·卫兵 6秒，自身获得24护盾",
+					"time": 3.25
+				},
+				{
+					"actor": 1,
+					"id": 7,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师释放火球",
+					"time": 3.5
+				},
+				{
+					"actor": 5,
+					"id": 8,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手释放箭击",
+					"time": 3.5
+				},
+				{
+					"actor": 4,
+					"id": 9,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 3.8
+				},
+				{
+					"actor": 5,
+					"id": 10,
+					"kind": "命中",
+					"parent": 8,
+					"target": 0,
+					"text": "C·弓手命中A·盾兵：0伤害 / 护盾抵消14",
+					"time": 3.85
+				},
+				{
+					"actor": 1,
+					"id": 11,
+					"kind": "命中",
+					"parent": 7,
+					"target": 4,
+					"text": "A·法师命中C·卫兵：20伤害 / 护盾抵消0",
+					"time": 3.9
+				},
+				{
+					"actor": 0,
+					"id": 12,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：盾击 · AP2 无 → C·卫兵",
+					"time": 4.25
+				},
+				{
+					"actor": 4,
+					"id": 13,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵释放盾击",
+					"time": 4.35
+				},
+				{
+					"actor": 4,
+					"id": 14,
+					"kind": "命中",
+					"parent": 13,
+					"target": 0,
+					"text": "C·卫兵命中A·盾兵：2伤害 / 护盾抵消10",
+					"time": 4.35
+				},
+				{
+					"actor": 0,
+					"id": 15,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放盾击",
+					"time": 4.8
+				},
+				{
+					"actor": 0,
+					"id": 16,
+					"kind": "命中",
+					"parent": 15,
+					"target": 4,
+					"text": "A·盾兵命中C·卫兵：12伤害 / 护盾抵消0",
+					"time": 4.8
+				},
+				{
+					"actor": 5,
+					"id": 17,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手：箭击 · AP1 无 → A·盾兵",
+					"time": 6.2
+				},
+				{
+					"actor": 4,
+					"id": 18,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 6.35
+				},
+				{
+					"actor": 1,
+					"id": 19,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师：火球 · AP1 目标被牵制 → C·卫兵",
+					"time": 6.5
+				},
+				{
+					"actor": 0,
+					"id": 20,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：盾击 · AP2 无 → C·卫兵",
+					"time": 6.8
+				},
+				{
+					"actor": 5,
+					"id": 21,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手释放箭击",
+					"time": 6.85
+				},
+				{
+					"actor": 4,
+					"id": 22,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵释放盾击",
+					"time": 6.9
+				},
+				{
+					"actor": 4,
+					"id": 23,
+					"kind": "命中",
+					"parent": 22,
+					"target": 0,
+					"text": "C·卫兵命中A·盾兵：12伤害 / 护盾抵消0",
+					"time": 6.9
+				},
+				{
+					"actor": 5,
+					"id": 24,
+					"kind": "命中",
+					"parent": 21,
+					"target": 0,
+					"text": "C·弓手命中A·盾兵：14伤害 / 护盾抵消0",
+					"time": 7.2
+				},
+				{
+					"actor": 0,
+					"id": 25,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放盾击",
+					"time": 7.35
+				},
+				{
+					"actor": 0,
+					"id": 26,
+					"kind": "命中",
+					"parent": 25,
+					"target": 4,
+					"text": "A·盾兵命中C·卫兵：12伤害 / 护盾抵消0",
+					"time": 7.35
+				},
+				{
+					"actor": 1,
+					"id": 27,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师释放火球",
+					"time": 7.4
+				},
+				{
+					"actor": 1,
+					"id": 28,
+					"kind": "命中",
+					"parent": 27,
+					"target": 4,
+					"text": "A·法师命中C·卫兵：20伤害 / 护盾抵消0",
+					"time": 7.8
+				},
+				{
+					"actor": 0,
+					"id": 29,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：牵制 · AP1 无 → C·卫兵",
+					"time": 8.6
+				},
+				{
+					"actor": 4,
+					"id": 30,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 8.9
+				},
+				{
+					"actor": 0,
+					"id": 31,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放牵制",
+					"time": 9.1
+				},
+				{
+					"actor": 0,
+					"id": 32,
+					"kind": "牵制",
+					"parent": 31,
+					"target": 4,
+					"text": "A·盾兵牵制C·卫兵 6秒，自身获得24护盾",
+					"time": 9.1
+				},
+				{
+					"actor": 4,
+					"id": 33,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵释放盾击",
+					"time": 9.45
+				},
+				{
+					"actor": 4,
+					"id": 34,
+					"kind": "命中",
+					"parent": 33,
+					"target": 0,
+					"text": "C·卫兵命中A·盾兵：0伤害 / 护盾抵消12",
+					"time": 9.45
+				},
+				{
+					"actor": 5,
+					"id": 35,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手：箭击 · AP1 无 → A·盾兵",
+					"time": 9.55
+				},
+				{
+					"actor": 0,
+					"id": 36,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：盾击 · AP2 无 → C·卫兵",
+					"time": 10.1
+				},
+				{
+					"actor": 5,
+					"id": 37,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手释放箭击",
+					"time": 10.2
+				},
+				{
+					"actor": 1,
+					"id": 38,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师：火球 · AP1 目标被牵制 → C·卫兵",
+					"time": 10.4
+				},
+				{
+					"actor": 5,
+					"id": 39,
+					"kind": "命中",
+					"parent": 37,
+					"target": 0,
+					"text": "C·弓手命中A·盾兵：2伤害 / 护盾抵消12",
+					"time": 10.55
+				},
+				{
+					"actor": 0,
+					"id": 40,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放盾击",
+					"time": 10.65
+				},
+				{
+					"actor": 0,
+					"id": 41,
+					"kind": "命中",
+					"parent": 40,
+					"target": 4,
+					"text": "A·盾兵命中C·卫兵：12伤害 / 护盾抵消0",
+					"time": 10.65
+				},
+				{
+					"actor": 1,
+					"id": 42,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师释放火球",
+					"time": 11.3
+				},
+				{
+					"actor": 4,
+					"id": 43,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 11.45
+				},
+				{
+					"actor": 1,
+					"id": 44,
+					"kind": "命中",
+					"parent": 42,
+					"target": 4,
+					"text": "A·法师命中C·卫兵：20伤害 / 护盾抵消0",
+					"time": 11.7
+				},
+				{
+					"actor": 4,
+					"id": 45,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵释放盾击",
+					"time": 12.0
+				},
+				{
+					"actor": 4,
+					"id": 46,
+					"kind": "命中",
+					"parent": 45,
+					"target": 0,
+					"text": "C·卫兵命中A·盾兵：12伤害 / 护盾抵消0",
+					"time": 12.0
+				},
+				{
+					"actor": 0,
+					"id": 47,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：盾击 · AP2 无 → C·卫兵",
+					"time": 12.65
+				},
+				{
+					"actor": 5,
+					"id": 48,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手：箭击 · AP1 无 → A·盾兵",
+					"time": 12.95
+				},
+				{
+					"actor": 0,
+					"id": 49,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放盾击",
+					"time": 13.2
+				},
+				{
+					"actor": 0,
+					"id": 50,
+					"kind": "命中",
+					"parent": 49,
+					"target": 4,
+					"text": "A·盾兵命中C·卫兵：12伤害 / 护盾抵消0",
+					"time": 13.2
+				},
+				{
+					"actor": 5,
+					"id": 51,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手释放箭击",
+					"time": 13.6
+				},
+				{
+					"actor": 5,
+					"id": 52,
+					"kind": "命中",
+					"parent": 51,
+					"target": 0,
+					"text": "C·弓手命中A·盾兵：14伤害 / 护盾抵消0",
+					"time": 13.95
+				},
+				{
+					"actor": 4,
+					"id": 53,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 14.0
+				},
+				{
+					"actor": 1,
+					"id": 54,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师：火球 · AP1 目标被牵制 → C·卫兵",
+					"time": 14.3
+				},
+				{
+					"actor": 0,
+					"id": 55,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：牵制 · AP1 无 → C·卫兵",
+					"time": 14.45
+				},
+				{
+					"actor": 4,
+					"id": 56,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵释放盾击",
+					"time": 14.55
+				},
+				{
+					"actor": 4,
+					"id": 57,
+					"kind": "命中",
+					"parent": 56,
+					"target": 0,
+					"text": "C·卫兵命中A·盾兵：12伤害 / 护盾抵消0",
+					"time": 14.55
+				},
+				{
+					"actor": 0,
+					"id": 58,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放牵制",
+					"time": 14.95
+				},
+				{
+					"actor": 0,
+					"id": 59,
+					"kind": "牵制",
+					"parent": 58,
+					"target": 4,
+					"text": "A·盾兵牵制C·卫兵 6秒，自身获得24护盾",
+					"time": 14.95
+				},
+				{
+					"actor": 1,
+					"id": 60,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师释放火球",
+					"time": 15.2
+				},
+				{
+					"actor": 1,
+					"id": 61,
+					"kind": "命中",
+					"parent": 60,
+					"target": 4,
+					"text": "A·法师命中C·卫兵：20伤害 / 护盾抵消0",
+					"time": 15.6
+				},
+				{
+					"actor": 0,
+					"id": 62,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：盾击 · AP2 无 → C·卫兵",
+					"time": 15.95
+				},
+				{
+					"actor": 5,
+					"id": 63,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手：箭击 · AP1 无 → A·盾兵",
+					"time": 16.3
+				},
+				{
+					"actor": 0,
+					"id": 64,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放盾击",
+					"time": 16.5
+				},
+				{
+					"actor": 0,
+					"id": 65,
+					"kind": "命中",
+					"parent": 64,
+					"target": 4,
+					"text": "A·盾兵命中C·卫兵：12伤害 / 护盾抵消0",
+					"time": 16.5
+				},
+				{
+					"actor": 4,
+					"id": 66,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 16.55
+				},
+				{
+					"actor": 5,
+					"id": 67,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手释放箭击",
+					"time": 16.95
+				},
+				{
+					"actor": 4,
+					"id": 68,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵释放盾击",
+					"time": 17.1
+				},
+				{
+					"actor": 4,
+					"id": 69,
+					"kind": "命中",
+					"parent": 68,
+					"target": 0,
+					"text": "C·卫兵命中A·盾兵：0伤害 / 护盾抵消12",
+					"time": 17.1
+				},
+				{
+					"actor": 5,
+					"id": 70,
+					"kind": "命中",
+					"parent": 67,
+					"target": 0,
+					"text": "C·弓手命中A·盾兵：2伤害 / 护盾抵消12",
+					"time": 17.3
+				},
+				{
+					"actor": 1,
+					"id": 71,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师：火球 · AP1 目标被牵制 → C·卫兵",
+					"time": 18.25
+				},
+				{
+					"actor": 0,
+					"id": 72,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：盾击 · AP2 无 → C·卫兵",
+					"time": 18.5
+				},
+				{
+					"actor": 0,
+					"id": 73,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放盾击",
+					"time": 19.05
+				},
+				{
+					"actor": 0,
+					"id": 74,
+					"kind": "命中",
+					"parent": 73,
+					"target": 4,
+					"text": "A·盾兵命中C·卫兵：12伤害 / 护盾抵消0",
+					"time": 19.05
+				},
+				{
+					"actor": 4,
+					"id": 75,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 19.1
+				},
+				{
+					"actor": 1,
+					"id": 76,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师释放火球",
+					"time": 19.15
+				},
+				{
+					"actor": 1,
+					"id": 77,
+					"kind": "命中",
+					"parent": 76,
+					"target": 4,
+					"text": "A·法师命中C·卫兵：20伤害 / 护盾抵消0",
+					"time": 19.55
+				},
+				{
+					"actor": 4,
+					"id": 78,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵释放盾击",
+					"time": 19.65
+				},
+				{
+					"actor": 4,
+					"id": 79,
+					"kind": "命中",
+					"parent": 78,
+					"target": 0,
+					"text": "C·卫兵命中A·盾兵：12伤害 / 护盾抵消0",
+					"time": 19.65
+				},
+				{
+					"actor": 5,
+					"id": 80,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手：箭击 · AP1 无 → A·盾兵",
+					"time": 19.65
+				},
+				{
+					"actor": 5,
+					"id": 81,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手释放箭击",
+					"time": 20.3
+				},
+				{
+					"actor": 0,
+					"id": 82,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：牵制 · AP1 无 → C·卫兵",
+					"time": 20.3
+				},
+				{
+					"actor": 5,
+					"id": 83,
+					"kind": "命中",
+					"parent": 81,
+					"target": 0,
+					"text": "C·弓手命中A·盾兵：14伤害 / 护盾抵消0",
+					"time": 20.65
+				},
+				{
+					"actor": 3,
+					"id": 84,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "B·牧师：治疗 · AP1 友军HP≤60% → A·盾兵",
+					"time": 20.65
+				},
+				{
+					"actor": 0,
+					"id": 85,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放牵制",
+					"time": 20.8
+				},
+				{
+					"actor": 0,
+					"id": 86,
+					"kind": "牵制",
+					"parent": 85,
+					"target": 4,
+					"text": "A·盾兵牵制C·卫兵 6秒，自身获得24护盾",
+					"time": 20.8
+				},
+				{
+					"actor": 3,
+					"id": 87,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "B·牧师释放治疗",
+					"time": 21.3
+				},
+				{
+					"actor": 3,
+					"id": 88,
+					"kind": "治疗",
+					"parent": 87,
+					"target": 0,
+					"text": "B·牧师治疗A·盾兵 +25HP",
+					"time": 21.5
+				},
+				{
+					"actor": 4,
+					"id": 89,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 21.65
+				},
+				{
+					"actor": 0,
+					"id": 90,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵：盾击 · AP2 无 → C·卫兵",
+					"time": 21.8
+				},
+				{
+					"actor": 1,
+					"id": 91,
+					"kind": "AP",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师：火球 · AP1 目标被牵制 → C·卫兵",
+					"time": 22.15
+				},
+				{
+					"actor": 4,
+					"id": 92,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·卫兵释放盾击",
+					"time": 22.2
+				},
+				{
+					"actor": 4,
+					"id": 93,
+					"kind": "命中",
+					"parent": 92,
+					"target": 0,
+					"text": "C·卫兵命中A·盾兵：0伤害 / 护盾抵消12",
+					"time": 22.2
+				},
+				{
+					"actor": 0,
+					"id": 94,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·盾兵释放盾击",
+					"time": 22.35
+				},
+				{
+					"actor": 0,
+					"id": 95,
+					"kind": "命中",
+					"parent": 94,
+					"target": 4,
+					"text": "A·盾兵命中C·卫兵：12伤害 / 护盾抵消0",
+					"time": 22.35
+				},
+				{
+					"actor": 4,
+					"id": 96,
+					"kind": "阵亡",
+					"parent": -1,
+					"target": 4,
+					"text": "C·卫兵阵亡",
+					"time": 22.35
+				},
+				{
+					"actor": 5,
+					"id": 97,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手：箭击 · AP1 无 → A·盾兵",
+					"time": 23.0
+				},
+				{
+					"actor": 1,
+					"id": 98,
+					"kind": "释放",
+					"parent": -1,
+					"target": 4,
+					"text": "A·法师释放火球",
+					"time": 23.05
+				},
+				{
+					"actor": 5,
+					"id": 99,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手释放箭击",
+					"time": 23.65
+				},
+				{
+					"actor": 5,
+					"id": 100,
+					"kind": "命中",
+					"parent": 99,
+					"target": 0,
+					"text": "C·弓手命中A·盾兵：2伤害 / 护盾抵消12",
+					"time": 24.0
+				},
+				{
+					"actor": 0,
+					"id": 101,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "A·盾兵：牵制 · AP1 无 → C·弓手",
+					"time": 25.8
+				},
+				{
+					"actor": 1,
+					"id": 102,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "A·法师：火球 · AP2 无 → C·弓手",
+					"time": 26.05
+				},
+				{
+					"actor": 0,
+					"id": 103,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "A·盾兵释放牵制",
+					"time": 26.3
+				},
+				{
+					"actor": 0,
+					"id": 104,
+					"kind": "牵制",
+					"parent": 103,
+					"target": 5,
+					"text": "A·盾兵牵制C·弓手 6秒，自身获得24护盾",
+					"time": 26.3
+				},
+				{
+					"actor": 5,
+					"id": 105,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手：箭击 · AP1 无 → A·盾兵",
+					"time": 26.35
+				},
+				{
+					"actor": 1,
+					"id": 106,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "A·法师释放火球",
+					"time": 26.95
+				},
+				{
+					"actor": 5,
+					"id": 107,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手释放箭击",
+					"time": 27.0
+				},
+				{
+					"actor": 1,
+					"id": 108,
+					"kind": "命中",
+					"parent": 106,
+					"target": 5,
+					"text": "A·法师命中C·弓手：20伤害 / 护盾抵消0",
+					"time": 27.35
+				},
+				{
+					"actor": 5,
+					"id": 109,
+					"kind": "命中",
+					"parent": 107,
+					"target": 0,
+					"text": "C·弓手命中A·盾兵：0伤害 / 护盾抵消14",
+					"time": 27.35
+				},
+				{
+					"actor": 5,
+					"id": 110,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手：箭击 · AP1 无 → A·盾兵",
+					"time": 29.7
+				},
+				{
+					"actor": 1,
+					"id": 111,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "A·法师：火球 · AP1 目标被牵制 → C·弓手",
+					"time": 29.95
+				},
+				{
+					"actor": 5,
+					"id": 112,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手释放箭击",
+					"time": 30.35
+				},
+				{
+					"actor": 5,
+					"id": 113,
+					"kind": "命中",
+					"parent": 112,
+					"target": 0,
+					"text": "C·弓手命中A·盾兵：4伤害 / 护盾抵消10",
+					"time": 30.7
+				},
+				{
+					"actor": 1,
+					"id": 114,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "A·法师释放火球",
+					"time": 30.85
+				},
+				{
+					"actor": 1,
+					"id": 115,
+					"kind": "命中",
+					"parent": 114,
+					"target": 5,
+					"text": "A·法师命中C·弓手：20伤害 / 护盾抵消0",
+					"time": 31.25
+				},
+				{
+					"actor": 0,
+					"id": 116,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "A·盾兵：牵制 · AP1 无 → C·弓手",
+					"time": 31.3
+				},
+				{
+					"actor": 0,
+					"id": 117,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "A·盾兵释放牵制",
+					"time": 31.8
+				},
+				{
+					"actor": 0,
+					"id": 118,
+					"kind": "牵制",
+					"parent": 117,
+					"target": 5,
+					"text": "A·盾兵牵制C·弓手 6秒，自身获得24护盾",
+					"time": 31.8
+				},
+				{
+					"actor": 5,
+					"id": 119,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手：箭击 · AP1 无 → A·盾兵",
+					"time": 33.05
+				},
+				{
+					"actor": 5,
+					"id": 120,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手释放箭击",
+					"time": 33.7
+				},
+				{
+					"actor": 1,
+					"id": 121,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "A·法师：火球 · AP1 目标被牵制 → C·弓手",
+					"time": 33.85
+				},
+				{
+					"actor": 5,
+					"id": 122,
+					"kind": "命中",
+					"parent": 120,
+					"target": 0,
+					"text": "C·弓手命中A·盾兵：0伤害 / 护盾抵消14",
+					"time": 34.05
+				},
+				{
+					"actor": 1,
+					"id": 123,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "A·法师释放火球",
+					"time": 34.75
+				},
+				{
+					"actor": 1,
+					"id": 124,
+					"kind": "命中",
+					"parent": 123,
+					"target": 5,
+					"text": "A·法师命中C·弓手：20伤害 / 护盾抵消0",
+					"time": 35.15
+				},
+				{
+					"actor": 5,
+					"id": 125,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手：箭击 · AP1 无 → A·盾兵",
+					"time": 36.45
+				},
+				{
+					"actor": 0,
+					"id": 126,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "A·盾兵：牵制 · AP1 无 → C·弓手",
+					"time": 36.8
+				},
+				{
+					"actor": 5,
+					"id": 127,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手释放箭击",
+					"time": 37.1
+				},
+				{
+					"actor": 0,
+					"id": 128,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "A·盾兵释放牵制",
+					"time": 37.3
+				},
+				{
+					"actor": 0,
+					"id": 129,
+					"kind": "牵制",
+					"parent": 128,
+					"target": 5,
+					"text": "A·盾兵牵制C·弓手 6秒，自身获得24护盾",
+					"time": 37.3
+				},
+				{
+					"actor": 5,
+					"id": 130,
+					"kind": "命中",
+					"parent": 127,
+					"target": 0,
+					"text": "C·弓手命中A·盾兵：0伤害 / 护盾抵消14",
+					"time": 37.45
+				},
+				{
+					"actor": 1,
+					"id": 131,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "A·法师：火球 · AP1 目标被牵制 → C·弓手",
+					"time": 37.75
+				},
+				{
+					"actor": 1,
+					"id": 132,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "A·法师释放火球",
+					"time": 38.65
+				},
+				{
+					"actor": 1,
+					"id": 133,
+					"kind": "命中",
+					"parent": 132,
+					"target": 5,
+					"text": "A·法师命中C·弓手：20伤害 / 护盾抵消0",
+					"time": 39.05
+				},
+				{
+					"actor": 5,
+					"id": 134,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手：箭击 · AP1 无 → A·盾兵",
+					"time": 39.8
+				},
+				{
+					"actor": 5,
+					"id": 135,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "C·弓手释放箭击",
+					"time": 40.45
+				},
+				{
+					"actor": 5,
+					"id": 136,
+					"kind": "命中",
+					"parent": 135,
+					"target": 0,
+					"text": "C·弓手命中A·盾兵：0伤害 / 护盾抵消14",
+					"time": 40.8
+				},
+				{
+					"actor": 1,
+					"id": 137,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "A·法师：火球 · AP1 目标被牵制 → C·弓手",
+					"time": 41.65
+				},
+				{
+					"actor": 0,
+					"id": 138,
+					"kind": "AP",
+					"parent": -1,
+					"target": 5,
+					"text": "A·盾兵：牵制 · AP1 无 → C·弓手",
+					"time": 42.3
+				},
+				{
+					"actor": 1,
+					"id": 139,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "A·法师释放火球",
+					"time": 42.55
+				},
+				{
+					"actor": 0,
+					"id": 140,
+					"kind": "释放",
+					"parent": -1,
+					"target": 5,
+					"text": "A·盾兵释放牵制",
+					"time": 42.8
+				},
+				{
+					"actor": 0,
+					"id": 141,
+					"kind": "牵制",
+					"parent": 140,
+					"target": 5,
+					"text": "A·盾兵牵制C·弓手 6秒，自身获得24护盾",
+					"time": 42.8
+				},
+				{
+					"actor": 1,
+					"id": 142,
+					"kind": "命中",
+					"parent": 139,
+					"target": 5,
+					"text": "A·法师命中C·弓手：20伤害 / 护盾抵消0",
+					"time": 42.95
+				},
+				{
+					"actor": 5,
+					"id": 143,
+					"kind": "阵亡",
+					"parent": -1,
+					"target": 5,
+					"text": "C·弓手阵亡",
+					"time": 42.95
+				},
+				{
+					"actor": 7,
+					"id": 144,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "D·雷法：雷击 · AP1 无 → A·盾兵",
+					"time": 43.05
+				},
+				{
+					"actor": 7,
+					"id": 145,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "D·雷法释放雷击",
+					"time": 44.45
+				},
+				{
+					"actor": 7,
+					"id": 146,
+					"kind": "命中",
+					"parent": 145,
+					"target": 0,
+					"text": "D·雷法命中A·盾兵：0伤害 / 护盾抵消27",
+					"time": 44.7
+				},
+				{
+					"actor": 0,
+					"id": 147,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵：盾击 · AP2 无 → D·卫兵",
+					"time": 44.75
+				},
+				{
+					"actor": 6,
+					"id": 148,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "D·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 44.75
+				},
+				{
+					"actor": 0,
+					"id": 149,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵释放盾击",
+					"time": 45.3
+				},
+				{
+					"actor": 6,
+					"id": 150,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "D·卫兵释放盾击",
+					"time": 45.3
+				},
+				{
+					"actor": 0,
+					"id": 151,
+					"kind": "命中",
+					"parent": 149,
+					"target": 6,
+					"text": "A·盾兵命中D·卫兵：12伤害 / 护盾抵消0",
+					"time": 45.3
+				},
+				{
+					"actor": 6,
+					"id": 152,
+					"kind": "命中",
+					"parent": 150,
+					"target": 0,
+					"text": "D·卫兵命中A·盾兵：9伤害 / 护盾抵消3",
+					"time": 45.3
+				},
+				{
+					"actor": 1,
+					"id": 153,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·法师：火球 · AP2 无 → D·卫兵",
+					"time": 45.55
+				},
+				{
+					"actor": 3,
+					"id": 154,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "B·牧师：治疗 · AP1 友军HP≤60% → A·盾兵",
+					"time": 46.0
+				},
+				{
+					"actor": 1,
+					"id": 155,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·法师释放火球",
+					"time": 46.45
+				},
+				{
+					"actor": 3,
+					"id": 156,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "B·牧师释放治疗",
+					"time": 46.65
+				},
+				{
+					"actor": 1,
+					"id": 157,
+					"kind": "命中",
+					"parent": 155,
+					"target": 6,
+					"text": "A·法师命中D·卫兵：20伤害 / 护盾抵消0",
+					"time": 46.85
+				},
+				{
+					"actor": 3,
+					"id": 158,
+					"kind": "治疗",
+					"parent": 156,
+					"target": 0,
+					"text": "B·牧师治疗A·盾兵 +25HP",
+					"time": 46.85
+				},
+				{
+					"actor": 0,
+					"id": 159,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵：盾击 · AP2 无 → D·卫兵",
+					"time": 47.3
+				},
+				{
+					"actor": 6,
+					"id": 160,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "D·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 47.3
+				},
+				{
+					"actor": 0,
+					"id": 161,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵释放盾击",
+					"time": 47.85
+				},
+				{
+					"actor": 6,
+					"id": 162,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "D·卫兵释放盾击",
+					"time": 47.85
+				},
+				{
+					"actor": 0,
+					"id": 163,
+					"kind": "命中",
+					"parent": 161,
+					"target": 6,
+					"text": "A·盾兵命中D·卫兵：12伤害 / 护盾抵消0",
+					"time": 47.85
+				},
+				{
+					"actor": 6,
+					"id": 164,
+					"kind": "命中",
+					"parent": 162,
+					"target": 0,
+					"text": "D·卫兵命中A·盾兵：12伤害 / 护盾抵消0",
+					"time": 47.85
+				},
+				{
+					"actor": 3,
+					"id": 165,
+					"kind": "PP",
+					"parent": 162,
+					"target": 0,
+					"text": "B·牧师回春A·盾兵，恢复8HP",
+					"time": 47.85
+				},
+				{
+					"actor": 7,
+					"id": 166,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "D·雷法：雷击 · AP1 无 → A·盾兵",
+					"time": 48.65
+				},
+				{
+					"actor": 0,
+					"id": 167,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵：牵制 · AP1 无 → D·卫兵",
+					"time": 49.1
+				},
+				{
+					"actor": 1,
+					"id": 168,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·法师：火球 · AP2 无 → D·卫兵",
+					"time": 49.45
+				},
+				{
+					"actor": 0,
+					"id": 169,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵释放牵制",
+					"time": 49.6
+				},
+				{
+					"actor": 0,
+					"id": 170,
+					"kind": "牵制",
+					"parent": 169,
+					"target": 6,
+					"text": "A·盾兵牵制D·卫兵 6秒，自身获得24护盾",
+					"time": 49.6
+				},
+				{
+					"actor": 2,
+					"id": 171,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "B·刺客：协同突袭 · AP1 目标被牵制 → D·卫兵",
+					"time": 49.6
+				},
+				{
+					"actor": 6,
+					"id": 172,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "D·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 49.85
+				},
+				{
+					"actor": 7,
+					"id": 173,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "D·雷法释放雷击",
+					"time": 50.05
+				},
+				{
+					"actor": 2,
+					"id": 174,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "B·刺客释放协同突袭",
+					"time": 50.15
+				},
+				{
+					"actor": 7,
+					"id": 175,
+					"kind": "命中",
+					"parent": 173,
+					"target": 0,
+					"text": "D·雷法命中A·盾兵：3伤害 / 护盾抵消24",
+					"time": 50.3
+				},
+				{
+					"actor": 2,
+					"causes": [
+						174,
+						170
+					],
+					"id": 176,
+					"kind": "连携",
+					"parent": 174,
+					"target": 6,
+					"text": "B·刺客利用A·盾兵的牵制 → 协同突袭32伤害",
+					"time": 50.3
+				},
+				{
+					"actor": 2,
+					"id": 177,
+					"kind": "命中",
+					"parent": 174,
+					"target": 6,
+					"text": "B·刺客命中D·卫兵：32伤害 / 护盾抵消0",
+					"time": 50.3
+				},
+				{
+					"actor": 1,
+					"id": 178,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·法师释放火球",
+					"time": 50.35
+				},
+				{
+					"actor": 6,
+					"id": 179,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "D·卫兵释放盾击",
+					"time": 50.4
+				},
+				{
+					"actor": 6,
+					"id": 180,
+					"kind": "命中",
+					"parent": 179,
+					"target": 0,
+					"text": "D·卫兵命中A·盾兵：12伤害 / 护盾抵消0",
+					"time": 50.4
+				},
+				{
+					"actor": 0,
+					"id": 181,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵：盾击 · AP2 无 → D·卫兵",
+					"time": 50.6
+				},
+				{
+					"actor": 1,
+					"id": 182,
+					"kind": "命中",
+					"parent": 178,
+					"target": 6,
+					"text": "A·法师命中D·卫兵：20伤害 / 护盾抵消0",
+					"time": 50.75
+				},
+				{
+					"actor": 0,
+					"id": 183,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵释放盾击",
+					"time": 51.15
+				},
+				{
+					"actor": 0,
+					"id": 184,
+					"kind": "命中",
+					"parent": 183,
+					"target": 6,
+					"text": "A·盾兵命中D·卫兵：12伤害 / 护盾抵消0",
+					"time": 51.15
+				},
+				{
+					"actor": 6,
+					"id": 185,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "D·卫兵：盾击 · AP1 无 → A·盾兵",
+					"time": 52.4
+				},
+				{
+					"actor": 6,
+					"id": 186,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "D·卫兵释放盾击",
+					"time": 52.95
+				},
+				{
+					"actor": 6,
+					"id": 187,
+					"kind": "命中",
+					"parent": 186,
+					"target": 0,
+					"text": "D·卫兵命中A·盾兵：12伤害 / 护盾抵消0",
+					"time": 52.95
+				},
+				{
+					"actor": 3,
+					"id": 188,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "B·牧师：治疗 · AP1 友军HP≤60% → A·盾兵",
+					"time": 52.95
+				},
+				{
+					"actor": 0,
+					"id": 189,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵：盾击 · AP2 无 → D·卫兵",
+					"time": 53.15
+				},
+				{
+					"actor": 1,
+					"id": 190,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "A·法师：火球 · AP1 目标被牵制 → D·卫兵",
+					"time": 53.35
+				},
+				{
+					"actor": 3,
+					"id": 191,
+					"kind": "释放",
+					"parent": -1,
+					"target": 0,
+					"text": "B·牧师释放治疗",
+					"time": 53.6
+				},
+				{
+					"actor": 0,
+					"id": 192,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·盾兵释放盾击",
+					"time": 53.7
+				},
+				{
+					"actor": 0,
+					"id": 193,
+					"kind": "命中",
+					"parent": 192,
+					"target": 6,
+					"text": "A·盾兵命中D·卫兵：12伤害 / 护盾抵消0",
+					"time": 53.7
+				},
+				{
+					"actor": 3,
+					"id": 194,
+					"kind": "治疗",
+					"parent": 191,
+					"target": 0,
+					"text": "B·牧师治疗A·盾兵 +25HP",
+					"time": 53.8
+				},
+				{
+					"actor": 2,
+					"id": 195,
+					"kind": "AP",
+					"parent": -1,
+					"target": 6,
+					"text": "B·刺客：协同突袭 · AP1 目标被牵制 → D·卫兵",
+					"time": 54.15
+				},
+				{
+					"actor": 1,
+					"id": 196,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "A·法师释放火球",
+					"time": 54.25
+				},
+				{
+					"actor": 7,
+					"id": 197,
+					"kind": "AP",
+					"parent": -1,
+					"target": 0,
+					"text": "D·雷法：雷击 · AP1 无 → A·盾兵",
+					"time": 54.3
+				},
+				{
+					"actor": 1,
+					"id": 198,
+					"kind": "命中",
+					"parent": 196,
+					"target": 6,
+					"text": "A·法师命中D·卫兵：20伤害 / 护盾抵消0",
+					"time": 54.65
+				},
+				{
+					"actor": 6,
+					"id": 199,
+					"kind": "阵亡",
+					"parent": -1,
+					"target": 6,
+					"text": "D·卫兵阵亡",
+					"time": 54.65
+				},
+				{
+					"actor": 2,
+					"id": 200,
+					"kind": "释放",
+					"parent": -1,
+					"target": 6,
+					"text": "B·刺客释放协同突袭",
+					"time": 54.7
+				},
+				{
+					"actor": 0,
+					"id": 201,
+					"kind": "AP",
+					"parent": -1,
+					"target": 7,
+					"text": "A·盾兵：牵制 · AP1 无 → D·雷法",
+					"time": 54.95
+				},
+				{
+					"actor": -1,
+					"id": 202,
+					"kind": "结束",
+					"parent": -1,
+					"target": -1,
+					"text": "时间到 · 战斗结束",
+					"time": 55.0
+				}
+			],
+			"hp": [
+				143.0,
+				100.0,
+				120.0,
+				100.0,
+				0.0,
+				0.0,
+				0.0,
+				100.0
+			],
+			"result": "时间到 · 战斗结束",
+			"time": 55.0
+		}
+	}
+}

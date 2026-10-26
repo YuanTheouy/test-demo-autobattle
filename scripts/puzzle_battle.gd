@@ -7,6 +7,13 @@ const WATCHABLE_PRESETS := [14, 10]
 const WATCHABLE_SPAWNS := [Vector2i(5, 5), Vector2i(7, 7)]
 
 func _ready() -> void:
+	if not get_tree().has_meta("squad_entry_consumed") and ("--squad-demo" in OS.get_cmdline_user_args() or "--squad-preview" in OS.get_cmdline_user_args() or "--squad-ui-test" in OS.get_cmdline_user_args()):
+		get_tree().set_meta("squad_entry_consumed", true)
+		hide()
+		set_process(false)
+		set_physics_process(false)
+		get_tree().change_scene_to_file.call_deferred("res://squad_arena.tscn")
+		return
 	if not get_tree().has_meta("dual_track_entry_consumed") and ("--dual-track-demo" in OS.get_cmdline_user_args() or "--dual-track-test" in OS.get_cmdline_user_args() or "--dual-track-preview" in OS.get_cmdline_user_args()):
 		get_tree().set_meta("dual_track_entry_consumed", true)
 		hide()
@@ -41,11 +48,13 @@ func _ready() -> void:
 	demo_button.add_theme_font_override("font", font)
 	add_child(demo_button)
 	demo_button.position = Vector2(650, 738)
+	demo_button.get_popup().add_item("小队协同：同一战场", 3)
 	demo_button.get_popup().add_item("双轨短交锋：只改一格", 2)
 	demo_button.get_popup().add_item("Init走位躲弹", 0)
 	demo_button.get_popup().add_item("旧：预判吊射", 1)
 	demo_button.get_popup().id_pressed.connect(func(id: int):
-		if id == 2: get_tree().change_scene_to_file("res://dual_track_arena.tscn")
+		if id == 3: get_tree().change_scene_to_file("res://squad_arena.tscn")
+		elif id == 2: get_tree().change_scene_to_file("res://dual_track_arena.tscn")
 		elif id == 0: load_init_demo()
 		else: load_prediction_demo()
 	)
