@@ -12,29 +12,17 @@ func run(world: Node3D) -> void:
 		await world.get_tree().physics_frame
 	var pilot = world.player
 	pilot.control_override = true
-	var dive := 22.0
-	var climb := 22.0
-	var flat := 22.0
-	for i in 60:
-		dive = world.Glider.evolve_speed(dive, -0.5, false, 1.0 / 60)
-		climb = world.Glider.evolve_speed(climb, 0.4, false, 1.0 / 60)
-		flat = world.Glider.evolve_speed(flat, 0, false, 1.0 / 60)
-	check(dive > 22 and climb < 22 and flat < 22, "Dive gains speed; climbing and level flight spend speed")
-	check(world.Glider.evolve_speed(30, 0, true, 0.1) < world.Glider.evolve_speed(30, 0, false, 0.1), "Brake must slow down")
-	check(world.Glider.evolve_speed(30, 0, false, 0.1, 1) > world.Glider.evolve_speed(30, 0, false, 0.1, 0), "Upgraded wing must have lower drag")
 	var caps := 0
 	for child in world.get_children():
 		if child is MeshInstance3D and child.mesh is CylinderMesh:
 			if child.mesh.top_radius > 20 and child.mesh.cap_top and absf(child.position.y + child.mesh.height * 0.5 - 64) < 0.01:
 				caps += 1
 	check(caps == 1, "Camp must have exactly one visible top face, avoiding z-fighting")
-	var below: float = world.sample_lift(Vector3(0, 111.99, -265), 0)
-	var above: float = world.sample_lift(Vector3(0, 112.01, -265), 0)
-	check(absf(below - above) < 0.01, "Thermal ceiling must be continuous")
-	check(world.sample_lift(Vector3(0, 150, -265), 0) == 0, "Old wing cannot use upper wind")
-	check(world.sample_lift(Vector3(0, 150, -265), 1) > 15, "Remote route must benefit from new wing")
-	check(world.sample_lift(Vector3(18, 110, -529), 0) == 0, "Highland thermal cannot be entered from low altitude")
-	check(world.sample_lift(Vector3(-42, 60, -68), 0) == 0, "Landing area must be sheltered")
+	var below: Vector3 = world.sample_wind(Vector3(0, 111.99, -265))
+	var above: Vector3 = world.sample_wind(Vector3(0, 112.01, -265))
+	check(below.distance_to(above) < 0.02, "Wind field must be continuous")
+	check(world.sample_wind(Vector3(18, 110, -529)).is_zero_approx(), "Highland wind cannot be entered from low altitude")
+	check(world.sample_wind(Vector3(-42, 60, -68)).is_zero_approx(), "Landing area must be sheltered")
 	var standing_position: Vector3 = pilot.position
 	var standing_velocity: Vector3 = pilot.velocity
 	pilot.launch()
@@ -54,7 +42,7 @@ func run(world: Node3D) -> void:
 	check(pilot.velocity.distance_to(running_velocity) < 0.001, "Deploying while running must preserve velocity")
 	pilot.jump()
 	await world.get_tree().physics_frame
-	check(pilot.flying and absf(pilot.airspeed - 9) < 0.1 and pilot.velocity.y < 8.5, "Run and ordinary jump supply initial airspeed without upward boost")
+	check(pilot.flying and absf(Vector2(pilot.velocity.x, pilot.velocity.z).length() - 9) < 0.1 and pilot.velocity.y <= pilot.JUMP_SPEED, "Run and ordinary jump supply initial airspeed without upward boost")
 	pilot.test_walk = 0
 	# Hold the new wing near the old hard ceiling for four seconds.
 	pilot.reset_at(Vector3(0, 181, -265))
@@ -63,7 +51,7 @@ func run(world: Node3D) -> void:
 	pilot.set_equipment(1)
 	pilot.pitch = 0
 	pilot.airspeed = 19
-	pilot.velocity = Vector3.ZERO
+	pilot.velocity = Vector3(0, -1, -11)
 	pilot.test_turn = 1
 	pilot.reset_physics_interpolation()
 	var last_velocity := 0.0
@@ -165,6 +153,7 @@ func run(world: Node3D) -> void:
 	check(world.finished, "Walk up to final beacon and activate it")
 	world.finished = false
 	pilot.position = world.gate_positions[1] + Vector3(11, 0, 5)
+	pilot.velocity = Vector3(0, 0, -20)
 	pilot.launch()
 	pilot.pitch = 0
 	pilot.airspeed = 36

@@ -1,5 +1,9 @@
 extends CharacterBody3D
 
+const Aero = preload("res://aerodynamics.gd")
+const RUN_SPEED := 9.0
+const JUMP_SPEED := 5.5
+
 signal crashed
 signal landed
 
@@ -10,7 +14,10 @@ var bank := 0.0
 var flying := false
 var canopy_open := false
 var disabled := false
-var lift := 0.0
+var wind_velocity := Vector3.ZERO
+var jump_buffer := 0.0
+var ground_grace := 0.0
+var jumped := false
 var visual: Node3D
 var canopy: Node3D
 var camera: Camera3D
@@ -41,8 +48,8 @@ func _ready() -> void:
 	capsule.height = 1.8
 	collision.shape = capsule
 	add_child(collision)
-	floor_snap_length = 0.25
-	floor_max_angle = deg_to_rad(50)
+	floor_snap_length = 0.4
+	floor_max_angle = deg_to_rad(42)
 	visual = Node3D.new()
 	add_child(visual)
 	_build_person()
@@ -63,10 +70,12 @@ func reset_at(point: Vector3) -> void:
 	ground_view_heading = 0
 	view_pitch = -0.18
 	camera_boom = 7.0
-	pitch = -0.08
+	pitch = Aero.TRIM
 	bank = 0
 	airspeed = 0
 	velocity = Vector3.ZERO
+	jump_buffer = 0
+	ground_grace = 0
 	flying = false
 	disabled = false
 	canopy.visible = canopy_open
@@ -76,8 +85,8 @@ func reset_at(point: Vector3) -> void:
 	camera.look_at(position + Vector3(0, 0.5, -3))
 
 func jump() -> void:
-	if not disabled and not flying and is_on_floor():
-		velocity.y = 8.5
+	if not disabled:
+		jump_buffer = 0.12
 
 func toggle_paraglider() -> void:
 	if disabled:
@@ -102,9 +111,9 @@ func launch() -> void:
 func _begin_glide() -> void:
 	# Deploying changes no velocity component. Running/jumping/falling supply energy.
 	flying = true
-	airspeed = Vector2(velocity.x, velocity.z).length()
-	heading = atan2(velocity.x, -velocity.z) if airspeed > 0.1 else ground_view_heading
-	pitch = -0.08
+	airspeed = (velocity - wind_velocity).length()
+	heading = atan2(velocity.x, -velocity.z) if Vector2(velocity.x, velocity.z).length_squared() > 0.01 else heading
+	pitch = Aero.TRIM
 
 func set_equipment(level: int) -> void:
 	equipment_level = level
@@ -130,10 +139,18 @@ func _process(delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	if disabled:
 		return
-	if not flying:
-		_walk(delta)
-	else:
+	ground_grace = 0.10 if is_on_floor() else maxf(0, ground_grace - delta)
+	jumped = jump_buffer > 0 and ground_grace > 0
+	jump_buffer = maxf(0, jump_buffer - delta)
+	if jumped:
+		velocity.y = JUMP_SPEED
+		jump_buffer = 0
+		ground_grace = 0
+	if flying:
 		_glide(delta)
+	else:
+		_walk(delta)
+	airspeed = (velocity - wind_velocity).length()
 	if position.y < -18 or position.length() > 1250:
 		_fail()
 
@@ -149,74 +166,80 @@ func _walk(delta: float) -> void:
 	var forward := Vector3(sin(ground_view_heading), 0, -cos(ground_view_heading))
 	var right := Vector3(cos(ground_view_heading), 0, sin(ground_view_heading))
 	var direction := (forward * forward_input + right * side_input).limit_length()
-	if is_on_floor() or direction.length_squared() > 0.01:
-		var acceleration := 65.0 if is_on_floor() else 4.0
-		velocity.x = move_toward(velocity.x, direction.x * 9, delta * acceleration)
-		velocity.z = move_toward(velocity.z, direction.z * 9, delta * acceleration)
-	velocity.y -= 24 * delta
-	if direction.length_squared() > 0.01:
-		heading = lerp_angle(heading, atan2(direction.x, -direction.z), minf(1, delta * 16))
 	var was_on_floor := is_on_floor()
+	if was_on_floor and not jumped:
+		var normal := get_floor_normal()
+		var tangent := direction.slide(normal).normalized() * direction.length()
+		var ground_velocity := velocity.slide(normal)
+		ground_velocity = ground_velocity.move_toward(tangent * RUN_SPEED, delta * 45)
+		velocity = ground_velocity + Vector3.DOWN * Aero.GRAVITY * delta
+		if _try_step(Vector3(tangent.x, 0, tangent.z) * RUN_SPEED * delta):
+			velocity.x = tangent.x * RUN_SPEED
+			velocity.z = tangent.z * RUN_SPEED
+	else:
+		# Closed canopy: ballistic motion plus body drag, with no airborne motor.
+		var relative := velocity - wind_velocity
+		velocity += (Vector3.DOWN * Aero.GRAVITY - relative * relative.length() * 0.003) * delta
+	if direction.length_squared() > 0.01 and was_on_floor:
+		heading = lerp_angle(heading, atan2(direction.x, -direction.z), minf(1, delta * 16))
 	move_and_slide()
+	if was_on_floor and not jumped and not is_on_floor():
+		apply_floor_snap()
 	visual.rotation = Vector3(0, -heading, 0)
 	canopy.rotation = Vector3(0, -heading, 0)
 	if is_on_floor() and not was_on_floor:
 		landed.emit()
-	if canopy_open and not is_on_floor():
+	if canopy_open and not is_on_floor() and (jumped or ground_grace <= 0):
 		_begin_glide()
+
+func _try_step(horizontal_motion: Vector3) -> bool:
+	if horizontal_motion.length_squared() < 0.000001:
+		return false
+	var wall := KinematicCollision3D.new()
+	if not test_move(global_transform, horizontal_motion, wall) or wall.get_normal().y > 0.5:
+		return false
+	var raised := global_transform
+	if test_move(raised, Vector3.UP * 0.32):
+		return false
+	raised.origin.y += 0.32
+	if test_move(raised, horizontal_motion):
+		return false
+	raised.origin += horizontal_motion
+	var support := KinematicCollision3D.new()
+	if test_move(raised, Vector3.DOWN * 0.38, support) and support.get_normal().y > 0.72:
+		var height := raised.origin.y + support.get_travel().y - global_position.y
+		if height > 0.005 and height <= 0.32:
+			global_position.y += height + 0.005
+			return true
+	return false
 
 func _glide(delta: float) -> void:
 	var pitch_input := test_pitch if control_override else float(Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN)) - float(Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP))
 	var turn_input := test_turn if control_override else float(Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT)) - float(Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT))
-	if not control_override:
-		view_pitch = clampf(view_pitch + pitch_input * delta * 0.72, -1.0, 0.67)
-		ground_view_heading += turn_input * delta * 0.85
-		pitch_input = clampf((view_pitch - pitch) * 5, -1, 1)
-		turn_input = clampf(wrapf(ground_view_heading - heading, -PI, PI) * 4, -1, 1)
-	var braking := test_brake if control_override else Input.is_physical_key_pressed(KEY_SPACE) or Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)
-	pitch = clampf(pitch + pitch_input * delta * 0.72, -1.0, 0.67)
-	bank = lerpf(bank, -turn_input * 0.5, 4.5 * delta)
-	heading += turn_input * delta * 0.85 * clampf(25.0 / airspeed, 0.55, 1.35)
-	var gravity_pitch := pitch if velocity.y < -0.1 or airspeed > 3 else 0.0
-	airspeed = evolve_speed(airspeed, gravity_pitch, braking, delta, equipment_level)
-	var forward := Vector3(sin(heading) * cos(pitch), sin(pitch), -cos(heading) * cos(pitch))
-	var stall_sink := maxf(0, 15 - airspeed) * 0.85
-	var sink := 0.6 if equipment_level > 0 else 1.2
-	var target_vertical := forward.y * airspeed + lift - sink - stall_sink - (1.6 if braking else 0.0)
-	velocity.x = forward.x * airspeed
-	velocity.z = forward.z * airspeed
-	velocity.y = move_toward(velocity.y, target_vertical, delta * 35)
+	var brake := float(test_brake if control_override else Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT))
+	# Camera look never commands the wing. Input changes incidence and bank only.
+	pitch = move_toward(pitch, Aero.TRIM + pitch_input * 0.22 + brake * 0.04, delta * 0.9)
+	bank = move_toward(bank, turn_input * 0.60, delta * 1.6)
+	velocity = Aero.integrate(velocity, wind_velocity, heading, pitch, bank, brake, equipment_level, delta)
+	# The wing follows its actual horizontal airflow, rather than rotating velocity.
+	var horizontal := Vector2(velocity.x - wind_velocity.x, velocity.z - wind_velocity.z)
+	if horizontal.length_squared() > 0.0001:
+		heading = lerp_angle(heading, atan2(horizontal.x, -horizontal.y), 1 - exp(-8.0 * delta))
 	last_impact = velocity.length()
 	move_and_slide()
-	visual.rotation = Vector3(0, -heading, bank * 0.25)
-	canopy.rotation = Vector3(pitch * 0.45, -heading, bank * 0.5)
-	# Touching ground always becomes a normal landing, regardless of pitch/speed.
+	visual.rotation = Vector3(0, -heading, -bank * 0.20)
+	canopy.rotation = Vector3(pitch, -heading, -bank)
 	if is_on_floor():
 		_touch_down()
-	elif get_slide_collision_count() > 0:
-		# Contact changes locomotion only. Canopy state belongs exclusively to F.
-		flying = false
-		if control_override:
-			ground_view_heading = heading
-		velocity.x *= 0.15
-		velocity.z *= 0.15
 
 func _touch_down() -> void:
 	flying = false
 	bank = 0
+	# Collision resolves the normal; ground friction dissipates tangential momentum.
+	velocity = velocity.slide(get_floor_normal())
 	canopy.rotation = Vector3(0, -heading, 0)
-	if control_override:
-		ground_view_heading = heading
-	velocity = Vector3.ZERO
 	visual.rotation = Vector3(0, -heading, 0)
 	landed.emit()
-
-static func evolve_speed(speed: float, nose_pitch: float, braking: bool, delta: float, equipment: int = 0) -> float:
-	var drag := 0.0028 if equipment > 0 else 0.0048
-	var acceleration := -sin(nose_pitch) * 21.0 - drag * speed * speed
-	if braking:
-		acceleration -= 16
-	return clampf(speed + acceleration * delta, 0, 64)
 
 func _fail() -> void:
 	if not disabled:
@@ -228,16 +251,20 @@ func _update_camera(delta: float) -> void:
 	if first_person:
 		camera.position = at + Vector3.UP * 0.65
 		camera.rotation = Vector3(view_pitch, -ground_view_heading, 0)
-		camera.fov = lerpf(camera.fov, 75 + (maxf(0, airspeed - 20) * 0.35 if flying else 0.0), delta * 3)
+		camera.fov = 70
 		return
 	render_heading = ground_view_heading
-	var distance := 13 + airspeed * 0.055 if flying else 7.0
+	var distance := 8.5
 	camera_boom = lerpf(camera_boom, distance, 1 - exp(-5 * delta))
 	var orbit := Vector3(-sin(render_heading) * cos(view_pitch), -sin(view_pitch), cos(render_heading) * cos(view_pitch))
-	camera.position = at + Vector3.UP * 1.0 + orbit * camera_boom
 	var target := at + Vector3.UP * 1.0
+	var desired := target + orbit * camera_boom
+	var query := PhysicsRayQueryParameters3D.create(target, desired)
+	query.exclude = [get_rid()]
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	camera.position = hit.position + hit.normal * 0.25 if not hit.is_empty() else desired
 	camera.look_at(target)
-	camera.fov = lerpf(camera.fov, 70 + maxf(0, airspeed - 20) * 0.48 if flying else 65.0, delta * 3)
+	camera.fov = 70
 
 func _mesh(mesh: Mesh, color: Color, at: Vector3, parent: Node3D) -> MeshInstance3D:
 	var instance := MeshInstance3D.new()

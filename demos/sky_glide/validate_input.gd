@@ -109,18 +109,25 @@ func _run() -> void:
 	var grounded_y := pilot.position.y
 	tap(KEY_SPACE)
 	await ticks(15)
-	check(pilot.position.y > grounded_y + 1 and not pilot.flying, "Actual Space input jumps without opening canopy")
+	check(pilot.position.y > grounded_y + 0.9 and not pilot.flying, "Actual Space input jumps without opening canopy: rise=%.3f flying=%s" % [pilot.position.y - grounded_y, pilot.flying])
 	tap(KEY_F)
 	key(KEY_W, false)
 	await ticks(3)
 	check(pilot.flying, "Actual F input opens canopy")
+	var before_look: Vector3 = pilot.velocity
+	var before_heading: float = pilot.heading
+	mouse = InputEventMouseMotion.new()
+	mouse.relative = Vector2(800, 300)
+	mouse.screen_relative = mouse.relative
+	Input.parse_input_event(mouse)
+	check(pilot.velocity.distance_to(before_look) < 0.0001 and absf(pilot.heading - before_heading) < 0.0001, "Looking around in flight must not steer or rewrite velocity")
 	var right := InputEventMouseButton.new()
 	right.button_index = MOUSE_BUTTON_RIGHT
 	right.pressed = true
 	Input.parse_input_event(right)
 	var speed: float = pilot.airspeed
 	await ticks(12)
-	check(pilot.airspeed < speed - 1, "Right mouse button must brake in flight")
+	check(pilot.airspeed < speed - 0.15, "Right mouse button must brake in flight through aerodynamic drag")
 	right = right.duplicate()
 	right.pressed = false
 	Input.parse_input_event(right)

@@ -25,7 +25,7 @@ var toast := ""
 var toast_timer := 0.0
 var region := 1
 var gate_flags := [false, false]
-var gate_positions := [Vector3(-48, 88, -150), Vector3(65, 170, -550)]
+var gate_positions := [Vector3(-75, 88, -145), Vector3(65, 170, -550)]
 var elapsed := 0.0
 var reset_delay := -1.0
 var finished := false
@@ -121,7 +121,7 @@ func _physics_process(_delta: float) -> void:
 		return
 	if get_tree().paused:
 		return
-	player.lift = sample_lift(player.position, player.equipment_level)
+	player.wind_velocity = sample_wind(player.position)
 	region = 2 if player.position.z < -380 else 1
 	if player.flying:
 		for i in gate_positions.size():
@@ -155,25 +155,24 @@ func _on_land() -> void:
 		return
 	current_island = ""
 
-func sample_lift(at: Vector3, equipment: int) -> float:
+func sample_wind(at: Vector3) -> Vector3:
 	var result := 0.0
 	for thermal in thermals:
 		var center: Vector2 = thermal.center
 		var distance := Vector2(at.x, at.z).distance_to(center)
 		var radius: float = thermal.radius
 		var top: float = thermal.top
-		if thermal.get("high", false) and equipment > 0:
-			top = float(thermal.upgraded_top)
 		var radial := 1.0 - smoothstep(radius - 12, radius, distance)
 		var bottom: float = thermal.bottom
-		var vertical := (1.0 - smoothstep(top - 28, top, at.y)) * smoothstep(bottom - 8, bottom + 10, at.y)
-		result = maxf(result, 19.0 * radial * vertical)
+		var fade_start: float = thermal.get("fade_start", top - 28)
+		var vertical := (1.0 - smoothstep(fade_start, top, at.y)) * smoothstep(bottom - 8, bottom + 10, at.y)
+		result = maxf(result, float(thermal.get("strength", 5.0)) * radial * vertical)
 	# Island surfaces shelter the landing area; the wind must not prevent touchdown.
 	for island in islands:
 		var center: Vector3 = island.pos
 		var distance := Vector2(at.x - center.x, at.z - center.z).length()
 		result *= smoothstep(float(island.radius) + 2, float(island.radius) + 14, distance)
-	return result
+	return Vector3.UP * result
 
 func interaction_target() -> Dictionary:
 	if player.flying or player.disabled or not player.is_on_floor():
@@ -208,7 +207,7 @@ func _interact() -> void:
 			inventory.plan -= 1
 			upgraded = true
 			player.set_equipment(1)
-			_notify("制作完成：轻木远行翼！阻力更小，可利用高空稀薄气流。按 M 查看第二关。")
+			_notify("制作完成：轻木远行翼！阻力更小、滑翔距离更长。按 M 查看第二关。")
 		else:
 			_notify("还需轻木 3、翼膜 2、图纸 1。按 M 查看三座材料岛。")
 		return
@@ -359,17 +358,17 @@ func _build_world() -> void:
 		{"id": "wood", "name": "轻木岛", "pos": Vector3(-42, 58, -68), "radius": 27.0, "region": 1, "item": "wood", "item_name": "轻木", "amount": 3},
 		{"id": "membrane", "name": "翼膜岛", "pos": Vector3(48, 62, -94), "radius": 32.0, "region": 1, "item": "membrane", "item_name": "翼膜", "amount": 2},
 		{"id": "ruins", "name": "风栖遗迹 / 图纸", "pos": Vector3(0, 78, -180), "radius": 25.0, "region": 1, "item": "plan", "item_name": "远行翼图纸", "amount": 1},
-		{"id": "arch", "name": "穿拱练习岛", "pos": Vector3(-48, 76, -150), "radius": 18.0, "region": 1},
+		{"id": "arch", "name": "穿拱练习岛", "pos": Vector3(-75, 76, -145), "radius": 18.0, "region": 1},
 		{"id": "entry", "name": "石柱群岛 / 信标", "pos": Vector3(20, 142, -445), "radius": 30.0, "region": 2},
 		{"id": "crystal", "name": "风晶岛", "pos": Vector3(-36, 149, -510), "radius": 23.0, "region": 2, "item": "crystal", "item_name": "风晶", "amount": 1},
 		{"id": "spire", "name": "高塔岛", "pos": Vector3(65, 158, -550), "radius": 24.0, "region": 2},
 		{"id": "summit", "name": "远方信标 / 终点", "pos": Vector3(10, 176, -620), "radius": 28.0, "region": 2},
 	]
 	thermals = [
-		{"center": Vector2(-5, -61), "radius": 34.0, "top": 107.0, "bottom": 12.0},
-		{"center": Vector2(15, -145), "radius": 34.0, "top": 116.0, "bottom": 35.0},
-		{"center": Vector2(0, -265), "radius": 48.0, "top": 112.0, "upgraded_top": 186.0, "bottom": 42.0, "high": true},
-		{"center": Vector2(18, -529), "radius": 76.0, "top": 214.0, "bottom": 122.0},
+		{"center": Vector2(-5, -61), "radius": 46.0, "top": 112.0, "bottom": 12.0, "strength": 7.0},
+		{"center": Vector2(0, -130), "radius": 46.0, "top": 122.0, "bottom": 35.0, "strength": 7.0},
+		{"center": Vector2(0, -265), "radius": 48.0, "top": 186.0, "bottom": 42.0, "high": true, "strength": 7.0, "fade_start": 140.0},
+		{"center": Vector2(18, -529), "radius": 76.0, "top": 214.0, "bottom": 122.0, "strength": 6.0},
 	]
 	for island in islands:
 		var at: Vector3 = island.pos
@@ -423,7 +422,7 @@ func _build_world() -> void:
 		var center: Vector2 = thermal.center
 		var radius: float = thermal.radius
 		var bottom: float = thermal.bottom
-		var top: float = thermal.get("upgraded_top", thermal.top)
+		var top: float = thermal.top
 		for i in 7:
 			var angle := TAU * i / 7.0
 			var stroke := CylinderMesh.new()
@@ -446,7 +445,7 @@ func _build_world() -> void:
 			ring.set_meta("span", top - bottom)
 			ring.set_meta("phase", i * (top - bottom) / 7.0)
 			thermal_rings.append(ring)
-		_sign("↑ 高空风道 / 远行翼" if thermal.get("high", false) else "↑ 上升气流", Vector3(center.x, top + 5, center.y), Color("d9f3c5"), 32)
+		_sign("↑ 高空风道" if thermal.get("high", false) else "↑ 上升气流", Vector3(center.x, top + 5, center.y), Color("d9f3c5"), 32)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 71023
 	for i in 12:
@@ -530,7 +529,7 @@ func _build_ui() -> void:
 	state_label = _label("", Vector2(20, 149), 15, Color("b9e6cc"), telemetry)
 	var footer := _panel(Vector2(28, 790), Vector2(1384, 82), Color(0.10, 0.20, 0.24, 0.93))
 	hint = _label("", Vector2(22, 10), 18, CREAM, footer)
-	_label("鼠标转视角 · 左键 / E 互动 · 右键空中减速   |   WASD 移动 · 空格跳跃   F 展 / 收伞   V 切视角   M 航图（暂停）   Esc 暂停   R 返回", Vector2(22, 48), 14, Color("bdd0ca"), footer)
+	_label("鼠标只转镜头 · 地面 WASD / 空格跳   |   空中 AD 压翼转弯 · WS 调伞面 · 右键减速   |   F 展收伞 · E / 左键互动 · M 地图 · Esc 暂停", Vector2(22, 48), 14, Color("bdd0ca"), footer)
 	var reticle := _label("＋", Vector2(710, 435), 22, CREAM, hud)
 	reticle.add_theme_color_override("font_shadow_color", INK)
 	reticle.add_theme_constant_override("shadow_offset_x", 1)
@@ -568,14 +567,11 @@ func _update_ui() -> void:
 			hint.text = "F 只展开或收起伞，不提供推力。沿坡道上高台，W 助跑、空格跳出，靠下落加速。" if not player.canopy_open else "伞已展开，站立不会起飞。W 助跑、空格跳出高处，速度来自跑动和下落。"
 			state_label.text = "● 徒步探索"
 	elif not upgraded and player.position.z < -215 and player.position.z > -380:
-		hint.text = "旧翼接不住高空稀薄气流。先在草海群岛收齐材料，回营地 E 制作远行翼，再远渡。"
+		hint.text = "前方海峡很长。先回营地制作阻力更低、滑翔比更好的远行翼，再规划远渡。"
 		state_label.text = "● 需要远行翼"
-	elif player.lift > 2:
+	elif player.wind_velocity.y > 0.5:
 		hint.text = "借风爬升：空格减速、转向盘旋。风道顶部升力逐渐减弱；高度够了就飞向下一岛。"
 		state_label.text = "↑ 上升气流"
-	elif player.airspeed < 15:
-		hint.text = "速度不足，正在下沉！按 W 俯冲找回速度，或寻找上升气流。"
-		state_label.text = "! 低速下沉"
 	else:
 		hint.text = "远行翼已就绪：M 找信标，经高空风道升到约 165 m，再向石柱群岛远渡。" if upgraded else "对准岛面降落后可继续徒步。伞的开合只由 F 控制；走到材料旁按 E 采集。"
 		state_label.text = "● 自由滑翔"
