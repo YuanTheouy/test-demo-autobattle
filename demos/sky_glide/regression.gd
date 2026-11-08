@@ -35,25 +35,34 @@ func run(world: Node3D) -> void:
 	check(world.sample_lift(Vector3(0, 150, -265), 1) > 15, "Remote route must benefit from new wing")
 	check(world.sample_lift(Vector3(18, 110, -529), 0) == 0, "Highland thermal cannot be entered from low altitude")
 	check(world.sample_lift(Vector3(-42, 60, -68), 0) == 0, "Landing area must be sheltered")
-	# Walk clear of the workbench before testing a steep takeoff trajectory.
-	pilot.test_strafe = -1
-	for i in 45:
-		await world.get_tree().physics_frame
-	pilot.test_strafe = 0
-	pilot.heading = 0
-	pilot.ground_view_heading = 0
+	var standing_position: Vector3 = pilot.position
+	var standing_velocity: Vector3 = pilot.velocity
 	pilot.launch()
-	pilot.pitch = -0.4
-	var start: Vector3 = pilot.position
-	for i in 75:
+	check(pilot.velocity.distance_to(standing_velocity) < 0.001 and pilot.canopy_open and not pilot.flying, "Opening on ground must add no impulse or flight state")
+	for i in 60:
 		await world.get_tree().physics_frame
-	check(pilot.position.z < start.z - 5 and not pilot.disabled, "Actual takeoff and dive must clear platform: %s -> %s; disabled=%s flying=%s" % [start, pilot.position, pilot.disabled, pilot.flying])
+	check(pilot.position.distance_to(standing_position) < 0.03 and pilot.airspeed == 0, "Standing with canopy open must stay stationary")
+	pilot.toggle_paraglider()
+	pilot.reset_at(Vector3(48, 63, -80))
+	for i in 15:
+		await world.get_tree().physics_frame
+	pilot.test_walk = 1
+	for i in 25:
+		await world.get_tree().physics_frame
+	var running_velocity: Vector3 = pilot.velocity
+	pilot.launch()
+	check(pilot.velocity.distance_to(running_velocity) < 0.001, "Deploying while running must preserve velocity")
+	pilot.jump()
+	await world.get_tree().physics_frame
+	check(pilot.flying and absf(pilot.airspeed - 9) < 0.1 and pilot.velocity.y < 8.5, "Run and ordinary jump supply initial airspeed without upward boost")
+	pilot.test_walk = 0
 	# Hold the new wing near the old hard ceiling for four seconds.
-	pilot.position = Vector3(0, 181, -265)
+	pilot.reset_at(Vector3(0, 181, -265))
+	pilot.flying = true
+	pilot.canopy_open = true
 	pilot.set_equipment(1)
 	pilot.pitch = 0
 	pilot.airspeed = 19
-	pilot.launch_lift = 0
 	pilot.velocity = Vector3.ZERO
 	pilot.test_turn = 1
 	pilot.reset_physics_interpolation()
@@ -79,7 +88,6 @@ func run(world: Node3D) -> void:
 	pilot.flying = true
 	pilot.pitch = -0.9
 	pilot.airspeed = 55
-	pilot.launch_lift = 0
 	pilot.velocity = Vector3(0, -30, -25)
 	pilot.reset_physics_interpolation()
 	for i in 30:

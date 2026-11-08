@@ -149,6 +149,10 @@ func _on_land() -> void:
 			current_island = island.id
 			checkpoint = center + Vector3(0, 2.0, -float(island.radius) * 0.7)
 			return
+	if absf(player.position.x + 6) < 5.5 and player.position.z > -11 and player.position.z < 40 and player.position.y > 66 and player.position.y < 87:
+		current_island = "camp"
+		checkpoint = Vector3(6, 65, 24)
+		return
 	current_island = ""
 
 func sample_lift(at: Vector3, equipment: int) -> float:
@@ -387,8 +391,14 @@ func _build_world() -> void:
 			_sign("站在箱子旁：E / 左键采集", at + Vector3(0, 6, 0), CREAM, 25).reparent(collectible)
 		if island.id in ["entry", "summit"]:
 			_beacon(at, 25 if island.id == "entry" else 32)
-	# The workbench and launch platform sit distinctly above the grass plane.
-	_box(Vector3(0, 64.25, 7), Vector3(7, 0.4, 20), Color("b58a61"), true)
+	# Walkable 26-degree ramp: all launch energy comes from the 20 m height gain.
+	var ramp_angle := atan(0.5)
+	_box(Vector3(-6, 74 - 0.3 * cos(ramp_angle), 18), Vector3(9, 0.6, sqrt(2000.0)), Color("b58a61"), true).rotation.x = ramp_angle
+	_box(Vector3(-6, 83.6, -6), Vector3(9, 0.8, 8), Color("c49a6d"), true)
+	_box(Vector3(-6, 73.5, -4), Vector3(2.4, 19, 2.4), Color("86634b"))
+	_sign("步行上坡 → 高台助跑 → 空格跳出 → F 展伞", Vector3(-6, 68, 38), CREAM, 24)
+	_sign("坡道入口 ← 沿地面走到这里", Vector3(4, 66.5, 41), CREAM, 22)
+	_sign("84 m 起飞高台 / 靠下落加速", Vector3(-6, 89, -5), CREAM, 28)
 	_box(Vector3(6, 64.85, 20), Vector3(4, 0.2, 2.2), Color("9b795b"), true)
 	for x in [-1.6, 1.6]:
 		for z in [-0.7, 0.7]:
@@ -552,10 +562,10 @@ func _update_ui() -> void:
 			state_label.text = "● 跳跃 / 下落"
 		elif not target.is_empty():
 			var distance := interaction_distance(target)
-			hint.text = target.label + "  ·  地面即可互动；F 起飞，鼠标看向飞行方向。" if distance <= 4.5 else "靠近目标（%.0f 米）后按 E / 左键即可，无需跳上桌或箱子。" % distance
+			hint.text = target.label + "  ·  起飞请走左侧坡道上高台，助跑、空格跳出、F 展伞。" if distance <= 4.5 else "靠近目标（%.0f 米）后按 E / 左键即可，无需跳上桌或箱子。" % distance
 			state_label.text = "● 徒步探索"
 		else:
-			hint.text = "伞已收起，可以自由跑跳。走到岛边按 F 起飞；也可以先空格跳跃，再按 F 展伞。"
+			hint.text = "F 只展开或收起伞，不提供推力。沿坡道上高台，W 助跑、空格跳出，靠下落加速。" if not player.canopy_open else "伞已展开，站立不会起飞。W 助跑、空格跳出高处，速度来自跑动和下落。"
 			state_label.text = "● 徒步探索"
 	elif not upgraded and player.position.z < -215 and player.position.z > -380:
 		hint.text = "旧翼接不住高空稀薄气流。先在草海群岛收齐材料，回营地 E 制作远行翼，再远渡。"

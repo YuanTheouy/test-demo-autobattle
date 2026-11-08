@@ -68,6 +68,16 @@ func _run() -> void:
 			quit(1)
 			return
 		if leg[0] == "land":
+			if leg[2] == "camp" and pilot.position.y > 67:
+				if not await _walk_to(Vector3(-6, pilot.position.y, pilot.position.z)):
+					quit(1)
+					return
+				if not await _walk_to(Vector3(-6, 64, 43)):
+					quit(1)
+					return
+				if not await _walk_to(Vector3(6, 64, 43)):
+					quit(1)
+					return
 			var interaction: Dictionary = world.interaction_target()
 			if not interaction.is_empty() and not await _walk_to(interaction.pos):
 				quit(1)
@@ -90,12 +100,27 @@ func _fly(kind: String, target: Vector3, island_id: String) -> bool:
 	_walk(false)
 	_brake(false)
 	if not pilot.flying:
+		if world.current_island == "camp":
+			if not await _walk_to(Vector3(6, 64, 43)):
+				return false
+			if not await _walk_to(Vector3(-6, 64, 43)):
+				return false
+			if not await _walk_to(Vector3(-6, 84, -6)):
+				return false
+		else:
+			for island in world.islands:
+				if island.id == world.current_island:
+					var direction := target - Vector3(island.pos)
+					direction.y = 0
+					if not await _walk_to(Vector3(island.pos) + direction.normalized() * float(island.radius) * 0.84):
+						return false
 		var offset := target - pilot.position
-		_aim(atan2(offset.x, -offset.z), -0.06)
-		await physics_frame
-		# Align character with the view by one ordinary on-foot step.
+		_aim(atan2(offset.x, -offset.z), -0.30)
 		_walk(true)
-		for i in 6:
+		for i in 15:
+			await physics_frame
+		_tap(KEY_SPACE)
+		for i in 8:
 			await physics_frame
 		_walk(false)
 		_tap(KEY_F)
@@ -151,5 +176,5 @@ func _walk_to(target: Vector3) -> bool:
 		if pilot.flying or pilot.disabled or not pilot.is_on_floor():
 			push_error("Ordinary on-foot input must stay on island")
 			return false
-	push_error("Unable to walk to material/workbench/beacon")
+	push_error("Unable to walk to %s from %s" % [target, pilot.position])
 	return false

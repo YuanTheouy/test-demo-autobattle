@@ -52,6 +52,12 @@ func _run() -> void:
 	click(MOUSE_BUTTON_LEFT)
 	await ticks(2)
 	check(world.toast.contains("还需轻木"), "Left click must use the nearby workbench too")
+	var standing_position := pilot.position
+	tap(KEY_F)
+	await ticks(30)
+	check(pilot.canopy_open and not pilot.flying and pilot.position.distance_to(standing_position) < 0.03 and pilot.airspeed == 0, "Ground F only opens canopy and never moves or jumps the person")
+	tap(KEY_F)
+	await ticks(2)
 	var mouse := InputEventMouseMotion.new()
 	mouse.relative = Vector2(120, -80)
 	mouse.screen_relative = mouse.relative
@@ -88,11 +94,14 @@ func _run() -> void:
 	click(MOUSE_BUTTON_LEFT)
 	await ticks(2)
 	check(world.inventory.membrane == 2, "Left click cannot duplicate collected materials")
+	key(KEY_W)
+	await ticks(20)
 	var grounded_y := pilot.position.y
 	tap(KEY_SPACE)
 	await ticks(15)
 	check(pilot.position.y > grounded_y + 1 and not pilot.flying, "Actual Space input jumps without opening canopy")
 	tap(KEY_F)
+	key(KEY_W, false)
 	await ticks(3)
 	check(pilot.flying, "Actual F input opens canopy")
 	var right := InputEventMouseButton.new()

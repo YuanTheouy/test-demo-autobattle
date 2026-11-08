@@ -3,11 +3,12 @@ extends CharacterBody3D
 signal crashed
 signal landed
 
-var airspeed := 22.0
+var airspeed := 0.0
 var heading := 0.0
 var pitch := -0.08
 var bank := 0.0
 var flying := false
+var canopy_open := false
 var disabled := false
 var lift := 0.0
 var visual: Node3D
@@ -20,7 +21,6 @@ var test_turn := 0.0
 var test_brake := false
 var test_walk := 0.0
 var test_strafe := 0.0
-var launch_lift := 0.0
 var equipment_level := 0
 var render_heading := 0.0
 var ground_view_heading := 0.0
@@ -33,7 +33,6 @@ var first_person := false
 var view_pitch := -0.18
 var mouse_look_enabled := true
 var camera_boom := 7.0
-var takeoff_delay := 0.0
 
 func _ready() -> void:
 	var collision := CollisionShape3D.new()
@@ -66,11 +65,10 @@ func reset_at(point: Vector3) -> void:
 	camera_boom = 7.0
 	pitch = -0.08
 	bank = 0
-	airspeed = 22
+	airspeed = 0
 	velocity = Vector3.ZERO
-	launch_lift = 0
-	takeoff_delay = 0
 	flying = false
+	canopy_open = false
 	disabled = false
 	canopy.visible = false
 	render_heading = heading
@@ -85,28 +83,29 @@ func jump() -> void:
 func toggle_paraglider() -> void:
 	if disabled:
 		return
-	if flying:
+	if canopy_open:
 		flying = false
+		canopy_open = false
 		canopy.visible = false
 		if control_override:
 			ground_view_heading = heading
-		velocity.x *= 0.35
-		velocity.z *= 0.35
 	else:
 		launch()
 
 func launch() -> void:
-	if disabled or flying:
+	if disabled or canopy_open:
 		return
-	# Ground F is a jump-and-deploy shortcut; airborne F simply opens the canopy.
-	launch_lift = 9 if is_on_floor() else 0
-	takeoff_delay = 0.32 if is_on_floor() else 0.0
-	if is_on_floor():
-		velocity.y = 9
-	flying = true
+	canopy_open = true
 	canopy.visible = true
+	if not is_on_floor():
+		_begin_glide()
+
+func _begin_glide() -> void:
+	# Deploying changes no velocity component. Running/jumping/falling supply energy.
+	flying = true
+	airspeed = Vector2(velocity.x, velocity.z).length()
+	heading = atan2(velocity.x, -velocity.z) if airspeed > 0.1 else ground_view_heading
 	pitch = -0.08
-	airspeed = 24 if equipment_level > 0 else 22
 
 func set_equipment(level: int) -> void:
 	equipment_level = level
@@ -121,7 +120,7 @@ func _input(event: InputEvent) -> void:
 
 func _process(delta: float) -> void:
 	visual.visible = not first_person
-	canopy.visible = flying
+	canopy.visible = canopy_open
 	var walking_speed := Vector2(velocity.x, velocity.z).length() if not flying else 0.0
 	step_phase += delta * walking_speed * 1.6
 	var stride := sin(step_phase) * 0.65 * clampf(walking_speed / 9, 0, 1)
@@ -151,8 +150,10 @@ func _walk(delta: float) -> void:
 	var forward := Vector3(sin(ground_view_heading), 0, -cos(ground_view_heading))
 	var right := Vector3(cos(ground_view_heading), 0, sin(ground_view_heading))
 	var direction := (forward * forward_input + right * side_input).limit_length()
-	velocity.x = move_toward(velocity.x, direction.x * 9, delta * 65)
-	velocity.z = move_toward(velocity.z, direction.z * 9, delta * 65)
+	if is_on_floor() or direction.length_squared() > 0.01:
+		var acceleration := 65.0 if is_on_floor() else 4.0
+		velocity.x = move_toward(velocity.x, direction.x * 9, delta * acceleration)
+		velocity.z = move_toward(velocity.z, direction.z * 9, delta * acceleration)
 	velocity.y -= 24 * delta
 	if direction.length_squared() > 0.01:
 		heading = lerp_angle(heading, atan2(direction.x, -direction.z), minf(1, delta * 16))
@@ -161,16 +162,10 @@ func _walk(delta: float) -> void:
 	visual.rotation = Vector3(0, -heading, 0)
 	if is_on_floor() and not was_on_floor:
 		landed.emit()
+	if canopy_open and not is_on_floor():
+		_begin_glide()
 
 func _glide(delta: float) -> void:
-	# Hop vertically first, then move forward: nearby tables cannot block deployment.
-	if takeoff_delay > 0:
-		takeoff_delay = maxf(0, takeoff_delay - delta)
-		velocity.x = move_toward(velocity.x, 0, delta * 80)
-		velocity.z = move_toward(velocity.z, 0, delta * 80)
-		velocity.y = maxf(5, velocity.y - delta * 10)
-		move_and_slide()
-		return
 	var pitch_input := test_pitch if control_override else float(Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN)) - float(Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP))
 	var turn_input := test_turn if control_override else float(Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT)) - float(Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT))
 	if not control_override:
@@ -182,15 +177,15 @@ func _glide(delta: float) -> void:
 	pitch = clampf(pitch + pitch_input * delta * 0.72, -1.0, 0.67)
 	bank = lerpf(bank, -turn_input * 0.5, 4.5 * delta)
 	heading += turn_input * delta * 0.85 * clampf(25.0 / airspeed, 0.55, 1.35)
-	airspeed = evolve_speed(airspeed, pitch, braking, delta, equipment_level)
+	var gravity_pitch := pitch if velocity.y < -0.1 or airspeed > 3 else 0.0
+	airspeed = evolve_speed(airspeed, gravity_pitch, braking, delta, equipment_level)
 	var forward := Vector3(sin(heading) * cos(pitch), sin(pitch), -cos(heading) * cos(pitch))
 	var stall_sink := maxf(0, 15 - airspeed) * 0.85
 	var sink := 0.6 if equipment_level > 0 else 1.2
-	var target_vertical := forward.y * airspeed + lift + launch_lift - sink - stall_sink - (1.6 if braking else 0.0)
+	var target_vertical := forward.y * airspeed + lift - sink - stall_sink - (1.6 if braking else 0.0)
 	velocity.x = forward.x * airspeed
 	velocity.z = forward.z * airspeed
 	velocity.y = move_toward(velocity.y, target_vertical, delta * 35)
-	launch_lift = maxf(0, launch_lift - delta * 5)
 	last_impact = velocity.length()
 	move_and_slide()
 	visual.rotation = Vector3(0, -heading, bank * 0.25)
@@ -201,6 +196,7 @@ func _glide(delta: float) -> void:
 	elif get_slide_collision_count() > 0:
 		# A wall or island edge folds the canopy; the person can fall, jump or redeploy.
 		flying = false
+		canopy_open = false
 		canopy.visible = false
 		if control_override:
 			ground_view_heading = heading
@@ -209,6 +205,7 @@ func _glide(delta: float) -> void:
 
 func _touch_down() -> void:
 	flying = false
+	canopy_open = false
 	canopy.visible = false
 	bank = 0
 	if control_override:
@@ -222,7 +219,7 @@ static func evolve_speed(speed: float, nose_pitch: float, braking: bool, delta: 
 	var acceleration := -sin(nose_pitch) * 21.0 - drag * speed * speed
 	if braking:
 		acceleration -= 16
-	return clampf(speed + acceleration * delta, 8, 64)
+	return clampf(speed + acceleration * delta, 0, 64)
 
 func _fail() -> void:
 	if not disabled:

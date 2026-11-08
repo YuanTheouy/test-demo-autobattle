@@ -23,9 +23,9 @@ func _run() -> void:
 	pilot.position = Vector3(0, 177, -265)
 	pilot.reset_physics_interpolation()
 	pilot.flying = true
+	pilot.canopy_open = true
 	pilot.airspeed = 18
 	pilot.pitch = 0
-	pilot.launch_lift = 0
 	pilot.test_turn = 1
 	var timings: Array[float] = []
 	var last_tick := Time.get_ticks_usec()
