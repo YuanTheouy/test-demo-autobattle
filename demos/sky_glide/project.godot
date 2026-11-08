@@ -10,7 +10,11 @@ window/size/viewport_width=1440
 window/size/viewport_height=900
 window/stretch/mode="canvas_items"
 
+[physics]
+common/physics_interpolation=true
+
 [rendering]
 renderer/rendering_method="gl_compatibility"
+anti_aliasing/quality/msaa_3d=2
 textures/default_filters/use_nearest_mipmap_filter=false
 environment/defaults/default_clear_color=Color(0.58, 0.78, 0.84, 1)

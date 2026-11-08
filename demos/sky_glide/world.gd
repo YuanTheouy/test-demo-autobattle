@@ -10,9 +10,22 @@ var hint: Label
 var objective: Label
 var speed_bar: ProgressBar
 var state_label: Label
+var inventory_label: Label
+var equipment_label: Label
+var map_view: Control
+var islands: Array[Dictionary] = []
+var thermals: Array[Dictionary] = []
+var inventory := {"wood": 0, "membrane": 0, "plan": 0, "crystal": 0}
+var collected: Dictionary = {}
+var pickup_meshes: Dictionary = {}
+var upgraded := false
+var current_island := "camp"
+var checkpoint := Vector3(0, 66, -2)
+var toast := ""
+var toast_timer := 0.0
+var region := 1
 var gate_flags := [false, false]
-var gate_positions := [Vector3(0, 44, -64), Vector3(-8, 34, -142)]
-var thermal_center := Vector3(-8, 0, -208)
+var gate_positions := [Vector3(-48, 88, -150), Vector3(65, 170, -550)]
 var elapsed := 0.0
 var reset_delay := -1.0
 var finished := false
@@ -34,7 +47,7 @@ func _ready() -> void:
 	preview_mode = "--preview" in OS.get_cmdline_user_args()
 	if "--smoke-test" in OS.get_cmdline_user_args():
 		call_deferred("_smoke_test")
-		get_tree().create_timer(12).timeout.connect(func():
+		get_tree().create_timer(25).timeout.connect(func():
 			push_error("Smoke test timed out")
 			get_tree().quit(1))
 
@@ -42,7 +55,14 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo:
 		return
 	if event.physical_keycode == KEY_R:
-		_restart()
+		if event.shift_pressed:
+			get_tree().reload_current_scene()
+		else:
+			_restart()
+	if event.physical_keycode == KEY_E:
+		_interact()
+	if event.physical_keycode == KEY_M:
+		map_view.visible = not map_view.visible
 	if event.physical_keycode == KEY_SPACE and not player.flying and not finished:
 		player.launch()
 	if event.physical_keycode == KEY_ESCAPE:
@@ -50,10 +70,12 @@ func _unhandled_key_input(event: InputEvent) -> void:
 
 func _process(delta: float) -> void:
 	elapsed += delta
+	toast_timer = maxf(0, toast_timer - delta)
 	for i in thermal_rings.size():
 		var ring := thermal_rings[i]
-		ring.position.y = 15 + fmod(elapsed * 7 + i * 9.0, 94)
-		ring.rotation.y = elapsed * 0.25 + i
+		var bottom: float = ring.get_meta("bottom")
+		var span: float = ring.get_meta("span")
+		ring.position.y = bottom + fmod(elapsed * 5 + float(ring.get_meta("phase")), span)
 	if reset_delay > 0:
 		reset_delay -= delta
 		if reset_delay <= 0:
@@ -69,8 +91,8 @@ func _process(delta: float) -> void:
 func _physics_process(_delta: float) -> void:
 	if not is_instance_valid(player):
 		return
-	var horizontal_distance := Vector2(player.position.x - thermal_center.x, player.position.z - thermal_center.z).length()
-	player.lift = 19.0 * clampf((32 - horizontal_distance) / 7, 0, 1) if player.position.y < 112 else 0.0
+	player.lift = sample_lift(player.position, player.equipment_level)
+	region = 2 if player.position.z < -380 else 1
 	if player.flying:
 		for i in gate_positions.size():
 			var target: Vector3 = gate_positions[i]
@@ -83,23 +105,80 @@ func _physics_process(_delta: float) -> void:
 	previous_position = player.position
 
 func _restart() -> void:
-	gate_flags = [false, false]
-	for marker in gate_markers:
-		marker.material_override.albedo_color = Color("ffe2a1")
-	finished = false
 	reset_delay = -1
-	player.reset_at(Vector3(0, 66, -2))
+	player.reset_at(checkpoint)
 	previous_position = player.position
 
 func _on_crash() -> void:
 	reset_delay = 1.4
 
 func _on_land() -> void:
-	if player.position.y > 77 and player.position.z < -265:
+	for island in islands:
+		var center: Vector3 = island.pos
+		if absf(player.position.y - center.y) < 3 and Vector2(player.position.x - center.x, player.position.z - center.z).length() < float(island.radius) + 1:
+			current_island = island.id
+			checkpoint = center + Vector3(0, 2.0, -float(island.radius) * 0.7)
+			return
+	current_island = ""
+
+func sample_lift(at: Vector3, equipment: int) -> float:
+	var result := 0.0
+	for thermal in thermals:
+		var center: Vector2 = thermal.center
+		var distance := Vector2(at.x, at.z).distance_to(center)
+		var radius: float = thermal.radius
+		var top: float = thermal.top
+		if thermal.get("high", false) and equipment > 0:
+			top = float(thermal.upgraded_top)
+		var radial := 1.0 - smoothstep(radius - 12, radius, distance)
+		var bottom: float = thermal.bottom
+		var vertical := (1.0 - smoothstep(top - 28, top, at.y)) * smoothstep(bottom - 8, bottom + 10, at.y)
+		result = maxf(result, 19.0 * radial * vertical)
+	# Island surfaces shelter the landing area; the wind must not prevent touchdown.
+	for island in islands:
+		var center: Vector3 = island.pos
+		var distance := Vector2(at.x - center.x, at.z - center.z).length()
+		result *= smoothstep(float(island.radius) + 2, float(island.radius) + 14, distance)
+	return result
+
+func _interact() -> void:
+	if player.flying or player.disabled:
+		return
+	# Resolve from the real position, so a stale island ID cannot award resources.
+	_on_land()
+	if current_island == "camp":
+		if upgraded:
+			_notify("远行翼已装备。按 M 看信标，先借高空风道升到 165 米左右。")
+		elif inventory.wood >= 3 and inventory.membrane >= 2 and inventory.plan >= 1:
+			inventory.wood -= 3
+			inventory.membrane -= 2
+			inventory.plan -= 1
+			upgraded = true
+			player.set_equipment(1)
+			_notify("制作完成：轻木远行翼！阻力更小，可利用高空稀薄气流。按 M 查看第二关。")
+		else:
+			_notify("还需轻木 3、翼膜 2、图纸 1。按 M 查看三座材料岛。")
+		return
+	if current_island == "summit":
+		if not upgraded:
+			_notify("先返回营地制作远行翼，完成第一关。")
+			return
 		finished = true
-	else:
-		# A safe intermediate landing is allowed; Space launches again.
-		player.airspeed = 22
+		_notify("信标已点亮！两关试玩完成。风晶可留作下一阶段的扑翼装备材料。")
+		return
+	for island in islands:
+		if island.id != current_island or not island.has("item") or collected.has(island.id):
+			continue
+		inventory[island.item] += int(island.amount)
+		collected[island.id] = true
+		if pickup_meshes.has(island.id):
+			pickup_meshes[island.id].queue_free()
+		_notify("获得 %s × %d。落过的岛会成为新的重生点。" % [island.item_name, island.amount])
+		return
+
+func _notify(message: String) -> void:
+	toast = message
+	toast_timer = 6
 
 func _material(color: Color, transparent: bool = false) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
@@ -140,8 +219,10 @@ func _cone(at: Vector3, bottom: float, top: float, height: float, color: Color, 
 	return _mesh(mesh, at, color)
 
 func _island(center: Vector3, radius: float, depth: float, grass: Color) -> void:
-	_cone(center - Vector3.UP * depth * 0.5, radius * 0.18, radius, depth, Color("776e71"), 9)
-	_cone(center - Vector3.UP * depth * 0.15, radius * 0.76, radius * 1.01, depth * 0.3, Color("b8a08b"), 9)
+	var rock := _cone(center - Vector3.UP * depth * 0.5, radius * 0.18, radius, depth, Color("776e71"), 9)
+	rock.mesh.cap_top = false
+	var rim := _cone(center - Vector3.UP * depth * 0.15, radius * 0.76, radius * 1.01, depth * 0.3, Color("b8a08b"), 9)
+	rim.mesh.cap_top = false
 	var top := _cone(center - Vector3.UP * 0.55, radius, radius, 1.1, grass, 9)
 	var body := StaticBody3D.new()
 	var collision := CollisionShape3D.new()
@@ -219,69 +300,117 @@ func _build_environment() -> void:
 	add_child(sun)
 
 func _build_world() -> void:
-	_island(Vector3(0, 64, 23), 19, 30, Color("95ad76"))
-	_box(Vector3(0, 64.2, 8), Vector3(7, 0.35, 17), Color("b58a61"), true)
-	for x in [-4, 4]:
-		_flag(Vector3(x, 64.5, 27), Color("dc845e"))
-	_tree(Vector3(-10, 64, 26), 8)
-	_tree(Vector3(10, 64, 29), 11)
-	_tree(Vector3(-6, 64, 34), 6)
-	_sign("起风台", Vector3(0, 70, 30))
+	islands = [
+		{"id": "camp", "name": "起风营地 / 工作台", "pos": Vector3(0, 64, 23), "radius": 26.0, "region": 1},
+		{"id": "wood", "name": "轻木岛", "pos": Vector3(-42, 58, -68), "radius": 21.0, "region": 1, "item": "wood", "item_name": "轻木", "amount": 3},
+		{"id": "membrane", "name": "翼膜岛", "pos": Vector3(48, 68, -94), "radius": 23.0, "region": 1, "item": "membrane", "item_name": "翼膜", "amount": 2},
+		{"id": "ruins", "name": "风栖遗迹 / 图纸", "pos": Vector3(0, 78, -180), "radius": 25.0, "region": 1, "item": "plan", "item_name": "远行翼图纸", "amount": 1},
+		{"id": "arch", "name": "穿拱练习岛", "pos": Vector3(-48, 76, -150), "radius": 18.0, "region": 1},
+		{"id": "entry", "name": "石柱群岛 / 信标", "pos": Vector3(20, 142, -445), "radius": 30.0, "region": 2},
+		{"id": "crystal", "name": "风晶岛", "pos": Vector3(-36, 149, -510), "radius": 23.0, "region": 2, "item": "crystal", "item_name": "风晶", "amount": 1},
+		{"id": "spire", "name": "高塔岛", "pos": Vector3(65, 158, -550), "radius": 24.0, "region": 2},
+		{"id": "summit", "name": "远方信标 / 终点", "pos": Vector3(10, 176, -620), "radius": 28.0, "region": 2},
+	]
+	thermals = [
+		{"center": Vector2(-5, -61), "radius": 34.0, "top": 107.0, "bottom": 12.0},
+		{"center": Vector2(15, -145), "radius": 34.0, "top": 116.0, "bottom": 35.0},
+		{"center": Vector2(0, -265), "radius": 48.0, "top": 112.0, "upgraded_top": 186.0, "bottom": 42.0, "high": true},
+		{"center": Vector2(18, -529), "radius": 76.0, "top": 214.0, "bottom": 122.0},
+	]
+	for island in islands:
+		var at: Vector3 = island.pos
+		var color := Color("95ad76") if island.region == 1 else Color("85b9ae")
+		_island(at, island.radius, island.radius * (1.4 if island.region == 1 else 2.5), color)
+		_tree(at + Vector3(-island.radius * 0.45, 0, 5), 7 if island.region == 1 else 11)
+		_tree(at + Vector3(island.radius * 0.4, 0, 9), 6)
+		_sign(island.name, at + Vector3(0, 12, 0), CREAM, 35)
+		if island.has("item"):
+			var collectible := Node3D.new()
+			add_child(collectible)
+			pickup_meshes[island.id] = collectible
+			var box := BoxMesh.new()
+			box.size = Vector3(3, 2, 3)
+			_mesh(box, at + Vector3(0, 1.1, 0), Color("d9b76c"), collectible)
+			var gem := PrismMesh.new()
+			gem.size = Vector3(1.5, 2, 1.5)
+			_mesh(gem, at + Vector3(0, 3.2, 0), Color("7de2d0"), collectible)
+			_sign("落地后按 E 搜集", at + Vector3(0, 6, 0), CREAM, 25)
+		if island.id in ["entry", "summit"]:
+			_beacon(at, 25 if island.id == "entry" else 32)
+	# The workbench and launch platform sit distinctly above the grass plane.
+	_box(Vector3(0, 64.25, 7), Vector3(7, 0.4, 20), Color("b58a61"), true)
+	_box(Vector3(6, 65, 23), Vector3(5, 2, 3), Color("9b795b"), true)
+	_sign("E  制作远行翼", Vector3(6, 69, 23), CREAM, 30)
+	for x in [-6, 6]:
+		_flag(Vector3(x, 64.5, 28), Color("dc845e"))
 	for i in gate_positions.size():
 		var at: Vector3 = gate_positions[i]
-		_island(Vector3(at.x, at.y - 8, at.z), 19, 32, Color("91a775"))
 		for side in [-1, 1]:
 			_box(at + Vector3(side * 11, -0.5, 0), Vector3(4, 17, 5), Color("c6b99c"), true)
-			_box(at + Vector3(side * 10, 6.5, 0), Vector3(5, 4, 5.2), Color("dccbad"), true).rotation.z = side * 0.18
-		_box(at + Vector3(0, 9, 0), Vector3(18, 3, 5), Color("ded0ac"), true)
+		_box(at + Vector3(0, 9, 0), Vector3(22, 3, 5), Color("ded0ac"), true)
 		var torus := TorusMesh.new()
 		torus.inner_radius = 5.2
-		torus.outer_radius = 5.4
+		torus.outer_radius = 5.5
 		torus.rings = 32
 		torus.ring_segments = 6
 		var marker := _mesh(torus, at, Color("ffe2a1"))
 		marker.rotation.x = PI / 2
 		gate_markers.append(marker)
-		_sign("%02d  /  穿越" % (i + 1), at + Vector3(0, 15, 0), CREAM, 38)
-		_tree(at + Vector3(15, -8, 4), 7)
-	# A broad updraft permits several turns before the climb to the final island.
-	for i in 11:
-		var torus := TorusMesh.new()
-		torus.inner_radius = 30.8
-		torus.outer_radius = 31.1
-		torus.rings = 24
-		torus.ring_segments = 4
-		thermal_rings.append(_mesh(torus, Vector3(-8, 15 + i * 8, -208), Color(0.72, 0.94, 0.86, 0.32)))
-	for i in 18:
-		var angle := i * TAU / 18
-		_sign("↑", Vector3(-8 + cos(angle) * 29, 20 + (i % 4) * 18, -208 + sin(angle) * 29), Color("c5efce"), 80)
-	_sign("03  /  借风爬升", Vector3(-8, 112, -208), Color("d9f3c5"), 45)
-	_island(Vector3(0, 78, -298), 25, 46, Color("a8b77c"))
-	_box(Vector3(0, 78.12, -289), Vector3(13, 0.24, 21), Color("d5b778"))
-	for x in [-8, 8]:
-		_flag(Vector3(x, 78, -281), Color("e4ae55"))
-	_tree(Vector3(-14, 78, -306), 13)
-	_tree(Vector3(12, 78, -309), 9)
-	_tree(Vector3(4, 78, -315), 7)
-	_sign("04  /  落在风栖岛", Vector3(0, 91, -297), CREAM, 52)
-	# Distant scenery is intentionally outside the compact playable route.
+	for thermal in thermals:
+		var center: Vector2 = thermal.center
+		var radius: float = thermal.radius
+		var bottom: float = thermal.bottom
+		var top: float = thermal.get("upgraded_top", thermal.top)
+		for i in 7:
+			var angle := TAU * i / 7.0
+			var stroke := CylinderMesh.new()
+			stroke.top_radius = 0.13
+			stroke.bottom_radius = 0.13
+			stroke.height = 4
+			stroke.radial_segments = 5
+			var ring := _mesh(stroke, Vector3(center.x + cos(angle) * radius * 0.63, bottom + i * 12, center.y + sin(angle) * radius * 0.63), Color("92d9c2"))
+			ring.material_override.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			var arrow := CylinderMesh.new()
+			arrow.top_radius = 0
+			arrow.bottom_radius = 0.75
+			arrow.height = 1.5
+			arrow.radial_segments = 5
+			var head := _mesh(arrow, Vector3(0, 2.7, 0), Color("92d9c2"), ring)
+			head.material_override.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			head.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			ring.set_meta("bottom", bottom)
+			ring.set_meta("span", top - bottom)
+			ring.set_meta("phase", i * (top - bottom) / 7.0)
+			thermal_rings.append(ring)
+		_sign("↑ 高空风道 / 远行翼" if thermal.get("high", false) else "↑ 上升气流", Vector3(center.x, top + 5, center.y), Color("d9f3c5"), 32)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 71023
-	for i in 18:
-		var x := rng.randf_range(90, 310) * (-1 if i % 2 == 0 else 1)
-		var z := rng.randf_range(-520, 50)
-		var y := rng.randf_range(-8, 72)
-		var radius := rng.randf_range(12, 37)
+	for i in 12:
+		var x := rng.randf_range(160, 310) * (-1 if i % 2 == 0 else 1)
+		var z := rng.randf_range(-720, 50)
+		var y := rng.randf_range(-8, 80)
+		var radius := rng.randf_range(12, 28)
 		_island(Vector3(x, y, z), radius, radius * 1.7, Color("7e9e85"))
 		_tree(Vector3(x, y, z), rng.randf_range(8, 16))
-	for i in 40:
-		var at := Vector3(rng.randf_range(-380, 380), rng.randf_range(-45, -20), rng.randf_range(-560, 120))
+	for i in 32:
+		var at := Vector3(rng.randf_range(-380, 380), rng.randf_range(-45, -20), rng.randf_range(-780, 120))
 		var mesh := SphereMesh.new()
 		mesh.radius = rng.randf_range(13, 30)
 		mesh.height = mesh.radius * 0.65
 		mesh.radial_segments = 7
 		mesh.rings = 4
 		_mesh(mesh, at, Color("dbe7df"))
+
+func _beacon(at: Vector3, height: float) -> void:
+	_cone(at + Vector3(8, height * 0.5, 5), 1.1, 0.7, height, Color("c7bd99"))
+	var gem := PrismMesh.new()
+	gem.size = Vector3(4, 7, 4)
+	var tip := _mesh(gem, at + Vector3(8, height + 2, 5), Color("f7cc78"))
+	tip.material_override.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var beam := _cone(at + Vector3(8, height + 24, 5), 0.32, 0.32, 40, Color("f7cc78"))
+	beam.material_override.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 func _panel(at: Vector2, size: Vector2, color: Color) -> Panel:
 	var panel := Panel.new()
@@ -311,24 +440,18 @@ func _build_ui() -> void:
 	var hud := CanvasLayer.new()
 	hud.name = "HUD"
 	add_child(hud)
-	var theme := Theme.new()
 	var font := SystemFont.new()
 	font.font_names = PackedStringArray(["Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC"])
-	theme.default_font = font
-	var root := Control.new()
-	root.theme = theme
-	hud.add_child(root)
-	# Panels inherit the shared font through the CanvasLayer's default theme override.
 	ThemeDB.fallback_font = font
-	var title_panel := _panel(Vector2(28, 26), Vector2(320, 115), Color(0.97, 0.96, 0.89, 0.94))
-	_label("FLIGHT STUDY   /   001", Vector2(22, 14), 13, Color("687f80"), title_panel)
-	_label("逐 风", Vector2(20, 32), 38, INK, title_panel)
-	_label("SKYGLIDE  ·  空岛滑翔实验", Vector2(22, 85), 14, INK, title_panel)
-	var route_panel := _panel(Vector2(28, 155), Vector2(320, 116), Color(0.10, 0.20, 0.24, 0.88))
-	_label("本次航线", Vector2(20, 13), 13, Color("a7c8c7"), route_panel)
-	objective = _label("", Vector2(20, 38), 19, CREAM, route_panel)
-	_label("俯冲 → 穿拱 → 借风 → 登岛", Vector2(20, 80), 14, Color("b5d4cf"), route_panel)
-	var telemetry := _panel(Vector2(1190, 26), Vector2(222, 192), Color(0.10, 0.20, 0.24, 0.88))
+	var title_panel := _panel(Vector2(28, 26), Vector2(365, 112), Color(0.97, 0.96, 0.89, 0.94))
+	_label("SKYGLIDE   /   TWO ISLAND WORLDS", Vector2(22, 13), 13, Color("687f80"), title_panel)
+	_label("逐 风", Vector2(20, 30), 36, INK, title_panel)
+	equipment_label = _label("", Vector2(22, 82), 14, INK, title_panel)
+	var route_panel := _panel(Vector2(28, 151), Vector2(365, 153), Color(0.10, 0.20, 0.24, 0.92))
+	objective = _label("", Vector2(20, 14), 19, CREAM, route_panel)
+	inventory_label = _label("", Vector2(20, 51), 16, Color("c9dfca"), route_panel)
+	_label("M 航图   ·   E 搜集 / 制作 / 点亮信标", Vector2(20, 116), 14, Color("b5d4cf"), route_panel)
+	var telemetry := _panel(Vector2(1190, 26), Vector2(222, 192), Color(0.10, 0.20, 0.24, 0.9))
 	_label("AIR / 飞行数据", Vector2(18, 12), 13, Color("a7c8c7"), telemetry)
 	speed_label = _label("", Vector2(18, 34), 35, CREAM, telemetry)
 	speed_bar = ProgressBar.new()
@@ -342,84 +465,49 @@ func _build_ui() -> void:
 	telemetry.add_child(speed_bar)
 	altitude_label = _label("", Vector2(20, 111), 18, CREAM, telemetry)
 	state_label = _label("", Vector2(20, 149), 15, Color("b9e6cc"), telemetry)
-	var footer := _panel(Vector2(28, 790), Vector2(1384, 82), Color(0.10, 0.20, 0.24, 0.9))
-	hint = _label("", Vector2(22, 10), 19, CREAM, footer)
-	_label("W / ↑  压低俯冲     S / ↓  拉起爬升     A D / ← →  转向     空格  起飞 / 空中减速     R  重来     Esc  退出", Vector2(22, 48), 15, Color("bdd0ca"), footer)
-	_label("+", Vector2(712, 438), 22, Color(1, 0.97, 0.85, 0.6), root)
+	var footer := _panel(Vector2(28, 790), Vector2(1384, 82), Color(0.10, 0.20, 0.24, 0.93))
+	hint = _label("", Vector2(22, 10), 18, CREAM, footer)
+	_label("W S  俯冲 / 拉起（地面前后走）   A D  转向   空格  起飞 / 减速   E  互动   M  地图   R  回落脚点   Shift+R  全部重开   Esc  退出", Vector2(22, 48), 14, Color("bdd0ca"), footer)
+	map_view = preload("res://flight_map.gd").new()
+	map_view.world = self
+	hud.add_child(map_view)
 
 func _update_ui() -> void:
 	speed_label.text = "%02d  m/s" % roundi(player.airspeed if player.flying else 0)
 	altitude_label.text = "高度  %03d m" % maxi(0, roundi(player.position.y))
 	speed_bar.value = player.airspeed if player.flying else 0
-	var count := int(gate_flags[0]) + int(gate_flags[1])
-	objective.text = "石拱 %d / 2    →    风栖岛" % count
+	equipment_label.text = "已装备：轻木远行翼 / II" if upgraded else "已装备：木皮滑翔翼 / I"
+	objective.text = "02  石柱群岛 · 点亮信标" if upgraded else "01  草海群岛 · 制作远行翼"
+	inventory_label.text = "风晶 %d   ·   最远信标 176 m" % inventory.crystal if upgraded else "轻木 %d / 3    翼膜 %d / 2\n图纸 %d / 1" % [inventory.wood, inventory.membrane, inventory.plan]
 	if finished:
-		hint.text = "成功登岛！石拱 %d / 2  ·  按 R 再飞一次，试着穿过全部石拱。" % count
-		state_label.text = "● 已安全抵达"
+		hint.text = "两关完成！你已经从木皮滑翔翼升级到远行翼，抵达并点亮了高空信标。"
+		state_label.text = "● 信标已点亮"
 	elif player.disabled:
-		hint.text = "这次没接住风。正在返回起风台……（R 可立即重来）"
+		hint.text = "正在返回最近落脚点……材料和装备保留。R 可立即返回。"
 		state_label.text = "● 失去平衡"
+	elif toast_timer > 0:
+		hint.text = toast
+		state_label.text = "● 飞行中" if player.flying else "● 已落地"
 	elif not player.flying:
-		hint.text = "按空格跃出平台。前方第一个石拱比你低，先压低翼面，用高度换速度。"
-		state_label.text = "● 等待起飞"
+		if current_island == "camp":
+			hint.text = "营地：E 制作远行翼；M 查看三座材料岛；空格起飞。地面 W S 移动，A D 转向。"
+		elif current_island == "summit":
+			hint.text = "抵达远方信标！按 E 点亮它，完成两关试玩。"
+		else:
+			hint.text = "已安全落地。E 搜集本岛材料；空格再次起飞。R 返回此岛，保留进度。"
+		state_label.text = "● 已落地"
+	elif not upgraded and player.position.z < -215 and player.position.z > -380:
+		hint.text = "旧翼接不住高空稀薄气流。先在草海群岛收齐材料，回营地 E 制作远行翼，再远渡。"
+		state_label.text = "● 需要远行翼"
 	elif player.lift > 2:
-		hint.text = "进入上升气流！空格减速、转向盘旋，升到 95 m 左右再飞向远处的风栖岛。"
+		hint.text = "借风爬升：空格减速、转向盘旋。风道顶部升力逐渐减弱；高度够了就飞向下一岛。"
 		state_label.text = "↑ 上升气流"
 	elif player.airspeed < 15:
-		hint.text = "速度不足，正在失速下沉！按 W 压低翼面，先把速度找回来。"
-		state_label.text = "! 失速下沉"
-	elif player.position.z < -240:
-		hint.text = "准备着陆：对准岛面，空格减速，轻轻拉平。低于 32 m/s 可安全落地。"
-		state_label.text = "● 接近目的地"
+		hint.text = "速度不足，正在下沉！按 W 俯冲找回速度，或寻找上升气流。"
+		state_label.text = "! 低速下沉"
 	else:
-		hint.text = "俯冲蓄速，拉起换高度。穿过两道石拱后，寻找绿色向上的风。"
+		hint.text = "远行翼已就绪：M 找信标，经高空风道升到约 165 m，再向石柱群岛远渡。" if upgraded else "先在附近岛群探索：轻木、翼膜、遗迹图纸。M 看地图；落地 E 收集，营地 E 制作。"
 		state_label.text = "● 自由滑翔"
 
 func _smoke_test() -> void:
-	await get_tree().physics_frame
-	var dive := 22.0
-	var climb := 22.0
-	for i in 60:
-		dive = Glider.evolve_speed(dive, -0.5, false, 1.0 / 60)
-		climb = Glider.evolve_speed(climb, 0.4, false, 1.0 / 60)
-	assert(dive > 22, "Diving must gain speed")
-	assert(climb < 22, "Climbing must spend speed")
-	assert(Glider.evolve_speed(30, 0, true, 0.1) < Glider.evolve_speed(30, 0, false, 0.1), "Air brake must slow down")
-	player.control_override = true
-	player.launch()
-	player.pitch = -0.4
-	var start := player.position
-	for i in 30:
-		await get_tree().physics_frame
-	assert(player.position.z < start.z - 5, "Launch must move forward")
-	assert(player.position.y < start.y, "Dive must descend")
-	assert(not player.disabled, "Launch must clear the platform")
-	player.position = Vector3(-8, 45, -208)
-	player.pitch = 0
-	await get_tree().physics_frame
-	await get_tree().physics_frame
-	assert(player.lift > 15, "Thermal must provide lift")
-	assert(player.velocity.y > 0, "Thermal must climb")
-	# Exercise real collision landing, crash and restart paths.
-	player.position = Vector3(0, 80, -290)
-	player.pitch = -0.1
-	player.airspeed = 12
-	for i in 90:
-		await get_tree().physics_frame
-		if finished:
-			break
-	assert(finished, "Destination must accept a slow physical landing")
-	_restart()
-	player.launch()
-	player.position = Vector3(11, 44, -59)
-	player.pitch = 0
-	player.airspeed = 36
-	for i in 20:
-		await get_tree().physics_frame
-		if player.disabled:
-			break
-	assert(player.disabled, "Stone arch pillars must collide")
-	_restart()
-	assert(not player.disabled and not finished and not player.flying, "Restart must clear flight state")
-	print("SKYGLIDE PASS: dive, climb, brake, launch, thermal, landing, collision, restart")
-	get_tree().quit()
+	await preload("res://regression.gd").new().run(self)

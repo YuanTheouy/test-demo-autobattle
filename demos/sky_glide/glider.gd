@@ -18,6 +18,9 @@ var test_pitch := 0.0
 var test_turn := 0.0
 var test_brake := false
 var launch_lift := 0.0
+var equipment_level := 0
+var render_heading := 0.0
+var sail: MeshInstance3D
 
 func _ready() -> void:
 	var shape := CollisionShape3D.new()
@@ -30,8 +33,10 @@ func _ready() -> void:
 	_build_glider()
 	camera = Camera3D.new()
 	camera.fov = 72
-	camera.far = 1800
+	camera.near = 0.6
+	camera.far = 1400
 	camera.top_level = true
+	camera.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	add_child(camera)
 	reset_at(spawn_point)
 
@@ -46,21 +51,42 @@ func reset_at(point: Vector3) -> void:
 	launch_lift = 0
 	flying = false
 	disabled = false
+	render_heading = heading
+	reset_physics_interpolation()
 	camera.position = position + Vector3(0, 4, 12)
 	camera.look_at(position + Vector3(0, 0, -12))
 
 func launch() -> void:
 	if not disabled and not flying:
 		flying = true
-		launch_lift = 6
+		launch_lift = 9
 		pitch = -0.08
+		airspeed = 24 if equipment_level > 0 else 22
+		velocity.y = 9.0
+
+func set_equipment(level: int) -> void:
+	equipment_level = level
+	visual.scale.x = 1.18 if level > 0 else 1.0
+	sail.material_override.albedo_color = Color("73cbbc") if level > 0 else Color("f2bf67")
+
+func _process(delta: float) -> void:
+	_update_camera(delta)
 
 func _physics_process(delta: float) -> void:
 	if disabled:
-		_update_camera(delta)
 		return
 	if not flying:
-		_update_camera(delta)
+		var turn := float(Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT)) - float(Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT))
+		var walk := float(Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP)) - float(Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN))
+		if control_override:
+			turn = test_turn
+			walk = 0
+		heading += turn * delta * 1.8
+		velocity = Vector3(sin(heading) * walk * 9, velocity.y - 20 * delta, -cos(heading) * walk * 9)
+		move_and_slide()
+		visual.rotation = Vector3(0, -heading, 0)
+		if position.y < -18:
+			_fail()
 		return
 	var pitch_input := test_pitch if control_override else float(Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN)) - float(Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP))
 	var turn_input := test_turn if control_override else float(Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT)) - float(Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT))
@@ -68,13 +94,17 @@ func _physics_process(delta: float) -> void:
 	pitch = clampf(pitch + pitch_input * delta * 0.72, -1.0, 0.67)
 	bank = lerpf(bank, -turn_input * 0.65, 4.5 * delta)
 	heading += turn_input * delta * 0.85 * clampf(25.0 / airspeed, 0.55, 1.35)
-	airspeed = evolve_speed(airspeed, pitch, braking, delta)
+	airspeed = evolve_speed(airspeed, pitch, braking, delta, equipment_level)
 	var forward := Vector3(sin(heading) * cos(pitch), sin(pitch), -cos(heading) * cos(pitch))
 	var stall_sink := maxf(0, 15 - airspeed) * 0.85
-	velocity = forward * airspeed + Vector3.UP * (lift + launch_lift - 1.2 - stall_sink)
-	launch_lift = maxf(0, launch_lift - delta * 5)
+	var sink := 0.6 if equipment_level > 0 else 1.2
+	var target_vertical := forward.y * airspeed + lift + launch_lift - sink - stall_sink
 	if braking:
-		velocity.y -= 1.6
+		target_vertical -= 1.6
+	velocity.x = forward.x * airspeed
+	velocity.z = forward.z * airspeed
+	velocity.y = move_toward(velocity.y, target_vertical, delta * 35)
+	launch_lift = maxf(0, launch_lift - delta * 5)
 	move_and_slide()
 	visual.rotation = Vector3(pitch, -heading, bank)
 	for index in get_slide_collision_count():
@@ -87,12 +117,12 @@ func _physics_process(delta: float) -> void:
 		else:
 			_fail()
 			break
-	if position.y < -18 or position.length() > 950:
+	if position.y < -18 or position.length() > 1250:
 		_fail()
-	_update_camera(delta)
 
-static func evolve_speed(speed: float, nose_pitch: float, braking: bool, delta: float) -> float:
-	var acceleration := -sin(nose_pitch) * 21.0 - 0.012 * (speed * speed - 324)
+static func evolve_speed(speed: float, nose_pitch: float, braking: bool, delta: float, equipment: int = 0) -> float:
+	var drag := 0.0028 if equipment > 0 else 0.0048
+	var acceleration := -sin(nose_pitch) * 21.0 - drag * speed * speed
 	if braking:
 		acceleration -= 16
 	return clampf(speed + acceleration * delta, 8, 64)
@@ -103,10 +133,12 @@ func _fail() -> void:
 		crashed.emit()
 
 func _update_camera(delta: float) -> void:
-	var behind := Vector3(-sin(heading), 0, cos(heading))
-	var desired := position + behind * (11 + airspeed * 0.055) + Vector3.UP * 4.0
+	var rendered_position := get_global_transform_interpolated().origin
+	render_heading = lerp_angle(render_heading, heading, 1 - exp(-10 * delta))
+	var behind := Vector3(-sin(render_heading), 0, cos(render_heading))
+	var desired := rendered_position + behind * (11 + airspeed * 0.055) + Vector3.UP * 4.0
 	camera.position = camera.position.lerp(desired, 1 - exp(-5 * delta))
-	var look_point := position + Vector3(sin(heading), 0, -cos(heading)) * 11 + Vector3.UP * 0.8
+	var look_point := rendered_position + Vector3(sin(render_heading), 0, -cos(render_heading)) * 11 + Vector3.UP * 0.8
 	camera.look_at(look_point)
 	camera.fov = lerpf(camera.fov, 70 + maxf(0, airspeed - 20) * 0.48, delta * 2)
 
@@ -132,7 +164,7 @@ func _build_glider() -> void:
 	arrays[Mesh.ARRAY_VERTEX] = points
 	arrays[Mesh.ARRAY_NORMAL] = PackedVector3Array([Vector3.UP, Vector3.UP, Vector3.UP, Vector3.UP, Vector3.UP, Vector3.UP])
 	wing.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	var sail := _mesh(wing, Color("f2bf67"), Vector3.ZERO)
+	sail = _mesh(wing, Color("f2bf67"), Vector3.ZERO)
 	sail.material_override.cull_mode = BaseMaterial3D.CULL_DISABLED
 	sail.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var bar := BoxMesh.new()
