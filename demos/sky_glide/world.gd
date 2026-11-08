@@ -63,8 +63,10 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		_interact()
 	if event.physical_keycode == KEY_M:
 		map_view.visible = not map_view.visible
-	if event.physical_keycode == KEY_SPACE and not player.flying and not finished:
-		player.launch()
+	if event.physical_keycode == KEY_SPACE:
+		player.jump()
+	if event.physical_keycode == KEY_F:
+		player.toggle_paraglider()
 	if event.physical_keycode == KEY_ESCAPE:
 		get_tree().quit()
 
@@ -141,11 +143,30 @@ func sample_lift(at: Vector3, equipment: int) -> float:
 		result *= smoothstep(float(island.radius) + 2, float(island.radius) + 14, distance)
 	return result
 
-func _interact() -> void:
-	if player.flying or player.disabled:
-		return
-	# Resolve from the real position, so a stale island ID cannot award resources.
+func interaction_target() -> Dictionary:
+	if player.flying or player.disabled or not player.is_on_floor():
+		return {}
 	_on_land()
+	if current_island == "camp":
+		return {"pos": Vector3(6, 64, 27), "label": "工作台：E 制作远行翼"}
+	if current_island == "summit":
+		return {"pos": Vector3(18, 176, -615), "label": "信标：E 点亮"}
+	for island in islands:
+		if island.id == current_island and island.has("item") and not collected.has(island.id):
+			return {"pos": island.pos, "label": "E 收集%s" % island.item_name}
+	return {}
+
+func interaction_distance(target: Dictionary) -> float:
+	var at: Vector3 = target.pos
+	return Vector2(player.position.x - at.x, player.position.z - at.z).length()
+
+func _interact() -> void:
+	var target := interaction_target()
+	if target.is_empty():
+		return
+	if interaction_distance(target) > 4.5:
+		_notify("再靠近一些：%s（距离 %.0f 米）。" % [target.label, interaction_distance(target)])
+		return
 	if current_island == "camp":
 		if upgraded:
 			_notify("远行翼已装备。按 M 看信标，先借高空风道升到 165 米左右。")
@@ -255,7 +276,7 @@ func _flag(at: Vector3, color: Color) -> void:
 	_cone(at + Vector3.UP * 3, 0.11, 0.11, 6, Color("efe2bd"))
 	_box(at + Vector3(1.3, 5, 0), Vector3(2.6, 1.1, 0.07), color)
 
-func _sign(text: String, at: Vector3, color: Color = CREAM, size: int = 52) -> void:
+func _sign(text: String, at: Vector3, color: Color = CREAM, size: int = 52) -> Label3D:
 	var label := Label3D.new()
 	label.text = text
 	label.position = at
@@ -266,6 +287,7 @@ func _sign(text: String, at: Vector3, color: Color = CREAM, size: int = 52) -> v
 	label.no_depth_test = false
 	label.outline_size = 8
 	add_child(label)
+	return label
 
 func _build_environment() -> void:
 	var environment_node := WorldEnvironment.new()
@@ -302,8 +324,8 @@ func _build_environment() -> void:
 func _build_world() -> void:
 	islands = [
 		{"id": "camp", "name": "起风营地 / 工作台", "pos": Vector3(0, 64, 23), "radius": 26.0, "region": 1},
-		{"id": "wood", "name": "轻木岛", "pos": Vector3(-42, 58, -68), "radius": 21.0, "region": 1, "item": "wood", "item_name": "轻木", "amount": 3},
-		{"id": "membrane", "name": "翼膜岛", "pos": Vector3(48, 68, -94), "radius": 23.0, "region": 1, "item": "membrane", "item_name": "翼膜", "amount": 2},
+		{"id": "wood", "name": "轻木岛", "pos": Vector3(-42, 58, -68), "radius": 27.0, "region": 1, "item": "wood", "item_name": "轻木", "amount": 3},
+		{"id": "membrane", "name": "翼膜岛", "pos": Vector3(48, 62, -94), "radius": 32.0, "region": 1, "item": "membrane", "item_name": "翼膜", "amount": 2},
 		{"id": "ruins", "name": "风栖遗迹 / 图纸", "pos": Vector3(0, 78, -180), "radius": 25.0, "region": 1, "item": "plan", "item_name": "远行翼图纸", "amount": 1},
 		{"id": "arch", "name": "穿拱练习岛", "pos": Vector3(-48, 76, -150), "radius": 18.0, "region": 1},
 		{"id": "entry", "name": "石柱群岛 / 信标", "pos": Vector3(20, 142, -445), "radius": 30.0, "region": 2},
@@ -334,13 +356,13 @@ func _build_world() -> void:
 			var gem := PrismMesh.new()
 			gem.size = Vector3(1.5, 2, 1.5)
 			_mesh(gem, at + Vector3(0, 3.2, 0), Color("7de2d0"), collectible)
-			_sign("落地后按 E 搜集", at + Vector3(0, 6, 0), CREAM, 25)
+			_sign("靠近后按 E 搜集", at + Vector3(0, 6, 0), CREAM, 25).reparent(collectible)
 		if island.id in ["entry", "summit"]:
 			_beacon(at, 25 if island.id == "entry" else 32)
 	# The workbench and launch platform sit distinctly above the grass plane.
 	_box(Vector3(0, 64.25, 7), Vector3(7, 0.4, 20), Color("b58a61"), true)
-	_box(Vector3(6, 65, 23), Vector3(5, 2, 3), Color("9b795b"), true)
-	_sign("E  制作远行翼", Vector3(6, 69, 23), CREAM, 30)
+	_box(Vector3(6, 65, 31), Vector3(5, 2, 3), Color("9b795b"), true)
+	_sign("E  制作远行翼", Vector3(6, 69, 31), CREAM, 30)
 	for x in [-6, 6]:
 		_flag(Vector3(x, 64.5, 28), Color("dc845e"))
 	for i in gate_positions.size():
@@ -467,7 +489,7 @@ func _build_ui() -> void:
 	state_label = _label("", Vector2(20, 149), 15, Color("b9e6cc"), telemetry)
 	var footer := _panel(Vector2(28, 790), Vector2(1384, 82), Color(0.10, 0.20, 0.24, 0.93))
 	hint = _label("", Vector2(22, 10), 18, CREAM, footer)
-	_label("W S  俯冲 / 拉起（地面前后走）   A D  转向   空格  起飞 / 减速   E  互动   M  地图   R  回落脚点   Shift+R  全部重开   Esc  退出", Vector2(22, 48), 14, Color("bdd0ca"), footer)
+	_label("地面 WASD 跑动 · 空格跳跃 · 右键拖动视角   |   F 展开 / 收起伞   |   空中 WS 俯仰 · AD 转向 · 空格减速   |   E 采集   M 地图   R 返回", Vector2(22, 48), 14, Color("bdd0ca"), footer)
 	map_view = preload("res://flight_map.gd").new()
 	map_view.world = self
 	hud.add_child(map_view)
@@ -483,19 +505,23 @@ func _update_ui() -> void:
 		hint.text = "两关完成！你已经从木皮滑翔翼升级到远行翼，抵达并点亮了高空信标。"
 		state_label.text = "● 信标已点亮"
 	elif player.disabled:
-		hint.text = "正在返回最近落脚点……材料和装备保留。R 可立即返回。"
+		hint.text = "坠入云海，正在返回最近落脚点。材料和装备保留。"
 		state_label.text = "● 失去平衡"
 	elif toast_timer > 0:
 		hint.text = toast
 		state_label.text = "● 飞行中" if player.flying else "● 已落地"
 	elif not player.flying:
-		if current_island == "camp":
-			hint.text = "营地：E 制作远行翼；M 查看三座材料岛；空格起飞。地面 W S 移动，A D 转向。"
-		elif current_island == "summit":
-			hint.text = "抵达远方信标！按 E 点亮它，完成两关试玩。"
+		var target := interaction_target()
+		if not player.is_on_floor():
+			hint.text = "人物在空中：按 F 展开滑翔伞；触地后自动站稳，不会因为落地而重开。"
+			state_label.text = "● 跳跃 / 下落"
+		elif not target.is_empty():
+			var distance := interaction_distance(target)
+			hint.text = target.label + "  ·  WASD 跑过去，空格跳跃，F 再次起飞。" if distance <= 4.5 else "向材料或工作台靠近（%.0f 米），然后按 E。WASD 跑动，空格跳跃。" % distance
+			state_label.text = "● 徒步探索"
 		else:
-			hint.text = "已安全落地。E 搜集本岛材料；空格再次起飞。R 返回此岛，保留进度。"
-		state_label.text = "● 已落地"
+			hint.text = "伞已收起，可以自由跑跳。走到岛边按 F 起飞；也可以先空格跳跃，再按 F 展伞。"
+			state_label.text = "● 徒步探索"
 	elif not upgraded and player.position.z < -215 and player.position.z > -380:
 		hint.text = "旧翼接不住高空稀薄气流。先在草海群岛收齐材料，回营地 E 制作远行翼，再远渡。"
 		state_label.text = "● 需要远行翼"
@@ -506,7 +532,7 @@ func _update_ui() -> void:
 		hint.text = "速度不足，正在下沉！按 W 俯冲找回速度，或寻找上升气流。"
 		state_label.text = "! 低速下沉"
 	else:
-		hint.text = "远行翼已就绪：M 找信标，经高空风道升到约 165 m，再向石柱群岛远渡。" if upgraded else "先在附近岛群探索：轻木、翼膜、遗迹图纸。M 看地图；落地 E 收集，营地 E 制作。"
+		hint.text = "远行翼已就绪：M 找信标，经高空风道升到约 165 m，再向石柱群岛远渡。" if upgraded else "对准岛面即可降落并自动收伞。落地后 WASD 跑到材料旁按 E；营地工作台制作升级。"
 		state_label.text = "● 自由滑翔"
 
 func _smoke_test() -> void:

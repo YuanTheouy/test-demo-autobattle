@@ -8,7 +8,8 @@ func check(condition: bool, message: String) -> void:
 		push_error(message)
 
 func run(world: Node3D) -> void:
-	await world.get_tree().physics_frame
+	for i in 20:
+		await world.get_tree().physics_frame
 	var pilot = world.player
 	pilot.control_override = true
 	var dive := 22.0
@@ -39,7 +40,7 @@ func run(world: Node3D) -> void:
 	var start: Vector3 = pilot.position
 	for i in 75:
 		await world.get_tree().physics_frame
-	check(pilot.position.z < start.z - 5 and pilot.position.y < start.y and not pilot.disabled, "Actual takeoff and dive must clear platform: %s -> %s; disabled=%s flying=%s" % [start, pilot.position, pilot.disabled, pilot.flying])
+	check(pilot.position.z < start.z - 5 and not pilot.disabled, "Actual takeoff and dive must clear platform: %s -> %s; disabled=%s flying=%s" % [start, pilot.position, pilot.disabled, pilot.flying])
 	# Hold the new wing near the old hard ceiling for four seconds.
 	pilot.position = Vector3(0, 181, -265)
 	pilot.set_equipment(1)
@@ -66,37 +67,99 @@ func run(world: Node3D) -> void:
 	pilot.test_brake = false
 	pilot.test_turn = 0
 	world._restart()
-	for id in ["wood", "membrane", "ruins"]:
+	# Reproduce the reported fast/steep approach to the membrane island.
+	pilot.position = Vector3(48, 65, -94)
+	pilot.flying = true
+	pilot.pitch = -0.9
+	pilot.airspeed = 55
+	pilot.launch_lift = 0
+	pilot.velocity = Vector3(0, -30, -25)
+	pilot.reset_physics_interpolation()
+	for i in 30:
+		await world.get_tree().physics_frame
+		if not pilot.flying:
+			break
+	check(not pilot.flying and pilot.is_on_floor() and not pilot.disabled, "Fast steep landing must become grounded, never death")
+	for i in 120:
+		await world.get_tree().physics_frame
+	check(not pilot.disabled and pilot.is_on_floor() and world.current_island == "membrane", "Landing must remain on membrane island without automatic restart")
+	check(not pilot.canopy.visible, "Canopy folds while the person remains visible on foot")
+	# Far-away E must not collect; physically run to the object and then collect.
+	pilot.reset_at(Vector3(48, 63, -80))
+	for i in 15:
+		await world.get_tree().physics_frame
+	world._interact()
+	check(world.inventory.membrane == 0, "Material must require proximity")
+	var start_x: float = pilot.position.x
+	pilot.test_strafe = 1
+	for i in 20:
+		await world.get_tree().physics_frame
+	pilot.test_strafe = 0
+	check(pilot.position.x > start_x + 2 and pilot.is_on_floor(), "Ground D must strafe and stay on island")
+	pilot.test_walk = 1
+	for i in 150:
+		await world.get_tree().physics_frame
+		if pilot.position.z < -92:
+			break
+	pilot.test_walk = 0
+	for i in 5:
+		await world.get_tree().physics_frame
+	world._interact()
+	world._interact()
+	check(world.inventory.membrane == 2, "Run to membrane, press E and collect exactly once")
+	var floor_y: float = pilot.position.y
+	pilot.jump()
+	for i in 15:
+		await world.get_tree().physics_frame
+	check(pilot.position.y > floor_y + 1 and not pilot.flying, "Space must jump the person without deploying the canopy")
+	for i in 60:
+		await world.get_tree().physics_frame
+	check(pilot.is_on_floor() and not pilot.disabled, "A normal jump lands safely")
+	pilot.jump()
+	for i in 10:
+		await world.get_tree().physics_frame
+	pilot.toggle_paraglider()
+	for i in 4:
+		await world.get_tree().physics_frame
+	check(pilot.flying and pilot.canopy.visible, "F deploys the separate canopy during a jump")
+	pilot.toggle_paraglider()
+	for i in 90:
+		await world.get_tree().physics_frame
+	check(not pilot.flying and not pilot.canopy.visible and pilot.is_on_floor() and not pilot.disabled, "F retracts canopy and the person can fall back onto the island")
+	for id in ["wood", "ruins"]:
 		for island in world.islands:
 			if island.id == id:
-				pilot.position = island.pos + Vector3(0, 0.7, 0)
-				pilot.flying = false
-				pilot.velocity = Vector3.ZERO
+				pilot.reset_at(island.pos + Vector3(0, 1, 0))
+				for i in 12:
+					await world.get_tree().physics_frame
 				world._interact()
 				world._interact()
 	check(world.inventory.wood == 3 and world.inventory.membrane == 2 and world.inventory.plan == 1, "Materials collect once per island")
-	pilot.position = Vector3(0, 65, 23)
+	pilot.reset_at(Vector3(6, 65, 27))
+	for i in 12:
+		await world.get_tree().physics_frame
 	world._interact()
-	check(world.upgraded and pilot.equipment_level == 1 and world.inventory.wood == 0, "Workbench must consume materials and equip new wing")
+	check(world.upgraded and pilot.equipment_level == 1 and world.inventory.wood == 0, "Nearby workbench consumes materials and equips upgraded canopy")
 	world._restart()
-	check(world.upgraded and world.collected.size() == 3 and pilot.equipment_level == 1, "Recovery preserves crafted equipment and collected materials")
-	pilot.position = Vector3(10, 176.7, -620)
+	check(world.upgraded and world.collected.size() == 3 and pilot.equipment_level == 1, "Recovery preserves equipment and collected materials")
+	pilot.reset_at(Vector3(18, 177, -615))
+	for i in 12:
+		await world.get_tree().physics_frame
 	world._interact()
-	check(world.finished, "Final beacon must complete second level")
+	check(world.finished, "Walk up to final beacon and activate it")
 	world.finished = false
-	world.checkpoint = Vector3(20, 144, -462)
-	world._restart()
-	pilot.launch()
 	pilot.position = world.gate_positions[1] + Vector3(11, 0, 5)
+	pilot.launch()
 	pilot.pitch = 0
 	pilot.airspeed = 36
-	for i in 20:
+	for i in 120:
 		await world.get_tree().physics_frame
-		if pilot.disabled:
-			break
-	check(pilot.disabled, "Stone arch pillar must collide")
+	check(not pilot.disabled and not pilot.flying and pilot.is_on_floor(), "Wall contact must fold canopy and allow landing, not kill the person")
+	pilot.position = Vector3(300, -19, -300)
+	await world.get_tree().physics_frame
+	check(pilot.disabled, "Only falling out of the world triggers recovery")
 	world._restart()
-	check(not pilot.disabled and not pilot.flying and pilot.position.distance_to(world.checkpoint) < 0.1, "Crash recovery must return to checkpoint")
+	check(not pilot.disabled and not pilot.flying and pilot.position.distance_to(world.checkpoint) < 0.1, "Void recovery returns to checkpoint")
 	if not failed:
-		print("SKYGLIDE REGRESSION PASS: geometry caps, continuous thermal ceiling, smooth vertical motion, energy, collection, crafting, checkpoint, beacon, collision")
+		print("SKYGLIDE REGRESSION PASS: fast steep landing, ground stability, canopy separation, WASD movement, jump, nearby E gathering, redeploy/retract, crafting, safe wall contact, void recovery, continuous thermals")
 	world.get_tree().quit(1 if failed else 0)

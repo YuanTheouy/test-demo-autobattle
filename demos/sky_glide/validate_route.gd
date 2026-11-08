@@ -19,7 +19,7 @@ func _run() -> void:
 	var route := [
 		["land", Vector3(-42, 58, -68), "wood"],
 		["climb", Vector3(-5, 91, -61), ""],
-		["land", Vector3(48, 68, -94), "membrane"],
+		["land", Vector3(48, 62, -94), "membrane"],
 		["climb", Vector3(15, 100, -145), ""],
 		["land", Vector3(0, 78, -180), "ruins"],
 		["climb", Vector3(-5, 94, -61), ""],
@@ -37,6 +37,10 @@ func _run() -> void:
 			quit(1)
 			return
 		if leg[0] == "land":
+			var interaction: Dictionary = world.interaction_target()
+			if not interaction.is_empty() and not await _walk_to(interaction.pos):
+				quit(1)
+				return
 			world._interact()
 			if leg[2] == "camp" and not world.upgraded:
 				push_error("Workbench did not produce the upgraded wing")
@@ -102,4 +106,24 @@ func _fly(kind: String, target: Vector3, island_id: String) -> bool:
 			push_error("Unexpected landing on %s while heading to %s" % [world.current_island, island_id])
 			return false
 	push_error("Route timeout: %s %s; position %s; speed %.1f; target %s" % [kind, island_id, pilot.position, pilot.airspeed, target])
+	return false
+
+func _walk_to(target: Vector3) -> bool:
+	for frame in 800:
+		var offset := target - pilot.position
+		if Vector2(offset.x, offset.z).length() < 2.8:
+			pilot.test_walk = 0
+			pilot.test_turn = 0
+			for i in 5:
+				await physics_frame
+			return true
+		var error := wrapf(atan2(offset.x, -offset.z) - pilot.ground_view_heading, -PI, PI)
+		pilot.test_turn = clampf(error * 5, -1, 1)
+		pilot.test_walk = 1 if absf(error) < 0.7 else 0
+		await physics_frame
+		frames += 1
+		if pilot.flying or pilot.disabled or not pilot.is_on_floor():
+			push_error("Walking to interaction must remain on island")
+			return false
+	push_error("Unable to walk to material/workbench/beacon")
 	return false
