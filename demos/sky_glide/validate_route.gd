@@ -47,7 +47,7 @@ func _walk(value: bool) -> void:
 	_hold(KEY_W, value)
 
 func _clear_flight_keys() -> void:
-	for code in [KEY_W, KEY_S, KEY_A, KEY_D]:
+	for code in [KEY_W, KEY_S, KEY_A, KEY_D, KEY_SHIFT]:
 		_hold(code, false)
 
 func _steer(yaw: float, desired_pitch: float) -> void:
@@ -58,7 +58,7 @@ func _steer(yaw: float, desired_pitch: float) -> void:
 	_hold(KEY_D, pilot.bank < wanted_bank - 0.035)
 	_hold(KEY_A, pilot.bank > wanted_bank + 0.035)
 	_hold(KEY_S, pilot.pitch < desired_pitch - 0.012)
-	_hold(KEY_W, pilot.pitch > desired_pitch + 0.012)
+	_hold(KEY_SHIFT, pilot.pitch > desired_pitch + 0.012)
 
 func _run() -> void:
 	world = load("res://main.tscn").instantiate()

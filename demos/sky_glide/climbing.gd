@@ -52,6 +52,7 @@ func tick(delta: float, wish: Vector2, grab: bool, jump_requested: bool) -> bool
 		if hit.is_empty() or hit.normal.y > 0.65 or hit.normal.y < -0.75:
 			return false
 		active = true
+		actor.grounded = false
 		normal = hit.normal
 		actor.flying = false
 		actor.velocity = Vector3.ZERO
@@ -71,6 +72,7 @@ func tick(delta: float, wish: Vector2, grab: bool, jump_requested: bool) -> bool
 	actor.velocity = (up * wish.y + right * wish.x).limit_length() * 2.6 - normal * 1.2
 	actor.heading = atan2(-normal.x, normal.z)
 	actor.move_and_slide()
+	actor.grounded = actor.is_on_floor()
 	actor.visual.rotation = Vector3(0, -actor.heading, 0)
 	actor.canopy.rotation = Vector3(0, -actor.heading, 0)
 	if actor.is_on_floor() and wish.y < 0:
@@ -114,6 +116,7 @@ func _mantle(delta: float) -> void:
 		actor.velocity = Vector3.DOWN
 		actor.move_and_slide()
 		actor.apply_floor_snap()
+		actor.grounded = actor.is_on_floor()
 		actor.landed.emit()
 		return
 	actor.velocity = difference.normalized() * minf(5, difference.length() / delta)

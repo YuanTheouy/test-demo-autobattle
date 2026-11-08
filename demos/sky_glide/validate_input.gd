@@ -87,7 +87,7 @@ func _run() -> void:
 	check(not paused and not world.map_view.visible, "Closing map must resume")
 	# A fixture on the membrane island isolates actual WASD/E interaction handling.
 	# The separate route test flies here from spawn without fixtures or teleportation.
-	pilot.reset_at(Vector3(48, 63, -80))
+	pilot.reset_at(Vector3(48, world.terrains.membrane.height_at(48, -80) + 1, -80))
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	await ticks(20)
 	tap(KEY_E)

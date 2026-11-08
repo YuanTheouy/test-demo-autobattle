@@ -15,6 +15,7 @@ var inventory_label: Label
 var equipment_label: Label
 var map_view: Control
 var islands: Array[Dictionary] = []
+var terrains: Dictionary = {}
 var thermals: Array[Dictionary] = []
 var inventory := {"wood": 0, "membrane": 0, "plan": 0, "crystal": 0}
 var collected: Dictionary = {}
@@ -148,7 +149,10 @@ func _on_crash() -> void:
 func _on_land() -> void:
 	for island in islands:
 		var center: Vector3 = island.pos
-		if absf(player.position.y - center.y) < 3 and Vector2(player.position.x - center.x, player.position.z - center.z).length() < float(island.radius) + 1:
+		if Vector2(player.position.x - center.x, player.position.z - center.z).length() >= float(island.radius) + 1:
+			continue
+		var surface_y: float = terrains[island.id].height_at(player.position.x, player.position.z)
+		if absf(player.position.y - surface_y) < 3:
 			current_island = island.id
 			return
 	if absf(player.position.x + 6) < 5.5 and player.position.z > -11 and player.position.z < 40 and player.position.y > 66 and player.position.y < 87:
@@ -179,7 +183,7 @@ func sample_wind(at: Vector3) -> Vector3:
 	return Vector3.UP * result
 
 func interaction_target() -> Dictionary:
-	if player.flying or player.disabled or not player.is_on_floor():
+	if player.flying or player.disabled or not player.is_supported():
 		return {}
 	_on_land()
 	if current_island == "camp":
@@ -274,20 +278,16 @@ func _cone(at: Vector3, bottom: float, top: float, height: float, color: Color, 
 	mesh.radial_segments = segments
 	return _mesh(mesh, at, color)
 
-func _island(center: Vector3, radius: float, depth: float, grass: Color) -> void:
+func _island(center: Vector3, radius: float, depth: float, grass: Color, id: String) -> void:
 	var rock := _cone(center - Vector3.UP * depth * 0.5, radius * 0.18, radius, depth, Color("776e71"), 9)
 	rock.mesh.cap_top = false
 	var rim := _cone(center - Vector3.UP * depth * 0.15, radius * 0.76, radius * 1.01, depth * 0.3, Color("b8a08b"), 9)
 	rim.mesh.cap_top = false
-	var top := _cone(center - Vector3.UP * 0.55, radius, radius, 1.1, grass, 9)
-	var body := StaticBody3D.new()
-	var collision := CollisionShape3D.new()
-	var shape := CylinderShape3D.new()
-	shape.radius = radius * 0.965
-	shape.height = 1.1
-	collision.shape = shape
-	body.add_child(collision)
-	top.add_child(body)
+	var top := preload("res://island_terrain.gd").new()
+	top.name = "Terrain_" + id
+	top.build(center, radius, id, grass)
+	add_child(top)
+	terrains[id] = top
 	# Colliding taper keeps island undersides physical as well as visible.
 	var rock_body := StaticBody3D.new()
 	var rock_shape := CollisionShape3D.new()
@@ -377,9 +377,13 @@ func _build_world() -> void:
 	for island in islands:
 		var at: Vector3 = island.pos
 		var color := Color("95ad76") if island.region == 1 else Color("85b9ae")
-		_island(at, island.radius, island.radius * (1.4 if island.region == 1 else 2.5), color)
-		_tree(at + Vector3(-island.radius * 0.45, 0, 5), 7 if island.region == 1 else 11)
-		_tree(at + Vector3(island.radius * 0.4, 0, 9), 6)
+		_island(at, island.radius, island.radius * (1.4 if island.region == 1 else 2.5), color, island.id)
+		var tree_a := at + Vector3(-island.radius * 0.45, 0, 5)
+		var tree_b := at + Vector3(island.radius * 0.4, 0, 9)
+		tree_a.y = terrains[island.id].height_at(tree_a.x, tree_a.z)
+		tree_b.y = terrains[island.id].height_at(tree_b.x, tree_b.z)
+		_tree(tree_a, 7 if island.region == 1 else 11)
+		_tree(tree_b, 6)
 		_sign(island.name, at + Vector3(0, 12, 0), CREAM, 35)
 		if island.has("item"):
 			var collectible := Node3D.new()
@@ -413,6 +417,14 @@ func _build_world() -> void:
 	_sign("站在桌旁按 E / 左键制作，无需跳上桌", Vector3(6, 67.4, 20), CREAM, 25)
 	for x in [-6, 6]:
 		_flag(Vector3(x, 64.5, 28), Color("dc845e"))
+	# A visible stone scramble on the main island, with matching convex collision.
+	for at in [Vector3(-18, 0, 25), Vector3(-16, 0, 30), Vector3(-21, 0, 16)]:
+		at.y = terrains.camp.height_at(at.x, at.z)
+		var stone := PrismMesh.new()
+		stone.size = Vector3(2.8, 1.2, 2.6)
+		var instance := _mesh(stone, at + Vector3.UP * 0.45, Color("a3957d"))
+		instance.create_convex_collision()
+	_sign("坡丘 / 碎石：可跑跳，也可抓住岩壁攀爬", Vector3(-18, 73, 25), CREAM, 23)
 	for i in gate_positions.size():
 		var at: Vector3 = gate_positions[i]
 		for side in [-1, 1]:
@@ -474,7 +486,7 @@ func _build_world() -> void:
 		var z := rng.randf_range(-720, 50)
 		var y := rng.randf_range(-8, 80)
 		var radius := rng.randf_range(12, 28)
-		_island(Vector3(x, y, z), radius, radius * 1.7, Color("7e9e85"))
+		_island(Vector3(x, y, z), radius, radius * 1.7, Color("7e9e85"), "background_%d" % i)
 		_tree(Vector3(x, y, z), rng.randf_range(8, 16))
 	for i in 32:
 		var at := Vector3(rng.randf_range(-380, 380), rng.randf_range(-45, -20), rng.randf_range(-780, 120))
@@ -550,7 +562,7 @@ func _build_ui() -> void:
 	state_label = _label("", Vector2(20, 149), 15, Color("b9e6cc"), telemetry)
 	var footer := _panel(Vector2(28, 790), Vector2(1384, 82), Color(0.10, 0.20, 0.24, 0.93))
 	hint = _label("", Vector2(22, 10), 18, CREAM, footer)
-	_label("鼠标转镜头 · WASD / 空格跳   |   贴墙按住左键攀爬 · 空格蹬离   |   F 展收伞 · 空中 AD / WS 控伞 · 右键减速 · E 互动 · R 回主岛", Vector2(22, 48), 14, Color("bdd0ca"), footer)
+	_label("鼠标转镜头 · WASD / 空格跳   |   左键抓墙攀爬   |   F 展收伞 · AD 转弯 · Shift 俯冲 · S 拉起 / 右键减速 · E 互动 · R 回主岛", Vector2(22, 48), 14, Color("bdd0ca"), footer)
 	var reticle := _label("＋", Vector2(710, 435), 22, CREAM, hud)
 	reticle.add_theme_color_override("font_shadow_color", INK)
 	reticle.add_theme_constant_override("shadow_offset_x", 1)
@@ -580,7 +592,7 @@ func _update_ui() -> void:
 		state_label.text = "● 飞行中" if player.flying else "● 已落地"
 	elif not player.flying:
 		var target := interaction_target()
-		if not player.is_on_floor():
+		if not player.is_supported():
 			hint.text = "人物在空中：按 F 展开滑翔伞；触地后自动站稳，不会因为落地而重开。"
 			state_label.text = "● 跳跃 / 下落"
 		elif not target.is_empty():
@@ -594,10 +606,10 @@ func _update_ui() -> void:
 		hint.text = "前方海峡很长。先回营地制作阻力更低、滑翔比更好的远行翼，再规划远渡。"
 		state_label.text = "● 需要远行翼"
 	elif player.wind_velocity.y > 0.5:
-		hint.text = "借风爬升：空格减速、转向盘旋。风道顶部升力逐渐减弱；高度够了就飞向下一岛。"
+		hint.text = "借风爬升：A / D 盘旋，右键减速。松键自动配平；高度够了就飞向下一岛。"
 		state_label.text = "↑ 上升气流"
 	else:
-		hint.text = "远行翼已就绪：M 找信标，经高空风道升到约 165 m，再向石柱群岛远渡。" if upgraded else "对准岛面降落后可继续徒步。伞的开合只由 F 控制；走到材料旁按 E 采集。"
+		hint.text = "远行翼已就绪：M 找信标，经高空风道升到约 165 m，再向石柱群岛远渡。" if upgraded else "松键自动配平；A / D 转弯，Shift 俯冲，S 拉起 / 右键减速。落地后走到材料旁 E 采集。"
 		state_label.text = "● 自由滑翔"
 
 func _smoke_test() -> void:

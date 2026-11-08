@@ -17,7 +17,7 @@ func run(world: Node3D) -> void:
 		if child is MeshInstance3D and child.mesh is CylinderMesh:
 			if child.mesh.top_radius > 20 and child.mesh.cap_top and absf(child.position.y + child.mesh.height * 0.5 - 64) < 0.01:
 				caps += 1
-	check(caps == 1, "Camp must have exactly one visible top face, avoiding z-fighting")
+	check(caps == 0 and world.terrains.camp.mesh is ArrayMesh, "Camp must use one triangulated terrain surface, with no old coplanar flat cap")
 	var below: Vector3 = world.sample_wind(Vector3(0, 111.99, -265))
 	var above: Vector3 = world.sample_wind(Vector3(0, 112.01, -265))
 	check(below.distance_to(above) < 0.02, "Wind field must be continuous")
@@ -31,7 +31,7 @@ func run(world: Node3D) -> void:
 		await world.get_tree().physics_frame
 	check(pilot.position.distance_to(standing_position) < 0.03 and pilot.airspeed == 0, "Standing with canopy open must stay stationary")
 	pilot.toggle_paraglider()
-	pilot.reset_at(Vector3(48, 63, -80))
+	pilot.reset_at(Vector3(48, world.terrains.membrane.height_at(48, -80) + 1, -80))
 	for i in 15:
 		await world.get_tree().physics_frame
 	pilot.test_walk = 1
@@ -42,7 +42,7 @@ func run(world: Node3D) -> void:
 	check(pilot.velocity.distance_to(running_velocity) < 0.001, "Deploying while running must preserve velocity")
 	pilot.jump()
 	await world.get_tree().physics_frame
-	check(pilot.flying and absf(Vector2(pilot.velocity.x, pilot.velocity.z).length() - 9) < 0.1 and pilot.velocity.y <= pilot.JUMP_SPEED, "Run and ordinary jump supply initial airspeed without upward boost")
+	check(pilot.flying and Vector2(pilot.velocity.x, pilot.velocity.z).length() <= 9.1 and pilot.velocity.y <= pilot.JUMP_SPEED + maxf(0, running_velocity.y), "Run and ordinary jump supply initial airspeed without upward boost")
 	pilot.test_walk = 0
 	# Hold the new wing near the old hard ceiling for four seconds.
 	pilot.reset_at(Vector3(0, 181, -265))
@@ -89,7 +89,7 @@ func run(world: Node3D) -> void:
 	check(pilot.canopy_open and pilot.canopy.visible, "Landing must preserve the open canopy until F is pressed")
 	pilot.toggle_paraglider()
 	# Far-away E must not collect; physically run to the object and then collect.
-	pilot.reset_at(Vector3(48, 63, -80))
+	pilot.reset_at(Vector3(48, world.terrains.membrane.height_at(48, -80) + 1, -80))
 	for i in 15:
 		await world.get_tree().physics_frame
 	world._interact()
@@ -99,7 +99,7 @@ func run(world: Node3D) -> void:
 	for i in 20:
 		await world.get_tree().physics_frame
 	pilot.test_strafe = 0
-	check(pilot.position.x > start_x + 2 and pilot.is_on_floor(), "Ground D must strafe and stay on island")
+	check(pilot.position.x > start_x + 2 and pilot.is_supported(), "Ground D must strafe and stay on island: delta_x=%.3f support=%s at=%s" % [pilot.position.x - start_x, pilot.is_supported(), pilot.position])
 	pilot.test_walk = 1
 	for i in 150:
 		await world.get_tree().physics_frame

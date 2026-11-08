@@ -11,6 +11,7 @@ window/size/viewport_height=900
 window/stretch/mode="canvas_items"
 
 [physics]
+3d/physics_engine="Jolt Physics"
 common/physics_interpolation=true
 
 [rendering]
