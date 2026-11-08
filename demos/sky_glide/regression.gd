@@ -164,7 +164,7 @@ func run(world: Node3D) -> void:
 	await world.get_tree().physics_frame
 	check(pilot.disabled, "Only falling out of the world triggers recovery")
 	world._restart()
-	check(not pilot.disabled and not pilot.flying and pilot.position.distance_to(world.checkpoint) < 0.1, "Void recovery returns to checkpoint")
+	check(not pilot.disabled and not pilot.flying and pilot.position.distance_to(world.MAIN_SPAWN) < 0.1, "Void recovery returns to main island")
 	if not failed:
 		print("SKYGLIDE REGRESSION PASS: fast steep landing, ground stability, canopy separation, WASD movement, jump, nearby E gathering, redeploy/retract, crafting, safe wall contact, void recovery, continuous thermals")
 	world.get_tree().quit(1 if failed else 0)

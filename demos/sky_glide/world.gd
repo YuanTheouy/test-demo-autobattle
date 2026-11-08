@@ -3,6 +3,7 @@ extends Node3D
 const Glider = preload("res://glider.gd")
 const INK = Color("203d49")
 const CREAM = Color("fff3d6")
+const MAIN_SPAWN := Vector3(6, 65, 24)
 var player: CharacterBody3D
 var speed_label: Label
 var altitude_label: Label
@@ -20,7 +21,6 @@ var collected: Dictionary = {}
 var pickup_meshes: Dictionary = {}
 var upgraded := false
 var current_island := "camp"
-var checkpoint := Vector3(6, 65, 24)
 var toast := ""
 var toast_timer := 0.0
 var region := 1
@@ -30,6 +30,7 @@ var elapsed := 0.0
 var reset_delay := -1.0
 var finished := false
 var thermal_rings: Array[MeshInstance3D] = []
+var wind_volumes: Array[MeshInstance3D] = []
 var gate_markers: Array[MeshInstance3D] = []
 var previous_position := Vector3.ZERO
 var preview_frames := 0
@@ -40,7 +41,7 @@ func _ready() -> void:
 	_build_environment()
 	_build_world()
 	player = Glider.new()
-	player.spawn_point = checkpoint
+	player.spawn_point = MAIN_SPAWN
 	player.process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_child(player)
 	player.crashed.connect(_on_crash)
@@ -136,7 +137,9 @@ func _physics_process(_delta: float) -> void:
 
 func _restart() -> void:
 	reset_delay = -1
-	player.reset_at(checkpoint)
+	player.reset_at(MAIN_SPAWN)
+	player.wind_velocity = Vector3.ZERO
+	current_island = "camp"
 	previous_position = player.position
 
 func _on_crash() -> void:
@@ -147,11 +150,12 @@ func _on_land() -> void:
 		var center: Vector3 = island.pos
 		if absf(player.position.y - center.y) < 3 and Vector2(player.position.x - center.x, player.position.z - center.z).length() < float(island.radius) + 1:
 			current_island = island.id
-			checkpoint = center + Vector3(0, 2.0, -float(island.radius) * 0.7)
 			return
 	if absf(player.position.x + 6) < 5.5 and player.position.z > -11 and player.position.z < 40 and player.position.y > 66 and player.position.y < 87:
 		current_island = "camp"
-		checkpoint = Vector3(6, 65, 24)
+		return
+	if absf(player.position.x - 14) < 4.5 and absf(player.position.z - 5) < 4.5 and player.position.y > 83 and player.position.y < 87:
+		current_island = "camp"
 		return
 	current_island = ""
 
@@ -225,7 +229,7 @@ func _interact() -> void:
 		collected[island.id] = true
 		if pickup_meshes.has(island.id):
 			pickup_meshes[island.id].queue_free()
-		_notify("获得 %s × %d。落过的岛会成为新的重生点。" % [island.item_name, island.amount])
+		_notify("获得 %s × %d。材料已保留，R 可返回主岛。" % [island.item_name, island.amount])
 		return
 
 func _notify(message: String) -> void:
@@ -398,6 +402,10 @@ func _build_world() -> void:
 	_sign("步行上坡 → 高台助跑 → 空格跳出 → F 展伞", Vector3(-6, 68, 38), CREAM, 24)
 	_sign("坡道入口 ← 沿地面走到这里", Vector3(4, 66.5, 41), CREAM, 22)
 	_sign("84 m 起飞高台 / 靠下落加速", Vector3(-6, 89, -5), CREAM, 28)
+	_box(Vector3(14, 74, 5), Vector3(8, 20, 8), Color("a58d73"), true)
+	_box(Vector3(14, 84.15, 5), Vector3(8, 0.3, 8), Color("c6b389"), true)
+	_sign("攀爬塔：按住左键抓墙，WASD 攀爬", Vector3(14, 69, 12), CREAM, 24)
+	_sign("空格蹬离 / F 展伞", Vector3(14, 88, 5), CREAM, 26)
 	_box(Vector3(6, 64.85, 20), Vector3(4, 0.2, 2.2), Color("9b795b"), true)
 	for x in [-1.6, 1.6]:
 		for z in [-0.7, 0.7]:
@@ -423,6 +431,19 @@ func _build_world() -> void:
 		var radius: float = thermal.radius
 		var bottom: float = thermal.bottom
 		var top: float = thermal.top
+		var volume := CylinderMesh.new()
+		volume.top_radius = radius
+		volume.bottom_radius = radius
+		volume.height = top - bottom
+		volume.radial_segments = 48
+		volume.cap_top = false
+		volume.cap_bottom = false
+		var cylinder := _mesh(volume, Vector3(center.x, (bottom + top) * 0.5, center.y), Color.WHITE)
+		var mist := ShaderMaterial.new()
+		mist.shader = preload("res://wind_volume.gdshader")
+		cylinder.material_override = mist
+		cylinder.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		wind_volumes.append(cylinder)
 		for i in 7:
 			var angle := TAU * i / 7.0
 			var stroke := CylinderMesh.new()
@@ -529,7 +550,7 @@ func _build_ui() -> void:
 	state_label = _label("", Vector2(20, 149), 15, Color("b9e6cc"), telemetry)
 	var footer := _panel(Vector2(28, 790), Vector2(1384, 82), Color(0.10, 0.20, 0.24, 0.93))
 	hint = _label("", Vector2(22, 10), 18, CREAM, footer)
-	_label("鼠标只转镜头 · 地面 WASD / 空格跳   |   空中 AD 压翼转弯 · WS 调伞面 · 右键减速   |   F 展收伞 · E / 左键互动 · M 地图 · Esc 暂停", Vector2(22, 48), 14, Color("bdd0ca"), footer)
+	_label("鼠标转镜头 · WASD / 空格跳   |   贴墙按住左键攀爬 · 空格蹬离   |   F 展收伞 · 空中 AD / WS 控伞 · 右键减速 · E 互动 · R 回主岛", Vector2(22, 48), 14, Color("bdd0ca"), footer)
 	var reticle := _label("＋", Vector2(710, 435), 22, CREAM, hud)
 	reticle.add_theme_color_override("font_shadow_color", INK)
 	reticle.add_theme_constant_override("shadow_offset_x", 1)
@@ -549,8 +570,11 @@ func _update_ui() -> void:
 		hint.text = "两关完成！你已经从木皮滑翔翼升级到远行翼，抵达并点亮了高空信标。"
 		state_label.text = "● 信标已点亮"
 	elif player.disabled:
-		hint.text = "坠入云海，正在返回最近落脚点。材料和装备保留。"
+		hint.text = "坠入云海，正在返回主岛。材料和装备保留。"
 		state_label.text = "● 失去平衡"
+	elif player.climber.active:
+		hint.text = "攀爬中：按住左键，W S 上下、A D 横移；空格蹬离；F 开伞滑翔。到边缘会翻上平台。"
+		state_label.text = "● 攀爬 / 翻越"
 	elif toast_timer > 0:
 		hint.text = toast
 		state_label.text = "● 飞行中" if player.flying else "● 已落地"

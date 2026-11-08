@@ -18,6 +18,10 @@ var wind_velocity := Vector3.ZERO
 var jump_buffer := 0.0
 var ground_grace := 0.0
 var jumped := false
+var last_ground_normal := Vector3.UP
+var climber: RefCounted
+var canopy_fill := 0.0
+var test_climb := false
 var visual: Node3D
 var canopy: Node3D
 var camera: Camera3D
@@ -34,6 +38,8 @@ var ground_view_heading := 0.0
 var sail: MeshInstance3D
 var left_leg: Node3D
 var right_leg: Node3D
+var left_arm: Node3D
+var right_arm: Node3D
 var step_phase := 0.0
 var last_impact := 0.0
 var first_person := false
@@ -54,6 +60,7 @@ func _ready() -> void:
 	add_child(visual)
 	_build_person()
 	_build_canopy()
+	climber = preload("res://climbing.gd").new(self)
 	camera = Camera3D.new()
 	camera.fov = 70
 	camera.near = 0.3
@@ -76,6 +83,9 @@ func reset_at(point: Vector3) -> void:
 	velocity = Vector3.ZERO
 	jump_buffer = 0
 	ground_grace = 0
+	last_ground_normal = Vector3.UP
+	climber.reset()
+	canopy_fill = 1.0 if canopy_open else 0.0
 	flying = false
 	disabled = false
 	canopy.visible = canopy_open
@@ -91,9 +101,12 @@ func jump() -> void:
 func toggle_paraglider() -> void:
 	if disabled:
 		return
+	if climber.active:
+		climber.release()
 	if canopy_open:
 		flying = false
 		canopy_open = false
+		canopy_fill = 0
 		canopy.visible = false
 		if control_override:
 			ground_view_heading = heading
@@ -104,6 +117,7 @@ func launch() -> void:
 	if disabled or canopy_open:
 		return
 	canopy_open = true
+	canopy_fill = 0
 	canopy.visible = true
 	if not is_on_floor():
 		_begin_glide()
@@ -129,21 +143,44 @@ func _input(event: InputEvent) -> void:
 func _process(delta: float) -> void:
 	visual.visible = not first_person
 	canopy.visible = canopy_open
+	canopy.scale = Vector3((1.18 if equipment_level > 0 else 1.0) * lerpf(0.82, 1, canopy_fill), lerpf(0.65, 1, canopy_fill), lerpf(0.65, 1, canopy_fill))
 	var walking_speed := Vector2(velocity.x, velocity.z).length() if not flying else 0.0
 	step_phase += delta * walking_speed * 1.6
 	var stride := sin(step_phase) * 0.65 * clampf(walking_speed / 9, 0, 1)
+	if climber.active:
+		step_phase += delta * 5
+		stride = sin(step_phase) * 0.45
 	left_leg.rotation.x = stride
 	right_leg.rotation.x = -stride
+	var arm_pose := 1.5 if climber.active else (2.4 if flying else 0.0)
+	left_arm.rotation.x = lerpf(left_arm.rotation.x, arm_pose - stride, minf(1, delta * 12))
+	right_arm.rotation.x = lerpf(right_arm.rotation.x, arm_pose + stride, minf(1, delta * 12))
+	left_arm.position.y = lerpf(left_arm.position.y, 0.35 if climber.active or flying else 0.05, minf(1, delta * 12))
+	right_arm.position.y = left_arm.position.y
 	_update_camera(delta)
 
 func _physics_process(delta: float) -> void:
 	if disabled:
 		return
+	canopy_fill = move_toward(canopy_fill, 1.0 if canopy_open else 0.0, delta / 0.22)
+	if is_on_floor():
+		last_ground_normal = get_floor_normal()
 	ground_grace = 0.10 if is_on_floor() else maxf(0, ground_grace - delta)
+	var climb_wish := Vector2(float(Input.is_physical_key_pressed(KEY_D)) - float(Input.is_physical_key_pressed(KEY_A)), float(Input.is_physical_key_pressed(KEY_W)) - float(Input.is_physical_key_pressed(KEY_S)))
+	if control_override:
+		climb_wish = Vector2(test_strafe, test_walk)
+	var grab := test_climb if control_override else Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
+	if climber.tick(delta, climb_wish, grab, jump_buffer > 0):
+		jump_buffer = maxf(0, jump_buffer - delta)
+		airspeed = (velocity - wind_velocity).length()
+		if position.y < -18:
+			_fail()
+		return
 	jumped = jump_buffer > 0 and ground_grace > 0
 	jump_buffer = maxf(0, jump_buffer - delta)
 	if jumped:
-		velocity.y = JUMP_SPEED
+		# Preserve uphill/downhill momentum, then push away from the support plane.
+		velocity = velocity.slide(last_ground_normal) + last_ground_normal * JUMP_SPEED
 		jump_buffer = 0
 		ground_grace = 0
 	if flying:
@@ -220,7 +257,7 @@ func _glide(delta: float) -> void:
 	# Camera look never commands the wing. Input changes incidence and bank only.
 	pitch = move_toward(pitch, Aero.TRIM + pitch_input * 0.22 + brake * 0.04, delta * 0.9)
 	bank = move_toward(bank, turn_input * 0.60, delta * 1.6)
-	velocity = Aero.integrate(velocity, wind_velocity, heading, pitch, bank, brake, equipment_level, delta)
+	velocity = Aero.integrate(velocity, wind_velocity, heading, pitch, bank, brake, equipment_level, delta, canopy_fill)
 	# The wing follows its actual horizontal airflow, rather than rotating velocity.
 	var horizontal := Vector2(velocity.x - wind_velocity.x, velocity.z - wind_velocity.z)
 	if horizontal.length_squared() > 0.0001:
@@ -302,8 +339,10 @@ func _build_person() -> void:
 		arm.rotation.z = side * 0.10
 		if side == -1:
 			left_leg = leg
+			left_arm = arm
 		else:
 			right_leg = leg
+			right_arm = arm
 
 func _build_canopy() -> void:
 	canopy = Node3D.new()

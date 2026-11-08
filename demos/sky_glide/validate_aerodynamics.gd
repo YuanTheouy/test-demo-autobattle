@@ -28,6 +28,8 @@ func trajectory(initial: Vector3, pitch: float, equipment: int, fps: int, second
 func _run() -> void:
 	var resting := Aero.forces(Vector3.ZERO, Vector3.ZERO, 0, Aero.TRIM, 0, 0, 0)
 	check(resting.lift == Vector3.ZERO and resting.drag == Vector3.ZERO, "Zero airspeed creates zero aerodynamic force")
+	var ascending := Aero.acceleration(Vector3(0, 5.5, -9), Vector3.ZERO, 0, Aero.TRIM, 0, 0, 0)
+	check(ascending.y > -10.5, "Soft canopy must not create downward lift and cancel the upward jump")
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 77892
 	for i in 240:
