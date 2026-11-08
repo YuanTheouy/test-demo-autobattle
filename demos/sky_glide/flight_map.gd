@@ -25,7 +25,7 @@ func _draw() -> void:
 	var font := ThemeDB.fallback_font
 	draw_style_box(_style(), Rect2(Vector2.ZERO, size))
 	draw_string(font, Vector2(30, 44), "航图 / SKY ATLAS", HORIZONTAL_ALIGNMENT_LEFT, -1, 25, TEXT)
-	draw_string(font, Vector2(30, 77), "M 收起 · 地图打开时仍在飞行 · 标注为岛面海拔", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("a8c8c3"))
+	draw_string(font, Vector2(30, 77), "M 收起并继续 · 地图打开时暂停 · 标注为岛面海拔", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("a8c8c3"))
 	draw_string(font, Vector2(60, 122), "01  草海群岛", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color("c8dda3"))
 	draw_string(font, Vector2(520, 122), "02  石柱群岛", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color("8ddbd3"))
 	var start := project(Vector3(0, 0, -180))

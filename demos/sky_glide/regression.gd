@@ -35,6 +35,13 @@ func run(world: Node3D) -> void:
 	check(world.sample_lift(Vector3(0, 150, -265), 1) > 15, "Remote route must benefit from new wing")
 	check(world.sample_lift(Vector3(18, 110, -529), 0) == 0, "Highland thermal cannot be entered from low altitude")
 	check(world.sample_lift(Vector3(-42, 60, -68), 0) == 0, "Landing area must be sheltered")
+	# Walk clear of the workbench before testing a steep takeoff trajectory.
+	pilot.test_strafe = -1
+	for i in 45:
+		await world.get_tree().physics_frame
+	pilot.test_strafe = 0
+	pilot.heading = 0
+	pilot.ground_view_heading = 0
 	pilot.launch()
 	pilot.pitch = -0.4
 	var start: Vector3 = pilot.position
@@ -135,7 +142,7 @@ func run(world: Node3D) -> void:
 				world._interact()
 				world._interact()
 	check(world.inventory.wood == 3 and world.inventory.membrane == 2 and world.inventory.plan == 1, "Materials collect once per island")
-	pilot.reset_at(Vector3(6, 65, 27))
+	pilot.reset_at(Vector3(6, 65, 23))
 	for i in 12:
 		await world.get_tree().physics_frame
 	world._interact()

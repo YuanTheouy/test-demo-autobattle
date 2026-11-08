@@ -29,6 +29,11 @@ var left_leg: Node3D
 var right_leg: Node3D
 var step_phase := 0.0
 var last_impact := 0.0
+var first_person := false
+var view_pitch := -0.18
+var mouse_look_enabled := true
+var camera_boom := 7.0
+var takeoff_delay := 0.0
 
 func _ready() -> void:
 	var collision := CollisionShape3D.new()
@@ -57,11 +62,14 @@ func reset_at(point: Vector3) -> void:
 	spawn_point = point
 	heading = 0
 	ground_view_heading = 0
+	view_pitch = -0.18
+	camera_boom = 7.0
 	pitch = -0.08
 	bank = 0
 	airspeed = 22
 	velocity = Vector3.ZERO
 	launch_lift = 0
+	takeoff_delay = 0
 	flying = false
 	disabled = false
 	canopy.visible = false
@@ -80,7 +88,8 @@ func toggle_paraglider() -> void:
 	if flying:
 		flying = false
 		canopy.visible = false
-		ground_view_heading = heading
+		if control_override:
+			ground_view_heading = heading
 		velocity.x *= 0.35
 		velocity.z *= 0.35
 	else:
@@ -91,6 +100,7 @@ func launch() -> void:
 		return
 	# Ground F is a jump-and-deploy shortcut; airborne F simply opens the canopy.
 	launch_lift = 9 if is_on_floor() else 0
+	takeoff_delay = 0.32 if is_on_floor() else 0.0
 	if is_on_floor():
 		velocity.y = 9
 	flying = true
@@ -103,11 +113,14 @@ func set_equipment(level: int) -> void:
 	canopy.scale.x = 1.18 if level > 0 else 1.0
 	sail.material_override.albedo_color = Color("73cbbc") if level > 0 else Color("f2bf67")
 
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT) and not flying:
-		ground_view_heading += event.relative.x * 0.006
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion and mouse_look_enabled and not control_override:
+		var motion: Vector2 = event.screen_relative if not event.screen_relative.is_zero_approx() else event.relative
+		ground_view_heading += motion.x * 0.0025
+		view_pitch = clampf(view_pitch - motion.y * 0.0025, -1.3, 1.3)
 
 func _process(delta: float) -> void:
+	visual.visible = not first_person
 	canopy.visible = flying
 	var walking_speed := Vector2(velocity.x, velocity.z).length() if not flying else 0.0
 	step_phase += delta * walking_speed * 1.6
@@ -150,9 +163,22 @@ func _walk(delta: float) -> void:
 		landed.emit()
 
 func _glide(delta: float) -> void:
+	# Hop vertically first, then move forward: nearby tables cannot block deployment.
+	if takeoff_delay > 0:
+		takeoff_delay = maxf(0, takeoff_delay - delta)
+		velocity.x = move_toward(velocity.x, 0, delta * 80)
+		velocity.z = move_toward(velocity.z, 0, delta * 80)
+		velocity.y = maxf(5, velocity.y - delta * 10)
+		move_and_slide()
+		return
 	var pitch_input := test_pitch if control_override else float(Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN)) - float(Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP))
 	var turn_input := test_turn if control_override else float(Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT)) - float(Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT))
-	var braking := test_brake if control_override else Input.is_physical_key_pressed(KEY_SPACE)
+	if not control_override:
+		view_pitch = clampf(view_pitch + pitch_input * delta * 0.72, -1.0, 0.67)
+		ground_view_heading += turn_input * delta * 0.85
+		pitch_input = clampf((view_pitch - pitch) * 5, -1, 1)
+		turn_input = clampf(wrapf(ground_view_heading - heading, -PI, PI) * 4, -1, 1)
+	var braking := test_brake if control_override else Input.is_physical_key_pressed(KEY_SPACE) or Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)
 	pitch = clampf(pitch + pitch_input * delta * 0.72, -1.0, 0.67)
 	bank = lerpf(bank, -turn_input * 0.5, 4.5 * delta)
 	heading += turn_input * delta * 0.85 * clampf(25.0 / airspeed, 0.55, 1.35)
@@ -168,7 +194,7 @@ func _glide(delta: float) -> void:
 	last_impact = velocity.length()
 	move_and_slide()
 	visual.rotation = Vector3(0, -heading, bank * 0.25)
-	canopy.rotation = Vector3(pitch * 0.45, 0, bank * 0.5)
+	canopy.rotation = Vector3(pitch * 0.45, -heading, bank * 0.5)
 	# Touching ground always becomes a normal landing, regardless of pitch/speed.
 	if is_on_floor():
 		_touch_down()
@@ -176,7 +202,8 @@ func _glide(delta: float) -> void:
 		# A wall or island edge folds the canopy; the person can fall, jump or redeploy.
 		flying = false
 		canopy.visible = false
-		ground_view_heading = heading
+		if control_override:
+			ground_view_heading = heading
 		velocity.x *= 0.15
 		velocity.z *= 0.15
 
@@ -184,7 +211,8 @@ func _touch_down() -> void:
 	flying = false
 	canopy.visible = false
 	bank = 0
-	ground_view_heading = heading
+	if control_override:
+		ground_view_heading = heading
 	velocity = Vector3.ZERO
 	visual.rotation = Vector3(0, -heading, 0)
 	landed.emit()
@@ -203,13 +231,17 @@ func _fail() -> void:
 
 func _update_camera(delta: float) -> void:
 	var at := get_global_transform_interpolated().origin
-	var view_heading := heading if flying else ground_view_heading
-	render_heading = lerp_angle(render_heading, view_heading, 1 - exp(-10 * delta))
-	var behind := Vector3(-sin(render_heading), 0, cos(render_heading))
+	if first_person:
+		camera.position = at + Vector3.UP * 0.65
+		camera.rotation = Vector3(view_pitch, -ground_view_heading, 0)
+		camera.fov = lerpf(camera.fov, 75 + (maxf(0, airspeed - 20) * 0.35 if flying else 0.0), delta * 3)
+		return
+	render_heading = ground_view_heading
 	var distance := 13 + airspeed * 0.055 if flying else 7.0
-	var desired := at + behind * distance + Vector3.UP * (5.2 if flying else 3.4)
-	camera.position = camera.position.lerp(desired, 1 - exp(-5 * delta))
-	var target := at - behind * (10.0 if flying else 2.0) + Vector3.UP * (1.3 if flying else 0.5)
+	camera_boom = lerpf(camera_boom, distance, 1 - exp(-5 * delta))
+	var orbit := Vector3(-sin(render_heading) * cos(view_pitch), -sin(view_pitch), cos(render_heading) * cos(view_pitch))
+	camera.position = at + Vector3.UP * 1.0 + orbit * camera_boom
+	var target := at + Vector3.UP * 1.0
 	camera.look_at(target)
 	camera.fov = lerpf(camera.fov, 70 + maxf(0, airspeed - 20) * 0.48 if flying else 65.0, delta * 3)
 
@@ -254,7 +286,7 @@ func _build_person() -> void:
 
 func _build_canopy() -> void:
 	canopy = Node3D.new()
-	visual.add_child(canopy)
+	add_child(canopy)
 	var vertices := PackedVector3Array()
 	var normals := PackedVector3Array()
 	for i in 10:

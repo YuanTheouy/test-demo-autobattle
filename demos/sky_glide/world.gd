@@ -20,7 +20,7 @@ var collected: Dictionary = {}
 var pickup_meshes: Dictionary = {}
 var upgraded := false
 var current_island := "camp"
-var checkpoint := Vector3(0, 66, -2)
+var checkpoint := Vector3(6, 65, 24)
 var toast := ""
 var toast_timer := 0.0
 var region := 1
@@ -36,15 +36,20 @@ var preview_frames := 0
 var preview_mode := false
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build_environment()
 	_build_world()
 	player = Glider.new()
+	player.spawn_point = checkpoint
+	player.process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_child(player)
 	player.crashed.connect(_on_crash)
 	player.landed.connect(_on_land)
 	previous_position = player.position
 	_build_ui()
 	preview_mode = "--preview" in OS.get_cmdline_user_args()
+	if DisplayServer.get_name() != "headless" and not preview_mode and not "--script" in OS.get_cmdline_args():
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	if "--smoke-test" in OS.get_cmdline_user_args():
 		call_deferred("_smoke_test")
 		get_tree().create_timer(25).timeout.connect(func():
@@ -56,6 +61,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		return
 	if event.physical_keycode == KEY_R:
 		if event.shift_pressed:
+			_set_paused(false)
 			get_tree().reload_current_scene()
 		else:
 			_restart()
@@ -63,14 +69,34 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		_interact()
 	if event.physical_keycode == KEY_M:
 		map_view.visible = not map_view.visible
+		_set_paused(map_view.visible)
+	if event.physical_keycode == KEY_V:
+		player.first_person = not player.first_person
 	if event.physical_keycode == KEY_SPACE:
 		player.jump()
 	if event.physical_keycode == KEY_F:
 		player.toggle_paraglider()
 	if event.physical_keycode == KEY_ESCAPE:
-		get_tree().quit()
+		map_view.visible = false
+		_set_paused(not get_tree().paused)
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		if get_tree().paused or not player.mouse_look_enabled:
+			map_view.visible = false
+			_set_paused(false)
+		else:
+			_interact()
+
+func _set_paused(value: bool) -> void:
+	get_tree().paused = value
+	player.mouse_look_enabled = not value
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if value else Input.MOUSE_MODE_CAPTURED
 
 func _process(delta: float) -> void:
+	if get_tree().paused:
+		hint.text = "已暂停 · 点击画面或 Esc 继续；鼠标控制视角，左键 / E 互动，右键空中减速。"
+		return
 	elapsed += delta
 	toast_timer = maxf(0, toast_timer - delta)
 	for i in thermal_rings.size():
@@ -92,6 +118,8 @@ func _process(delta: float) -> void:
 
 func _physics_process(_delta: float) -> void:
 	if not is_instance_valid(player):
+		return
+	if get_tree().paused:
 		return
 	player.lift = sample_lift(player.position, player.equipment_level)
 	region = 2 if player.position.z < -380 else 1
@@ -148,12 +176,12 @@ func interaction_target() -> Dictionary:
 		return {}
 	_on_land()
 	if current_island == "camp":
-		return {"pos": Vector3(6, 64, 27), "label": "工作台：E 制作远行翼"}
+		return {"pos": Vector3(6, 64, 20), "label": "工作台：左键 / E 制作远行翼（站在桌旁即可）"}
 	if current_island == "summit":
-		return {"pos": Vector3(18, 176, -615), "label": "信标：E 点亮"}
+		return {"pos": Vector3(18, 176, -615), "label": "信标：左键 / E 点亮"}
 	for island in islands:
 		if island.id == current_island and island.has("item") and not collected.has(island.id):
-			return {"pos": island.pos, "label": "E 收集%s" % island.item_name}
+			return {"pos": island.pos, "label": "左键 / E 收集%s" % island.item_name}
 	return {}
 
 func interaction_distance(target: Dictionary) -> float:
@@ -356,13 +384,16 @@ func _build_world() -> void:
 			var gem := PrismMesh.new()
 			gem.size = Vector3(1.5, 2, 1.5)
 			_mesh(gem, at + Vector3(0, 3.2, 0), Color("7de2d0"), collectible)
-			_sign("靠近后按 E 搜集", at + Vector3(0, 6, 0), CREAM, 25).reparent(collectible)
+			_sign("站在箱子旁：E / 左键采集", at + Vector3(0, 6, 0), CREAM, 25).reparent(collectible)
 		if island.id in ["entry", "summit"]:
 			_beacon(at, 25 if island.id == "entry" else 32)
 	# The workbench and launch platform sit distinctly above the grass plane.
 	_box(Vector3(0, 64.25, 7), Vector3(7, 0.4, 20), Color("b58a61"), true)
-	_box(Vector3(6, 65, 31), Vector3(5, 2, 3), Color("9b795b"), true)
-	_sign("E  制作远行翼", Vector3(6, 69, 31), CREAM, 30)
+	_box(Vector3(6, 64.85, 20), Vector3(4, 0.2, 2.2), Color("9b795b"), true)
+	for x in [-1.6, 1.6]:
+		for z in [-0.7, 0.7]:
+			_box(Vector3(6 + x, 64.4, 20 + z), Vector3(0.22, 0.8, 0.22), Color("77553e"))
+	_sign("站在桌旁按 E / 左键制作，无需跳上桌", Vector3(6, 67.4, 20), CREAM, 25)
 	for x in [-6, 6]:
 		_flag(Vector3(x, 64.5, 28), Color("dc845e"))
 	for i in gate_positions.size():
@@ -489,7 +520,11 @@ func _build_ui() -> void:
 	state_label = _label("", Vector2(20, 149), 15, Color("b9e6cc"), telemetry)
 	var footer := _panel(Vector2(28, 790), Vector2(1384, 82), Color(0.10, 0.20, 0.24, 0.93))
 	hint = _label("", Vector2(22, 10), 18, CREAM, footer)
-	_label("地面 WASD 跑动 · 空格跳跃 · 右键拖动视角   |   F 展开 / 收起伞   |   空中 WS 俯仰 · AD 转向 · 空格减速   |   E 采集   M 地图   R 返回", Vector2(22, 48), 14, Color("bdd0ca"), footer)
+	_label("鼠标转视角 · 左键 / E 互动 · 右键空中减速   |   WASD 移动 · 空格跳跃   F 展 / 收伞   V 切视角   M 航图（暂停）   Esc 暂停   R 返回", Vector2(22, 48), 14, Color("bdd0ca"), footer)
+	var reticle := _label("＋", Vector2(710, 435), 22, CREAM, hud)
+	reticle.add_theme_color_override("font_shadow_color", INK)
+	reticle.add_theme_constant_override("shadow_offset_x", 1)
+	reticle.add_theme_constant_override("shadow_offset_y", 1)
 	map_view = preload("res://flight_map.gd").new()
 	map_view.world = self
 	hud.add_child(map_view)
@@ -517,7 +552,7 @@ func _update_ui() -> void:
 			state_label.text = "● 跳跃 / 下落"
 		elif not target.is_empty():
 			var distance := interaction_distance(target)
-			hint.text = target.label + "  ·  WASD 跑过去，空格跳跃，F 再次起飞。" if distance <= 4.5 else "向材料或工作台靠近（%.0f 米），然后按 E。WASD 跑动，空格跳跃。" % distance
+			hint.text = target.label + "  ·  地面即可互动；F 起飞，鼠标看向飞行方向。" if distance <= 4.5 else "靠近目标（%.0f 米）后按 E / 左键即可，无需跳上桌或箱子。" % distance
 			state_label.text = "● 徒步探索"
 		else:
 			hint.text = "伞已收起，可以自由跑跳。走到岛边按 F 起飞；也可以先空格跳跃，再按 F 展伞。"
