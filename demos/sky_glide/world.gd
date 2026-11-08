@@ -577,7 +577,7 @@ func _update_ui() -> void:
 		hint.text = "速度不足，正在下沉！按 W 俯冲找回速度，或寻找上升气流。"
 		state_label.text = "! 低速下沉"
 	else:
-		hint.text = "远行翼已就绪：M 找信标，经高空风道升到约 165 m，再向石柱群岛远渡。" if upgraded else "对准岛面即可降落并自动收伞。落地后 WASD 跑到材料旁按 E；营地工作台制作升级。"
+		hint.text = "远行翼已就绪：M 找信标，经高空风道升到约 165 m，再向石柱群岛远渡。" if upgraded else "对准岛面降落后可继续徒步。伞的开合只由 F 控制；走到材料旁按 E 采集。"
 		state_label.text = "● 自由滑翔"
 
 func _smoke_test() -> void:

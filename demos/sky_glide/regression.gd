@@ -98,7 +98,8 @@ func run(world: Node3D) -> void:
 	for i in 120:
 		await world.get_tree().physics_frame
 	check(not pilot.disabled and pilot.is_on_floor() and world.current_island == "membrane", "Landing must remain on membrane island without automatic restart")
-	check(not pilot.canopy.visible, "Canopy folds while the person remains visible on foot")
+	check(pilot.canopy_open and pilot.canopy.visible, "Landing must preserve the open canopy until F is pressed")
+	pilot.toggle_paraglider()
 	# Far-away E must not collect; physically run to the object and then collect.
 	pilot.reset_at(Vector3(48, 63, -80))
 	for i in 15:
@@ -169,7 +170,7 @@ func run(world: Node3D) -> void:
 	pilot.airspeed = 36
 	for i in 120:
 		await world.get_tree().physics_frame
-	check(not pilot.disabled and not pilot.flying and pilot.is_on_floor(), "Wall contact must fold canopy and allow landing, not kill the person")
+	check(not pilot.disabled and not pilot.flying and pilot.is_on_floor() and pilot.canopy_open, "Wall contact must preserve canopy state and allow landing, not kill the person")
 	pilot.position = Vector3(300, -19, -300)
 	await world.get_tree().physics_frame
 	check(pilot.disabled, "Only falling out of the world triggers recovery")

@@ -101,6 +101,8 @@ func _fly(kind: String, target: Vector3, island_id: String) -> bool:
 	_brake(false)
 	if not pilot.flying:
 		if world.current_island == "camp":
+			if not await _walk_to(Vector3(12, 64, pilot.position.z)):
+				return false
 			if not await _walk_to(Vector3(6, 64, 43)):
 				return false
 			if not await _walk_to(Vector3(-6, 64, 43)):
@@ -123,7 +125,8 @@ func _fly(kind: String, target: Vector3, island_id: String) -> bool:
 		for i in 8:
 			await physics_frame
 		_walk(false)
-		_tap(KEY_F)
+		if not pilot.canopy_open:
+			_tap(KEY_F)
 	var landing := false
 	var landing_radius := 20.0
 	for island in world.islands:
@@ -152,11 +155,11 @@ func _fly(kind: String, target: Vector3, island_id: String) -> bool:
 		if pilot.disabled:
 			push_error("Input route crashed approaching %s %s at %s" % [kind, island_id, pilot.position])
 			return false
-		if not pilot.flying:
+		if not pilot.flying and pilot.is_on_floor():
 			_brake(false)
 			if kind == "land" and world.current_island == island_id:
 				return true
-			push_error("Input route unexpectedly landed on %s while heading to %s" % [world.current_island, island_id])
+			push_error("Input route unexpectedly contacted %s at %s while heading to %s" % [world.current_island, pilot.position, island_id])
 			return false
 	push_error("Input route timeout: %s %s; at %s" % [kind, island_id, pilot.position])
 	return false

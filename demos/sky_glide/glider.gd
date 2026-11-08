@@ -68,9 +68,8 @@ func reset_at(point: Vector3) -> void:
 	airspeed = 0
 	velocity = Vector3.ZERO
 	flying = false
-	canopy_open = false
 	disabled = false
-	canopy.visible = false
+	canopy.visible = canopy_open
 	render_heading = heading
 	reset_physics_interpolation()
 	camera.position = position + Vector3(0, 3.4, 7)
@@ -160,6 +159,7 @@ func _walk(delta: float) -> void:
 	var was_on_floor := is_on_floor()
 	move_and_slide()
 	visual.rotation = Vector3(0, -heading, 0)
+	canopy.rotation = Vector3(0, -heading, 0)
 	if is_on_floor() and not was_on_floor:
 		landed.emit()
 	if canopy_open and not is_on_floor():
@@ -194,10 +194,8 @@ func _glide(delta: float) -> void:
 	if is_on_floor():
 		_touch_down()
 	elif get_slide_collision_count() > 0:
-		# A wall or island edge folds the canopy; the person can fall, jump or redeploy.
+		# Contact changes locomotion only. Canopy state belongs exclusively to F.
 		flying = false
-		canopy_open = false
-		canopy.visible = false
 		if control_override:
 			ground_view_heading = heading
 		velocity.x *= 0.15
@@ -205,9 +203,8 @@ func _glide(delta: float) -> void:
 
 func _touch_down() -> void:
 	flying = false
-	canopy_open = false
-	canopy.visible = false
 	bank = 0
+	canopy.rotation = Vector3(0, -heading, 0)
 	if control_override:
 		ground_view_heading = heading
 	velocity = Vector3.ZERO
