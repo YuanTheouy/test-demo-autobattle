@@ -100,7 +100,7 @@ func _build_ui() -> void:
 	_toggle("辅助经纬网", "grid", grid)
 	_toggle("坐标轴与脸朝向", "axes", axes)
 	_label("最少只记这三条", 21)
-	_label("竖线：p(t) = (0, sin t, cos t)\n横线：p(t) = (r sin t, h, r cos t)\n切口：p(t) = (±a, ρ sin t, ρ cos t)\nr = √(1 − h²)；ρ = √(1 − a²)", 16)
+	_label("竖线：p(t) = (0, sin t, cos t)\n横线：p(t) = (clamp(r sin t, −a, a), h, r cos t)\n切口：p(t) = (±a, ρ sin t, ρ cos t)\nr = √(1 − h²)；ρ = √(1 − a²)\n横线和耳侧经线在切面上都接直线。", 16)
 	_label("耳侧经线：p(t) = (x, cos t, 0)\nx = clamp(sin t, −a, a)\n把超出切面的 x 夹回 ±a，圆弧就接上直线。", 16)
 	_label("把点转好，再投到纸上", 21)
 	_label("q = Ry(−yaw) Rx(pitch) Rz(roll) p\n纸上点 = 中心 + s · (qx, −qy)\n右边先算：先 roll，再 pitch，再 yaw。\n角度绕随头转动的局部轴；不是拖动历史。", 15)
@@ -172,8 +172,7 @@ func _draw() -> void:
 	_curve(func(t: float): return inv * Vector3(cos(t), sin(t), 0), INK, 2.2, true)
 	if grid:
 		for h in [-0.6, -0.3, 0.3, 0.6]:
-			var r := sqrt(1 - h * h)
-			_curve(func(t: float): return Vector3(r * sin(t), h, r * cos(t)), Color(0.38, 0.43, 0.44, 0.42), 1)
+			_curve(func(t: float): return _horizontal_point(t, h), Color(0.38, 0.43, 0.44, 0.42), 1, false, _horizontal_joints(h))
 		for angle in [-60.0, -30.0, 30.0, 60.0]:
 			var a := deg_to_rad(angle)
 			_curve(func(t: float): return Vector3(sin(a) * cos(t), sin(t), cos(a) * cos(t)), Color(0.38, 0.43, 0.44, 0.42), 1)
@@ -184,8 +183,7 @@ func _draw() -> void:
 			var angle := asin(cut)
 			joints = [angle, PI - angle, PI + angle, TAU - angle]
 		_curve(_side_meridian_point, PURPLE, 3.0, false, joints)
-	var horizontal_radius := sqrt(1 - latitude * latitude)
-	_curve(func(t: float): return Vector3(horizontal_radius * sin(t), latitude, horizontal_radius * cos(t)), RED, 3.4)
+	_curve(func(t: float): return _horizontal_point(t, latitude), RED, 3.4, false, _horizontal_joints(latitude))
 	if sliced:
 		for side in [-1.0, 1.0]:
 			_cut_rim(side, Vector3.ZERO, side)
@@ -208,6 +206,18 @@ func _ring_point(x: float, t: float) -> Vector3:
 func _side_meridian_point(t: float) -> Vector3:
 	# Intersection of Z=0 with the sliced head: circular arcs joined by chords.
 	return Vector3(clampf(sin(t), -cut, cut) if sliced else sin(t), cos(t), 0)
+
+func _horizontal_point(t: float, h: float) -> Vector3:
+	var r := sqrt(1 - h * h)
+	var x := r * sin(t)
+	return Vector3(clampf(x, -cut, cut) if sliced else x, h, r * cos(t))
+
+func _horizontal_joints(h: float) -> Array[float]:
+	var r := sqrt(1 - h * h)
+	if not sliced or r <= cut:
+		return []
+	var angle := asin(cut / r)
+	return [angle, PI - angle, PI + angle, TAU - angle]
 
 func _curve(point: Callable, color: Color, width: float, _silhouette: bool = false, extra_samples: Array[float] = []) -> void:
 	var samples: Array[float] = []

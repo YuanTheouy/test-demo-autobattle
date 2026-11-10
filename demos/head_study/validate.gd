@@ -44,6 +44,28 @@ func _run() -> void:
 	var chord_bottom: Vector2 = study.project_point(Vector3(study.cut, -sqrt(1 - study.cut * study.cut), 0))
 	var chord_center: Vector2 = study.project_point(study._side_meridian_point(PI / 2))
 	check(absf((chord_top - chord_center).cross(chord_bottom - chord_center)) < 0.05, "Projected cut chord stays straight after combined rotation")
+	for a in [0.45, 0.76, 0.98]:
+		study.sliders.cut.value = a
+		for h in [-0.65, 0.0, 0.4, 0.65]:
+			var r := sqrt(1 - h * h)
+			var joints: Array[float] = study._horizontal_joints(h)
+			check(joints.size() == (4 if r > a else 0), "Horizontal chords only exist when latitude reaches cut plane")
+			if r > a:
+				var z := sqrt(r * r - a * a)
+				var chord_a: Vector3 = study._horizontal_point(joints[0], h)
+				var chord_b: Vector3 = study._horizontal_point(joints[1], h)
+				check(chord_a.is_equal_approx(Vector3(a, h, z)) and chord_b.is_equal_approx(Vector3(a, h, -z)), "Horizontal arc joins both chord endpoints exactly")
+				var pa: Vector2 = study.project_point(chord_a)
+				var pb: Vector2 = study.project_point(chord_b)
+				var pm: Vector2 = study.project_point(study._horizontal_point(PI / 2, h))
+				check(absf((pa - pm).cross(pb - pm)) < 0.05, "Horizontal cut chord projects to a straight line")
+			for t in [0.2, 1.0, 2.1, 3.8, 4.8, 5.9]:
+				var point: Vector3 = study._horizontal_point(t, h)
+				check(is_equal_approx(point.y, h), "Horizontal line keeps selected height")
+				if absf(r * sin(t)) <= a:
+					check(is_equal_approx(point.length(), 1), "Uncut horizontal arc remains on sphere")
+				else:
+					check(is_equal_approx(absf(point.x), a) and point.length_squared() <= 1.00001, "Horizontal chord lies inside planar cut disc")
 	var poses := 0
 	for y in [-180, -90, -30, 0, 45, 90, 180]:
 		for p in [-90, -35, 0, 35, 90]:
@@ -67,6 +89,7 @@ func _run() -> void:
 	study.sliced = false
 	check(study._point_visible(Vector3.RIGHT), "Whole sphere restores removed surface")
 	check(study._side_meridian_point(PI / 2).is_equal_approx(Vector3.RIGHT), "Disabling cuts restores complete circular meridian")
+	check(study._horizontal_point(PI / 2, 0).is_equal_approx(Vector3.RIGHT), "Disabling cuts restores complete equator")
 	if failures.is_empty():
 		print("HEAD STUDY PASS: angle signs, actual sliders, %d poses, cut geometry, projection and occlusion" % poses)
 	else:
