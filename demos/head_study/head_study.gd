@@ -6,6 +6,7 @@ const INK := Color("343e43")
 const BLUE := Color("237caa")
 const RED := Color("c75c49")
 const GREEN := Color("50846a")
+const PURPLE := Color("8b58a2")
 const TAU_STEPS := 180
 var yaw := 30.0
 var pitch := 15.0
@@ -18,6 +19,7 @@ var caps := true
 var hidden_lines := true
 var grid := false
 var axes := true
+var side_meridian := true
 var sliders: Dictionary = {}
 var readouts: Dictionary = {}
 var head_basis := Basis.IDENTITY
@@ -94,13 +96,15 @@ func _build_ui() -> void:
 	_toggle("两侧削平（X = ±a）", "sliced", sliced)
 	_toggle("显示切下的薄片", "caps", caps)
 	_toggle("背面虚线", "hidden_lines", hidden_lines)
+	_toggle("耳侧经线（切面处变直）", "side_meridian", side_meridian)
 	_toggle("辅助经纬网", "grid", grid)
 	_toggle("坐标轴与脸朝向", "axes", axes)
 	_label("最少只记这三条", 21)
 	_label("竖线：p(t) = (0, sin t, cos t)\n横线：p(t) = (r sin t, h, r cos t)\n切口：p(t) = (±a, ρ sin t, ρ cos t)\nr = √(1 − h²)；ρ = √(1 − a²)", 16)
+	_label("耳侧经线：p(t) = (x, cos t, 0)\nx = clamp(sin t, −a, a)\n把超出切面的 x 夹回 ±a，圆弧就接上直线。", 16)
 	_label("把点转好，再投到纸上", 21)
 	_label("q = Ry(−yaw) Rx(pitch) Rz(roll) p\n纸上点 = 中心 + s · (qx, −qy)\n右边先算：先 roll，再 pitch，再 yaw。\n角度绕随头转动的局部轴；不是拖动历史。", 15)
-	_label("蓝色 = 面部中线　红色 = 横线\n绿色 = 平切口　半透明 = 原位薄片\n实线在前，虚线在后。正交投影，无近大远小。", 15)
+	_label("蓝色 = 面部中线　红色 = 横线\n紫色 = 耳侧经线　绿色 = 平切口\n半透明 = 原位薄片；实线在前，虚线在后。\n正交投影，无近大远小。", 15)
 	_label("观察：正面十字可呈直线；转头后才露出弧度。切口本来是圆，斜看成椭圆，侧着看会压成线。\n这是球形头壳构造，不是完整的人脸解剖。", 15)
 
 func _slider(key: String, title: String, low: float, high: float, initial: float, step_value: float) -> void:
@@ -174,6 +178,12 @@ func _draw() -> void:
 			var a := deg_to_rad(angle)
 			_curve(func(t: float): return Vector3(sin(a) * cos(t), sin(t), cos(a) * cos(t)), Color(0.38, 0.43, 0.44, 0.42), 1)
 	_curve(func(t: float): return Vector3(0, sin(t), cos(t)), BLUE, 3.4)
+	if side_meridian:
+		var joints: Array[float] = []
+		if sliced:
+			var angle := asin(cut)
+			joints = [angle, PI - angle, PI + angle, TAU - angle]
+		_curve(_side_meridian_point, PURPLE, 3.0, false, joints)
 	var horizontal_radius := sqrt(1 - latitude * latitude)
 	_curve(func(t: float): return Vector3(horizontal_radius * sin(t), latitude, horizontal_radius * cos(t)), RED, 3.4)
 	if sliced:
@@ -195,17 +205,36 @@ func _ring_point(x: float, t: float) -> Vector3:
 	var r := sqrt(maxf(0, 1 - x * x))
 	return Vector3(x, r * sin(t), r * cos(t))
 
-func _curve(point: Callable, color: Color, width: float, _silhouette: bool = false) -> void:
-	for i in TAU_STEPS:
-		var a: Vector3 = point.call(TAU * i / TAU_STEPS)
-		var b: Vector3 = point.call(TAU * (i + 1) / TAU_STEPS)
-		var middle: Vector3 = point.call(TAU * (i + 0.5) / TAU_STEPS)
+func _side_meridian_point(t: float) -> Vector3:
+	# Intersection of Z=0 with the sliced head: circular arcs joined by chords.
+	return Vector3(clampf(sin(t), -cut, cut) if sliced else sin(t), cos(t), 0)
+
+func _curve(point: Callable, color: Color, width: float, _silhouette: bool = false, extra_samples: Array[float] = []) -> void:
+	var samples: Array[float] = []
+	var front_segments := PackedVector2Array()
+	var back_segments := PackedVector2Array()
+	for i in TAU_STEPS + 1:
+		samples.append(TAU * i / TAU_STEPS)
+	samples.append_array(extra_samples)
+	if not extra_samples.is_empty():
+		samples.sort()
+	for i in samples.size() - 1:
+		var a: Vector3 = point.call(samples[i])
+		var b: Vector3 = point.call(samples[i + 1])
+		var middle: Vector3 = point.call((samples[i] + samples[i + 1]) * 0.5)
 		if sliced and absf(middle.x) > cut:
 			continue
 		var visible_part := _point_visible(middle)
-		if visible_part or (hidden_lines and i % 5 < 2):
-			var line_color := color if visible_part else Color(color, 0.23)
-			draw_line(project_point(a), project_point(b), line_color, width if visible_part else 1.3, true)
+		if visible_part:
+			front_segments.append(project_point(a))
+			front_segments.append(project_point(b))
+		elif hidden_lines and i % 5 < 2:
+			back_segments.append(project_point(a))
+			back_segments.append(project_point(b))
+	if not back_segments.is_empty():
+		draw_multiline(back_segments, Color(color, 0.23), 1.3, true)
+	if not front_segments.is_empty():
+		draw_multiline(front_segments, color, width, true)
 
 func _cut_rim(side: float, offset: Vector3, _normal_sign: float) -> void:
 	for i in TAU_STEPS:
