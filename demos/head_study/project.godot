@@ -1,0 +1,15 @@
+config_version=5
+
+[application]
+config/name="头部构造 · 十字线与切片"
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.6", "GL Compatibility")
+
+[display]
+window/size/viewport_width=1440
+window/size/viewport_height=940
+window/stretch/mode="canvas_items"
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+environment/defaults/default_clear_color=Color(0.95, 0.94, 0.90, 1)
