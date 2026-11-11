@@ -12,6 +12,7 @@ func check(condition: bool, message: String) -> void:
 func _run() -> void:
 	var study = load("res://main.tscn").instantiate()
 	root.add_child(study)
+	study.face_enabled = false
 	await process_frame
 	study.set_angles(90, 0, 0)
 	check((study.head_basis * Vector3.BACK).is_equal_approx(Vector3.LEFT), "Positive yaw moves face toward subject's right (-X)")

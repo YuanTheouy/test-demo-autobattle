@@ -17,6 +17,7 @@ func distance(a: Color, b: Color) -> float:
 func _run() -> void:
 	var study = load("res://main.tscn").instantiate()
 	root.add_child(study)
+	study.face_enabled = false
 	study.set_angles(0, 0, 0)
 	study.hidden_lines = false
 	study.axes = false
@@ -38,6 +39,23 @@ func _run() -> void:
 	var background_point := Vector2i(12, 350)
 	if distance(no_caps.get_pixelv(background_point), full_sphere.get_pixelv(background_point)) > 0.001:
 		failures.append("Shader misses must leave background unchanged")
+	study.face_enabled = true
+	study.landmarks = false
+	study.sliced = true
+	study.caps = false
+	var face := await snapshot(study)
+	var chin_point: Vector2 = study.project_point(Vector3(0.09, -1.20, 0.7))
+	var chin_color := face.get_pixelv(chin_point)
+	if distance(chin_color, face.get_pixelv(background_point)) < 0.05:
+		failures.append("GPU face extends below sphere to chin")
+	var forehead_a := face.get_pixelv(study.project_point(Vector3(0.15, 0.25, 0)))
+	var forehead_b := face.get_pixelv(study.project_point(Vector3(0.15, 0.40, 0)))
+	if distance(forehead_a, forehead_b) > 0.015:
+		failures.append("Forehead remains a flat panel, without sphere poking through it")
+	study.face_enabled = false
+	var sphere_only := await snapshot(study)
+	if distance(chin_color, sphere_only.get_pixelv(chin_point)) < 0.05:
+		failures.append("Face toggle removes jaw below original sphere")
 	if failures.is_empty():
 		print("HEAD STUDY GPU PASS: in-place caps, opacity slider, solid sphere, transparent background")
 	else:

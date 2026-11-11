@@ -11,15 +11,24 @@ const TAU_STEPS := 180
 var yaw := 30.0
 var pitch := 15.0
 var roll := 0.0
-var cut := 0.76
+var cut := sqrt(5.0) / 3.0
 var cap_opacity := 0.22
 var latitude := 0.0
 var sliced := true
 var caps := true
-var hidden_lines := true
+var hidden_lines := false
 var grid := false
 var axes := true
 var side_meridian := true
+var face_enabled := true
+var nose_enabled := true
+var landmarks := true
+var ball_guides := false
+var face_projection := 1.0
+var chin_width := 0.24
+var face_model = preload("res://loomis_model.gd").new()
+var model_signature := Vector3(-1, -1, -1)
+var model_revision := 0
 var sliders: Dictionary = {}
 var readouts: Dictionary = {}
 var head_basis := Basis.IDENTITY
@@ -78,7 +87,7 @@ func _build_ui() -> void:
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.add_theme_constant_override("separation", 9)
 	scroll.add_child(panel)
-	_label("转一转，再画一遍", 27)
+	_label("Loomis · 面部拼接", 27)
 	_label("X 左耳方向 · Y 头顶方向 · Z 脸朝向\n正值按人物自己的左右；正面看会左右相反。", 15)
 	_slider("yaw", "Yaw  向右甩头", -180, 180, yaw, 1)
 	_slider("pitch", "Pitch  低头点头", -90, 90, pitch, 1)
@@ -90,7 +99,15 @@ func _build_ui() -> void:
 		button.text = preset[0]
 		button.pressed.connect(func(): set_angles(preset[1], preset[2], preset[3]))
 		row.add_child(button)
-	_slider("cut", "切面位置 a（球半径 = 1）", 0.45, 0.98, cut, 0.01)
+	_toggle("显示面部拼接平面", "face_enabled", face_enabled)
+	_toggle("简化鼻楔", "nose_enabled", nose_enabled)
+	_toggle("比例线与文字", "landmarks", landmarks)
+	_toggle("叠加球面十字线", "ball_guides", ball_guides)
+	_slider("chin_width", "下巴半宽 / R", 0.16, 0.38, chin_width, 0.01)
+	_slider("face_projection", "面部前伸比例", 0.8, 1.2, face_projection, 0.01)
+	_label("你的比例（R = 1）\n发际 +2/3 · 眉骨 0 · 下眼睑 −1/3\n鼻底 −2/3 · 嘴线 −1 · 下巴 −4/3\n侧圆半径 2/3 → 切面 √5/3 ≈ 0.745\n耳朵：侧圆底部向上 2/3。", 16)
+	_label("画法：先定眉骨与脸中线；沿中线分出发际、鼻底、下巴。\n画窄正面，再接两侧斜面；从耳下缘连到下颌角，再收向下巴。", 16)
+	_slider("cut", "切面位置 a（标准 √5/3）", 0.45, 0.98, cut, 0.0)
 	_slider("cap_opacity", "薄片不透明度（越低越透明）", 0.05, 0.6, cap_opacity, 0.01)
 	_slider("latitude", "横线高度 h", -0.65, 0.65, latitude, 0.01)
 	_toggle("两侧削平（X = ±a）", "sliced", sliced)
@@ -105,7 +122,7 @@ func _build_ui() -> void:
 	_label("把点转好，再投到纸上", 21)
 	_label("q = Ry(−yaw) Rx(pitch) Rz(roll) p\n纸上点 = 中心 + s · (qx, −qy)\n右边先算：先 roll，再 pitch，再 yaw。\n角度绕随头转动的局部轴；不是拖动历史。", 15)
 	_label("蓝色 = 面部中线　红色 = 横线\n紫色 = 耳侧经线　绿色 = 平切口\n半透明 = 原位薄片；实线在前，虚线在后。\n正交投影，无近大远小。", 15)
-	_label("观察：正面十字可呈直线；转头后才露出弧度。切口本来是圆，斜看成椭圆，侧着看会压成线。\n这是球形头壳构造，不是完整的人脸解剖。", 15)
+	_label("面部用额头、正面、颧侧面、口鼻面、下颌拼接。\n按你给的比例做绘画构造；嘴线与下眼睑是定位参考，可结合观察调整。", 15)
 
 func _slider(key: String, title: String, low: float, high: float, initial: float, step_value: float) -> void:
 	readouts[key] = _label("", 16)
@@ -119,7 +136,7 @@ func _slider(key: String, title: String, low: float, high: float, initial: float
 	sliders[key] = slider
 	var update := func(value: float):
 		set(key, value)
-		readouts[key].text = "%s   %s" % [title, ("%d°" % value) if step_value == 1 else ("%.2f" % value)]
+		readouts[key].text = "%s   %s" % [title, ("%d°" % value) if step_value == 1 else (("%.3f" % value) if key == "cut" else ("%.2f" % value))]
 		_update_head_basis()
 	slider.value_changed.connect(update)
 	update.call(initial)
@@ -153,10 +170,11 @@ func _draw() -> void:
 	if font == null:
 		return
 	var drawing_width := size.x - 460
-	center = Vector2(drawing_width * 0.5, size.y * 0.49)
-	radius = minf(drawing_width / 3.5, size.y * 0.31)
-	draw_string(font, Vector2(32, 49), "头部构造 / 十字线与侧切片", HORIZONTAL_ALIGNMENT_LEFT, -1, 29, INK)
-	draw_string(font, Vector2(33, 80), "拖动右侧滑条，观察同一条球面曲线如何投影。", HORIZONTAL_ALIGNMENT_LEFT, -1, 17, INK)
+	center = Vector2(drawing_width * 0.49, size.y * (0.43 if face_enabled else 0.49))
+	radius = minf(drawing_width / 3.8, size.y * (0.245 if face_enabled else 0.31))
+	_sync_face_model()
+	draw_string(font, Vector2(32, 49), "Loomis 头 / 从球体接出面部平面", HORIZONTAL_ALIGNMENT_LEFT, -1, 27, INK)
+	draw_string(font, Vector2(33, 80), "先找比例，再看正面、侧面与下颌如何转折。", HORIZONTAL_ALIGNMENT_LEFT, -1, 17, INK)
 	# One GPU rectangle replaces rebuilding/sorting thousands of CPU triangles.
 	surface_layer.size = Vector2(drawing_width, size.y)
 	surface_material.set_shader_parameter("canvas_size", surface_layer.size)
@@ -167,6 +185,8 @@ func _draw() -> void:
 	surface_material.set_shader_parameter("cap_opacity", cap_opacity)
 	surface_material.set_shader_parameter("sliced", sliced)
 	surface_material.set_shader_parameter("caps", caps)
+	surface_material.set_shader_parameter("face_enabled", face_enabled)
+	surface_material.set_shader_parameter("nose_enabled", nose_enabled)
 	# Surface silhouette, a great circle normal to the viewing direction.
 	var inv := inverse_basis
 	_curve(func(t: float): return inv * Vector3(cos(t), sin(t), 0), INK, 2.2, true)
@@ -176,14 +196,16 @@ func _draw() -> void:
 		for angle in [-60.0, -30.0, 30.0, 60.0]:
 			var a := deg_to_rad(angle)
 			_curve(func(t: float): return Vector3(sin(a) * cos(t), sin(t), cos(a) * cos(t)), Color(0.38, 0.43, 0.44, 0.42), 1)
-	_curve(func(t: float): return Vector3(0, sin(t), cos(t)), BLUE, 3.4)
-	if side_meridian:
+	if not face_enabled or ball_guides:
+		_curve(func(t: float): return Vector3(0, sin(t), cos(t)), BLUE, 3.4)
+	if side_meridian and (not face_enabled or ball_guides):
 		var joints: Array[float] = []
 		if sliced:
 			var angle := asin(cut)
 			joints = [angle, PI - angle, PI + angle, TAU - angle]
 		_curve(_side_meridian_point, PURPLE, 3.0, false, joints)
-	_curve(func(t: float): return _horizontal_point(t, latitude), RED, 3.4, false, _horizontal_joints(latitude))
+	if not face_enabled or ball_guides:
+		_curve(func(t: float): return _horizontal_point(t, latitude), RED, 3.4, false, _horizontal_joints(latitude))
 	if sliced:
 		for side in [-1.0, 1.0]:
 			_cut_rim(side, Vector3.ZERO, side)
@@ -191,11 +213,13 @@ func _draw() -> void:
 				_cap_silhouette(side, Vector3.ZERO)
 	if axes:
 		_draw_axes()
+	if face_enabled:
+		_draw_face()
 	var front := Vector3(0, 0, 1)
-	if (head_basis * front).z > 0:
+	if not face_enabled and (head_basis * front).z > 0:
 		draw_circle(project_point(front), 5, BLUE)
 		draw_string(font, project_point(front) + Vector2(10, -9), "面部正前方", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, BLUE)
-	draw_string(font, Vector2(33, size.y - 90), "先画外轮廓 → 找切面椭圆 → 沿球面画十字线", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, INK)
+	draw_string(font, Vector2(33, size.y - 90), "球壳 → 眉骨与三庭 → 面部折面 → 耳下缘接下颌", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, INK)
 	draw_string(font, Vector2(33, size.y - 56), "薄片留在原位，透过它看切面；切口半径 ρ = %.2f" % sqrt(1 - cut * cut), HORIZONTAL_ALIGNMENT_LEFT, -1, 17, GREEN)
 	draw_string(font, Vector2(33, size.y - 29), "隐藏辅助线后临摹，再打开核对。横线高度可用于研究眉线或眼线。", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, INK)
 
@@ -232,6 +256,8 @@ func _curve(point: Callable, color: Color, width: float, _silhouette: bool = fal
 		var a: Vector3 = point.call(samples[i])
 		var b: Vector3 = point.call(samples[i + 1])
 		var middle: Vector3 = point.call((samples[i] + samples[i + 1]) * 0.5)
+		if _silhouette and face_enabled and middle.y < 2.0 / 3.0 and middle.z > 0.0001:
+			continue
 		if sliced and absf(middle.x) > cut:
 			continue
 		var visible_part := _point_visible(middle)
@@ -250,6 +276,9 @@ func _cut_rim(side: float, offset: Vector3, _normal_sign: float) -> void:
 	for i in TAU_STEPS:
 		var a := _ring_point(side * cut, TAU * i / TAU_STEPS)
 		var b := _ring_point(side * cut, TAU * (i + 1) / TAU_STEPS)
+		var middle := _ring_point(side * cut, TAU * (i + 0.5) / TAU_STEPS)
+		if face_enabled and not ball_guides and middle.y < 2.0 / 3.0 and middle.z > 0.0001:
+			continue
 		var visible_part := _point_visible(_ring_point(side * cut, TAU * (i + 0.5) / TAU_STEPS) + offset)
 		if visible_part or (hidden_lines and i % 5 < 2):
 			draw_line(project_point(a + offset), project_point(b + offset), GREEN if visible_part else Color(GREEN, 0.23), 2 if visible_part else 1, true)
@@ -274,7 +303,86 @@ func _point_visible(p: Vector3) -> bool:
 	else:
 		top = _solid_depth(q, -cut, cut, Vector3.ZERO)
 		# Transparent caps do not hide the construction lines on the retained head.
+	if face_enabled:
+		top = maxf(top, _face_depth(q, face_model.planes))
+		if nose_enabled:
+			top = maxf(top, _face_depth(q, face_model.nose_planes))
 	return q.z >= top - 0.008
+
+func _face_depth(q: Vector3, bounds: Array[Plane]) -> float:
+	var origin := inverse_basis * Vector3(q.x, q.y, 4)
+	var direction := inverse_basis * Vector3.FORWARD
+	var hit := Geometry3D.segment_intersects_convex(origin, origin + direction * 8, bounds)
+	return (head_basis * hit[0]).z if not hit.is_empty() else -INF
+
+func _sync_face_model() -> void:
+	var signature := Vector3(cut, chin_width, face_projection)
+	if signature.is_equal_approx(model_signature):
+		return
+	face_model.build(cut, chin_width, face_projection)
+	model_signature = signature
+	model_revision += 1
+	for entry in [["face", face_model.planes, 16], ["nose", face_model.nose_planes, 8]]:
+		var packed := PackedVector4Array()
+		for plane in entry[1]:
+			packed.append(Vector4(plane.normal.x, plane.normal.y, plane.normal.z, plane.d))
+		var count := packed.size()
+		while packed.size() < entry[2]:
+			packed.append(Vector4.ZERO)
+		surface_material.set_shader_parameter(entry[0] + "_planes", packed)
+		surface_material.set_shader_parameter(entry[0] + "_count", count)
+
+func _model_line(a: Vector3, b: Vector3, color: Color, width: float, steps: int = 10) -> void:
+	var front := PackedVector2Array()
+	var back := PackedVector2Array()
+	for i in steps:
+		var midpoint := a.lerp(b, (i + 0.5) / steps)
+		if _point_visible(midpoint):
+			front.append(project_point(a.lerp(b, float(i) / steps)))
+			front.append(project_point(a.lerp(b, float(i + 1) / steps)))
+		elif hidden_lines and i % 4 < 2:
+			back.append(project_point(a.lerp(b, float(i) / steps)))
+			back.append(project_point(a.lerp(b, float(i + 1) / steps)))
+	if not back.is_empty():
+		draw_multiline(back, Color(color, 0.16), 1, true)
+	if not front.is_empty():
+		draw_multiline(front, color, width, true)
+
+func _draw_face() -> void:
+	for edge in face_model.edges:
+		_model_line(edge[0], edge[1], Color("6c655c"), 1.8)
+	if nose_enabled:
+		for edge in face_model.nose_edges:
+			_model_line(edge[0], edge[1], INK, 1.8, 6)
+	var levels := [[2.0 / 3.0, "发际 +2/3R", GREEN], [0.0, "眉骨 0", RED], [-1.0 / 3.0, "下眼睑 −1/3R", BLUE], [-2.0 / 3.0, "鼻底 −2/3R", GREEN], [-1.0, "嘴线 −R", PURPLE], [-4.0 / 3.0, "下巴 −4/3R", INK]]
+	var ys := [2.0 / 3.0, 0.0, -2.0 / 3.0, -1.0, -4.0 / 3.0]
+	for i in ys.size() - 1:
+		_model_line(face_model.front(ys[i]), face_model.front(ys[i + 1]), BLUE, 2.4)
+	if landmarks:
+		for level in levels:
+			var ring: Array[Vector3] = face_model.section(level[0])
+			for i in ring.size():
+				_model_line(ring[i], ring[(i + 1) % ring.size()], level[2], 2.4, 8)
+			var anchor: Vector3 = face_model.front(level[0])
+			if (head_basis * Vector3.BACK).z > -0.2:
+				var label_x := size.x - 675
+				var y := project_point(anchor).y
+				draw_line(project_point(anchor) + Vector2(8, 0), Vector2(label_x - 8, y), Color(level[2], 0.35), 1, true)
+				draw_string(font, Vector2(label_x, y - 5), level[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, level[2])
+	var rho := sqrt(1 - cut * cut)
+	for side in [-1.0, 1.0]:
+		for i in 36:
+			var t0 := TAU * i / 36
+			var t1 := TAU * (i + 1) / 36
+			var a := Vector3(side * (cut + 0.012), -rho + 1.0 / 3.0 + cos(t0) / 3.0, 0.015 + sin(t0) * 0.13)
+			var b := Vector3(side * (cut + 0.012), -rho + 1.0 / 3.0 + cos(t1) / 3.0, 0.015 + sin(t1) * 0.13)
+			_model_line(a, b, PURPLE, 2.6, 1)
+		var ear_bottom := Vector3(side * cut, -rho, 0)
+		var jaw_y := lerpf(-rho, -4.0 / 3.0, 0.28)
+		var corner := Vector3(side * lerpf(cut, chin_width, 0.28), jaw_y, 0.10)
+		var chin := Vector3(side * chin_width, -4.0 / 3.0, 0.68 * face_projection)
+		_model_line(ear_bottom, corner, INK, 3.0)
+		_model_line(corner, chin, INK, 3.0)
 
 func _solid_depth(q: Vector3, low: float, high: float, offset: Vector3) -> float:
 	var inv := inverse_basis
@@ -295,6 +403,22 @@ func _solid_depth(q: Vector3, low: float, high: float, offset: Vector3) -> float
 		var z1 := (high - origin.x) / direction.x
 		near_z = maxf(near_z, minf(z0, z1))
 		far_z = minf(far_z, maxf(z0, z1))
+	if near_z > far_z + 0.00001:
+		return -INF
+	if face_enabled:
+		return maxf(_clipped_skull_depth(near_z, far_z, origin, direction, Vector3.DOWN, -2.0 / 3.0), _clipped_skull_depth(near_z, far_z, origin, direction, Vector3.BACK, 0))
+	return far_z
+
+func _clipped_skull_depth(near_z: float, far_z: float, origin: Vector3, direction: Vector3, normal: Vector3, d: float) -> float:
+	var denom := normal.dot(direction)
+	var remaining := d - normal.dot(origin)
+	if absf(denom) < 0.00001:
+		if remaining < -0.00001:
+			return -INF
+	elif denom > 0:
+		far_z = minf(far_z, remaining / denom)
+	else:
+		near_z = maxf(near_z, remaining / denom)
 	return far_z if near_z <= far_z + 0.00001 else -INF
 
 func _draw_axes() -> void:
@@ -309,6 +433,8 @@ func _draw_axes() -> void:
 			draw_line(tip, tip + back.rotated(0.45), entry[2], 2, true)
 			draw_line(tip, tip + back.rotated(-0.45), entry[2], 2, true)
 		draw_string(font, tip + Vector2(6, -7), entry[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, entry[2])
+	if face_enabled:
+		return
 	var face_tip := project_point(Vector3(0, 0, 1.3))
 	draw_line(project_point(Vector3(0, 0, 1)), face_tip, BLUE, 2, true)
 	draw_circle(face_tip, 3, BLUE)
