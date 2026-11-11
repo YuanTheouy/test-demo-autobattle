@@ -1,6 +1,6 @@
 # AutoBattle — 2.5D 小队竞技场
 
-绘画练习小程序：双击 `demos/head_study/start.cmd`，或用 Godot 导入 `demos/head_study/project.godot`。可调头部 yaw / pitch / roll，观察按自定比例拼接的 Loomis 面部平面、下颌、耳朵与鼻楔，也可切回球面十字线及半透明薄片；公式与用法见 [头部构造说明](demos/head_study/README.md)。
+绘画练习小程序：双击 `demos/head_study/start.cmd`，或用 Godot 导入 `demos/head_study/project.godot`。顶部切换“男性 / 美少女”两个简单基本面，均可调 yaw / pitch / roll；不加眼睑、嘴唇和细碎次级面。展开设置后仍可研究球面十字线及半透明薄片；公式与用法见 [头部构造说明](demos/head_study/README.md)。
 
 默认入口现为 `squad_arena.tscn`：4个小队、8个机甲（蓝A/B两队，红C/D两队）。Godot按F5启动该场景；F6仍运行当前打开的场景。旧原型可从左下“旧原型”返回。下文旧原型的启动参数和测试命令请显式指定 `res://puzzle_arena.tscn`；双轨场景也可直接运行 `res://dual_track_arena.tscn`。
 

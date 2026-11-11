@@ -80,6 +80,7 @@ vec4 solid(vec3 origin, vec3 direction, float low, float high, int region) {
 	bool is_cut = far_z < sphere_exit - 0.00001;
 	vec3 normal = is_cut ? clipped_normal : normalize(origin + direction * far_z);
 	vec3 base = is_cut ? vec3(0.600, 0.718, 0.627) : vec3(0.839, 0.776, 0.659);
+	if (is_cut && face_enabled) { base=vec3(0.69,0.69,0.64); }
 	float light = clamp(dot(head_basis * normal, normalize(vec3(-0.3, 0.5, 0.8))), 0.0, 1.0);
 	return vec4(mix(base, vec3(1.0, 0.973, 0.910), light * 0.55), far_z);
 }

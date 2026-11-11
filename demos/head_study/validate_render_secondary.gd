@@ -37,13 +37,21 @@ func _run() -> void:
 	if distance(with_nose.get_pixelv(nose_sample), no_nose.get_pixelv(nose_sample)) < 0.04:
 		failures.append("GPU secondary nose toggle must change side silhouette")
 	study.nose_enabled = true
+	study.set_angles(0, 0, 0)
+	study.set_head_style(0)
+	var male := await snapshot(study)
+	var chin_sample: Vector2 = study.project_point(Vector3(0.22,-1.28,0.7))
+	study.set_head_style(1)
+	var girl := await snapshot(study)
+	if distance(male.get_pixelv(chin_sample),girl.get_pixelv(chin_sample)) < 0.04:
+		failures.append("Girl preset must visibly narrow the chin silhouette")
 	for pose in [[0, 90, 0], [0, -90, 0], [180, 0, 0], [-90, 30, 35]]:
 		study.set_angles(pose[0], pose[1], pose[2])
 		var image := await snapshot(study)
 		if image.is_empty():
 			failures.append("Extreme views must render")
 	if failures.is_empty():
-		print("SECONDARY GPU PASS: socket shading, basic/detail comparison, nose silhouette and extreme views")
+		print("BASIC HEADS GPU PASS: male/girl silhouette, eye planes, nose toggle and extreme views")
 	else:
 		for failure in failures:
 			push_error(failure)

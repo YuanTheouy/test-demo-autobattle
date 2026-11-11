@@ -15,16 +15,19 @@ var cut := sqrt(5.0) / 3.0
 var cap_opacity := 0.22
 var latitude := 0.0
 var sliced := true
-var caps := true
+var caps := false
 var hidden_lines := false
 var grid := false
-var axes := true
+var axes := false
 var side_meridian := true
 var face_enabled := true
 var nose_enabled := true
 var landmarks := false
 var secondary_enabled := true
 var plane_edges := true
+var head_style := 0
+var style_buttons: Array[Button] = []
+var model_style_signature := -1
 var secondary_layer: MeshInstance2D
 var secondary_material: ShaderMaterial
 var ball_guides := false
@@ -97,7 +100,20 @@ func _build_ui() -> void:
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.add_theme_constant_override("separation", 9)
 	scroll.add_child(panel)
-	_label("Loomis · 面部拼接", 27)
+	_label("Loomis · 基本面练习", 27)
+	var styles := HBoxContainer.new()
+	panel.add_child(styles)
+	var style_group := ButtonGroup.new()
+	for i in 2:
+		var button := Button.new()
+		button.text = "男性 · 基本面" if i == 0 else "美少女 · 基本面"
+		button.toggle_mode = true
+		button.button_group = style_group
+		button.button_pressed = i == head_style
+		button.pressed.connect(func(): set_head_style(i))
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		styles.add_child(button)
+		style_buttons.append(button)
 	_label("X 左耳方向 · Y 头顶方向 · Z 脸朝向\n正值按人物自己的左右；正面看会左右相反。", 15)
 	_slider("yaw", "Yaw  向右甩头", -180, 180, yaw, 1)
 	_slider("pitch", "Pitch  低头点头", -90, 90, pitch, 1)
@@ -110,10 +126,20 @@ func _build_ui() -> void:
 		button.pressed.connect(func(): set_angles(preset[1], preset[2], preset[3]))
 		row.add_child(button)
 	_toggle("显示面部拼接平面", "face_enabled", face_enabled)
-	_toggle("次级面：眼窝 / 颧骨 / 口轮", "secondary_enabled", secondary_enabled)
 	_toggle("显示平面转折边线", "plane_edges", plane_edges)
-	_toggle("简化鼻楔", "nose_enabled", nose_enabled)
+	_toggle("显示简单鼻块", "nose_enabled", nose_enabled)
 	_toggle("比例线与文字", "landmarks", landmarks)
+	var main_panel := panel
+	var details_toggle := Button.new()
+	details_toggle.text = "展开：球体、切片与比例设置"
+	details_toggle.toggle_mode = true
+	panel.add_child(details_toggle)
+	var details := VBoxContainer.new()
+	details.visible = false
+	details.add_theme_constant_override("separation", 9)
+	panel.add_child(details)
+	details_toggle.toggled.connect(details.set_visible)
+	panel = details
 	_toggle("叠加球面十字线", "ball_guides", ball_guides)
 	_slider("chin_width", "下巴半宽 / R", 0.16, 0.38, chin_width, 0.01)
 	_slider("face_projection", "面部前伸比例", 0.8, 1.2, face_projection, 0.01)
@@ -134,7 +160,8 @@ func _build_ui() -> void:
 	_label("把点转好，再投到纸上", 21)
 	_label("q = Ry(−yaw) Rx(pitch) Rz(roll) p\n纸上点 = 中心 + s · (qx, −qy)\n右边先算：先 roll，再 pitch，再 yaw。\n角度绕随头转动的局部轴；不是拖动历史。", 15)
 	_label("蓝色 = 面部中线　红色 = 横线\n紫色 = 耳侧经线　绿色 = 平切口\n半透明 = 原位薄片；实线在前，虚线在后。\n正交投影，无近大远小。", 15)
-	_label("面部用额头、正面、颧侧面、口鼻面、下颌拼接。\n按你给的比例做绘画构造；嘴线与下眼睑是定位参考，可结合观察调整。", 15)
+	_label("两个版本都只保留参考图的大面，不加眼睑、嘴唇或细碎次级面。\n男性下颌较方；美少女下巴较窄、眉骨和鼻块较轻。", 15)
+	panel = main_panel
 
 func _slider(key: String, title: String, low: float, high: float, initial: float, step_value: float) -> void:
 	readouts[key] = _label("", 16)
@@ -169,6 +196,13 @@ func set_angles(y: float, p: float, r: float) -> void:
 	sliders.pitch.value = p
 	sliders.roll.value = r
 
+func set_head_style(index: int) -> void:
+	head_style = clampi(index, 0, 1)
+	sliders.chin_width.value = 0.24 if head_style == 0 else 0.16
+	for i in style_buttons.size():
+		style_buttons[i].button_pressed = i == head_style
+	queue_redraw()
+
 func _update_head_basis() -> void:
 	head_basis = Basis(Vector3.UP, deg_to_rad(-yaw)) * Basis(Vector3.RIGHT, deg_to_rad(pitch)) * Basis(Vector3.BACK, deg_to_rad(roll))
 	inverse_basis = head_basis.transposed()
@@ -185,8 +219,8 @@ func _draw() -> void:
 	center = Vector2(drawing_width * 0.49, size.y * (0.43 if face_enabled else 0.49))
 	radius = minf(drawing_width / 3.8, size.y * (0.245 if face_enabled else 0.31))
 	_sync_face_model()
-	draw_string(font, Vector2(32, 49), "Loomis 头 / 从球体接出面部平面", HORIZONTAL_ALIGNMENT_LEFT, -1, 27, INK)
-	draw_string(font, Vector2(33, 80), "先找比例，再看正面、侧面与下颌如何转折。", HORIZONTAL_ALIGNMENT_LEFT, -1, 17, INK)
+	draw_string(font, Vector2(32, 49), "%s / 基本面练习" % ("男性" if head_style == 0 else "美少女"), HORIZONTAL_ALIGNMENT_LEFT, -1, 27, INK)
+	draw_string(font, Vector2(33, 80), "只看少量大面与转折；拖动右侧滑条观察。", HORIZONTAL_ALIGNMENT_LEFT, -1, 17, INK)
 	# One GPU rectangle replaces rebuilding/sorting thousands of CPU triangles.
 	surface_layer.size = Vector2(drawing_width, size.y)
 	surface_material.set_shader_parameter("canvas_size", surface_layer.size)
@@ -234,8 +268,11 @@ func _draw() -> void:
 		draw_circle(project_point(front), 5, BLUE)
 		draw_string(font, project_point(front) + Vector2(10, -9), "面部正前方", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, BLUE)
 	draw_string(font, Vector2(33, size.y - 90), "球壳 → 眉骨与三庭 → 面部折面 → 耳下缘接下颌", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, INK)
-	draw_string(font, Vector2(33, size.y - 56), "薄片留在原位，透过它看切面；切口半径 ρ = %.2f" % sqrt(1 - cut * cut), HORIZONTAL_ALIGNMENT_LEFT, -1, 17, GREEN)
-	draw_string(font, Vector2(33, size.y - 29), "隐藏辅助线后临摹，再打开核对。横线高度可用于研究眉线或眼线。", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, INK)
+	if face_enabled:
+		draw_string(font, Vector2(33, size.y - 56), "只保留基本面；不画眼睑、嘴唇和细碎次级面。", HORIZONTAL_ALIGNMENT_LEFT, -1, 17, INK)
+		draw_string(font, Vector2(33, size.y - 29), "顶部切换男性 / 美少女；切换时保持当前角度。", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, INK)
+	else:
+		draw_string(font, Vector2(33, size.y - 56), "切口半径 ρ = %.2f；可展开设置显示半透明薄片。" % sqrt(1 - cut * cut), HORIZONTAL_ALIGNMENT_LEFT, -1, 17, GREEN)
 
 func _ring_point(x: float, t: float) -> Vector3:
 	var r := sqrt(maxf(0, 1 - x * x))
@@ -295,7 +332,8 @@ func _cut_rim(side: float, offset: Vector3, _normal_sign: float) -> void:
 			continue
 		var visible_part := _point_visible(_ring_point(side * cut, TAU * (i + 0.5) / TAU_STEPS) + offset)
 		if visible_part or (hidden_lines and i % 5 < 2):
-			draw_line(project_point(a + offset), project_point(b + offset), GREEN if visible_part else Color(GREEN, 0.23), 2 if visible_part else 1, true)
+			var rim_color := Color("696d66") if face_enabled else GREEN
+			draw_line(project_point(a + offset), project_point(b + offset), rim_color if visible_part else Color(rim_color, 0.23), 1.6 if visible_part else 1, true)
 
 func _cap_silhouette(side: float, offset: Vector3) -> void:
 	var inv := inverse_basis
@@ -342,10 +380,11 @@ func _face_depth(q: Vector3, bounds: Array[Plane]) -> float:
 
 func _sync_face_model() -> void:
 	var signature := Vector3(cut, chin_width, face_projection)
-	if signature.is_equal_approx(model_signature):
+	if signature.is_equal_approx(model_signature) and model_style_signature == head_style:
 		return
-	face_model.build(cut, chin_width, face_projection)
+	face_model.build(cut, chin_width, face_projection, head_style)
 	model_signature = signature
+	model_style_signature = head_style
 	model_revision += 1
 	for entry in [["face", face_model.planes, 16], ["nose", face_model.nose_planes, 8]]:
 		var packed := PackedVector4Array()
@@ -379,8 +418,7 @@ func _draw_face() -> void:
 		for edge in edges:
 			if edge.size() > 2 and edge[2] == 1 and not nose_enabled:
 				continue
-			var feature: bool = edge.size() > 2 and edge[2] == 2
-			_model_line(edge[0], edge[1], Color(0.24, 0.26, 0.27, 0.82 if feature else 0.50), 1.45 if feature else 1.0, 6)
+			_model_line(edge[0], edge[1], Color(0.24, 0.26, 0.27, 0.72), 1.5, 8)
 	if nose_enabled and not secondary_enabled:
 		for edge in face_model.nose_edges:
 			_model_line(edge[0], edge[1], INK, 1.8, 6)
@@ -402,11 +440,10 @@ func _draw_face() -> void:
 				draw_string(font, Vector2(label_x, y - 5), level[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, level[2])
 	var rho := sqrt(1 - cut * cut)
 	for side in [-1.0, 1.0]:
-		for i in 36:
-			var t0 := TAU * i / 36
-			var t1 := TAU * (i + 1) / 36
-			var a := Vector3(side * (cut + 0.012), -rho + 1.0 / 3.0 + cos(t0) / 3.0, 0.015 + sin(t0) * 0.13)
-			var b := Vector3(side * (cut + 0.012), -rho + 1.0 / 3.0 + cos(t1) / 3.0, 0.015 + sin(t1) * 0.13)
+		var ear := [Vector2(-0.06, -rho + 2.0 / 3.0), Vector2(0.10, -rho + 2.0 / 3.0), Vector2(0.15, -rho + 0.49), Vector2(0.10, -rho), Vector2(-0.06, -rho + 0.05)]
+		for i in ear.size():
+			var a := Vector3(side * (cut + 0.012), ear[i].y, ear[i].x)
+			var b := Vector3(side * (cut + 0.012), ear[(i + 1) % ear.size()].y, ear[(i + 1) % ear.size()].x)
 			_model_line(a, b, PURPLE if landmarks else Color("615f59"), 2.0, 1)
 		var ear_bottom := Vector3(side * cut, -rho, 0)
 		var jaw_y := lerpf(-rho, -4.0 / 3.0, 0.28)
@@ -415,6 +452,13 @@ func _draw_face() -> void:
 		if not secondary_enabled:
 			_model_line(ear_bottom, corner, INK, 3.0)
 			_model_line(corner, chin, INK, 3.0)
+	if secondary_enabled and not landmarks:
+		for i in 28:
+			if i % 2 == 0:
+				continue
+			var y0 := lerpf(2.0 / 3.0, -4.0 / 3.0, float(i) / 28)
+			var y1 := lerpf(2.0 / 3.0, -4.0 / 3.0, float(i + 1) / 28)
+			_model_line(_face_front(y0), _face_front(y1), Color(INK, 0.30), 1.0, 2)
 
 func _face_front(y: float) -> Vector3:
 	return face_model.secondary_front(y) if secondary_enabled else face_model.front(y)
@@ -514,10 +558,12 @@ func _draw_axes() -> void:
 	draw_circle(face_tip, 3, BLUE)
 
 func _capture() -> void:
-	for pose in [[30, 15, 0], [0, 0, 0], [75, -30, 25], [180, 0, 0]]:
-		set_angles(pose[0], pose[1], pose[2])
-		for frame in 3:
-			await get_tree().process_frame
-		await RenderingServer.frame_post_draw
-		get_viewport().get_texture().get_image().save_png("res://preview_%d.png" % pose[0])
+	for style in 2:
+		set_head_style(style)
+		for pose in [[30, 15, 0], [0, 0, 0], [75, -30, 25], [180, 0, 0]]:
+			set_angles(pose[0], pose[1], pose[2])
+			for frame in 3:
+				await get_tree().process_frame
+			await RenderingServer.frame_post_draw
+			get_viewport().get_texture().get_image().save_png("res://preview_%s_%d.png" % ["male" if style == 0 else "girl", pose[0]])
 	get_tree().quit()

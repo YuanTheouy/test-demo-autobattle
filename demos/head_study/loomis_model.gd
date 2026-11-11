@@ -13,12 +13,15 @@ var vertices: Array[Vector3] = []
 var depth := 1.0
 var chin_width := 0.24
 var cut := sqrt(5.0) / 3.0
+var style := 0
+var patch_count := 0
 var secondary_triangles: Array = []
 var secondary_edges: Array = []
 var secondary_bvh := TriangleMesh.new()
 var secondary_nose_bvh := TriangleMesh.new()
 
-func build(a: float, width: float, projection: float) -> void:
+func build(a: float, width: float, projection: float, head_style: int = 0) -> void:
+	style = head_style
 	cut = a
 	chin_width = width
 	depth = projection
@@ -50,103 +53,83 @@ func half_width(y: float) -> float:
 	return minf(cut, cut + slope * (y + rho))
 
 func _build_secondary() -> void:
-	# Loomis plate 9 guides topology, not numerical anatomy. Width and height
-	# remain the user's construction; the relief is an authored approximation.
+	# Match the supplied BASIC-plane plate: no eyelids, lips or cheek subdivisions.
 	secondary_triangles.clear()
 	secondary_edges.clear()
-	var heights := [
-		[HAIR, HAIR, HAIR, HAIR, HAIR],
-		[0.0, 0.025, 0.035, 0.07, 0.0],
-		[-0.18, -0.16, -0.18, -0.14, -0.20],
-		[EYE, EYE, EYE, EYE, EYE],
-		[-0.50, -0.49, -0.43, -0.39, -0.48],
-		[NOSE, NOSE, NOSE, NOSE, NOSE],
-		[-0.83, -0.83, -0.79, -0.79, -0.85],
-		[MOUTH, MOUTH, MOUTH, MOUTH, MOUTH],
-		[-1.10, -1.10, -1.10, -1.10, -1.10],
-		[CHIN, CHIN, CHIN, CHIN, CHIN]]
-	var depths := [
-		[0.78, 0.79, 0.76, 0.64, 0.0],
-		[1.02, 1.03, 1.01, 0.90, 0.0],
-		[1.00, 0.92, 0.79, 0.78, 0.0],
-		[0.98, 0.95, 0.87, 0.86, 0.0],
-		[0.96, 0.99, 0.99, 0.84, 0.0],
-		[0.94, 1.02, 0.85, 0.64, 0.0],
-		[0.90, 0.93, 0.82, 0.55, 0.0],
-		[0.83, 0.86, 0.79, 0.48, 0.0],
-		[0.75, 0.73, 0.71, 0.43, 0.0],
-		[0.68, 0.68, 0.66, 0.48, 0.0]]
-	var fractions := [0.0, 0.18, 0.47, 0.75, 1.0]
-	var rings: Array = []
-	for row in heights.size():
-		var ring: Array[Vector3] = []
-		for col in range(-4, 5):
-			var i := absi(col)
-			var y: float = heights[row][i]
-			ring.append(Vector3(signf(col) * fractions[i] * half_width(y), y, depths[row][i] * depth))
-		rings.append(ring)
-	for row in rings.size() - 1:
-		for col in 8:
-			_quad(rings[row][col], rings[row + 1][col], rings[row + 1][col + 1], rings[row][col + 1], 0)
-		# Back closure. No convex enclosure can represent the recessed eye sockets.
-		var left: Vector3 = rings[row][0]
-		var right: Vector3 = rings[row][8]
-		var lower_left: Vector3 = rings[row + 1][0]
-		var lower_right: Vector3 = rings[row + 1][8]
-		_quad(right, lower_right, lower_left, left, 0)
-	for row in [0, rings.size() - 1]:
-		var anchor := Vector3(0, HAIR if row == 0 else CHIN, 0)
-		for col in 8:
-			_triangle(anchor, rings[row][col] if row == 0 else rings[row][col + 1], rings[row][col + 1] if row == 0 else rings[row][col], 0)
-	# Structural edges only: omit triangulation diagonals and full-width mouth bands.
-	for row in [0, 1, 3, 4]:
-		for col in 8:
-			if row == 4 and col in [3, 4]:
-				continue
-			secondary_edges.append([rings[row][col], rings[row][col + 1]])
-	for col in [1, 3, 5, 7]:
-		for row in rings.size() - 1:
-			if col in [3, 5] and row < 1:
-				continue
-			secondary_edges.append([rings[row][col], rings[row + 1][col]])
-	for col in [0, 8]:
-		for row in rings.size() - 1:
-			secondary_edges.append([rings[row][col], rings[row + 1][col]])
-	for col in 8:
-		secondary_edges.append([rings.back()[col], rings.back()[col + 1]])
-	# Small lip mass, with the mouth seam exactly on the user's y=-R.
-	var corner_l := Vector3(-half_width(MOUTH) * 0.46, MOUTH, 0.80 * depth)
-	var corner_r := Vector3(half_width(MOUTH) * 0.46, MOUTH, 0.80 * depth)
-	var seam := Vector3(0, MOUTH, 0.90 * depth)
-	var upper := Vector3(0, MOUTH + 0.055, 0.88 * depth)
-	var lower := Vector3(0, MOUTH - 0.055, 0.89 * depth)
-	_triangle(corner_l, seam, upper, 0)
-	_triangle(seam, corner_r, upper, 0)
-	_triangle(corner_l, lower, seam, 0)
-	_triangle(seam, lower, corner_r, 0)
-	secondary_edges.append([corner_l, seam, 2])
-	secondary_edges.append([seam, corner_r, 2])
-	# Symmetric nose planes: bridge, side walls, tip, wings, and underside.
-	var root_l := Vector3(-cut * 0.13, -0.09, 1.025 * depth)
-	var root_r := Vector3(cut * 0.13, -0.09, 1.025 * depth)
-	var tip := Vector3(0, -0.565, 1.20 * depth)
-	var tip_l := tip + Vector3(-cut * 0.085, 0, 0)
-	var tip_r := tip + Vector3(cut * 0.085, 0, 0)
-	var base := Vector3(0, NOSE, 1.085 * depth)
-	var wing_l := Vector3(-cut * 0.22, NOSE, 1.02 * depth)
-	var wing_r := Vector3(cut * 0.22, NOSE, 1.02 * depth)
-	var nose_l := Vector3(-cut * 0.13, -0.54, 1.12 * depth)
-	var nose_r := Vector3(cut * 0.13, -0.54, 1.12 * depth)
-	_quad(root_l, tip_l, tip_r, root_r, 1)
-	_quad(root_l, wing_l, nose_l, tip_l, 1)
-	_quad(tip_r, nose_r, wing_r, root_r, 1)
-	_triangle(nose_l, wing_l, base, 1)
-	_triangle(nose_l, base, tip_l, 1)
-	_triangle(tip_l, base, tip_r, 1)
-	_triangle(tip_r, base, nose_r, 1)
-	_triangle(nose_r, base, wing_r, 1)
-	for edge in [[root_l, root_r], [root_l, tip_l], [root_r, tip_r], [nose_l, tip_l], [nose_r, tip_r], [tip_l, tip_r], [wing_l, base], [base, wing_r], [nose_l, wing_l], [nose_r, wing_r]]:
-		secondary_edges.append([edge[0], edge[1], 1])
+	patch_count = 0
+	var girl := style == 1
+	var brow_z := (0.98 if girl else 1.02) * depth
+	var eye_z := (0.90 if girl else 0.86) * depth
+	var eye_x := cut * (0.82 if girl else 0.76)
+	var chin_top_y := -1.16
+	var chin_top_width := minf(half_width(chin_top_y), chin_width * 1.18)
+	var hair_l := Vector3(-cut * 0.66, HAIR, 0.78 * depth)
+	var hair_r := Vector3(cut * 0.66, HAIR, 0.78 * depth)
+	var hair_side_l := Vector3(-cut, HAIR, 0)
+	var hair_side_r := Vector3(cut, HAIR, 0)
+	var brow_l := Vector3(-cut * 0.64, 0, brow_z)
+	var brow_r := Vector3(cut * 0.64, 0, brow_z)
+	var brow_inner_l := Vector3(-cut * 0.15, 0, brow_z)
+	var brow_inner_r := Vector3(cut * 0.15, 0, brow_z)
+	var eye_inner_l := Vector3(-cut * 0.17, EYE, 0.94 * depth)
+	var eye_inner_r := Vector3(cut * 0.17, EYE, 0.94 * depth)
+	var eye_outer_l := Vector3(-eye_x, EYE, eye_z)
+	var eye_outer_r := Vector3(eye_x, EYE, eye_z)
+	var ear_top_l := Vector3(-cut, 0, 0)
+	var ear_top_r := Vector3(cut, 0, 0)
+	var ear_bottom_y := -sqrt(1 - cut * cut)
+	var cheek_l := Vector3(-half_width(NOSE), NOSE, 0)
+	var cheek_r := Vector3(half_width(NOSE), NOSE, 0)
+	var jaw_y := lerpf(ear_bottom_y, CHIN, 0.42)
+	var jaw_l := Vector3(-half_width(jaw_y), jaw_y, 0.06 * depth)
+	var jaw_r := Vector3(half_width(jaw_y), jaw_y, 0.06 * depth)
+	var chin_l := Vector3(-chin_top_width, chin_top_y, 0.76 * depth)
+	var chin_r := Vector3(chin_top_width, chin_top_y, 0.76 * depth)
+	var bottom_l := Vector3(-chin_width, CHIN, 0.68 * depth)
+	var bottom_r := Vector3(chin_width, CHIN, 0.68 * depth)
+	var back_l := Vector3(-chin_width, CHIN, 0)
+	var back_r := Vector3(chin_width, CHIN, 0)
+	_patch([hair_l, brow_l, brow_r, hair_r])
+	_patch([hair_l, hair_side_l, ear_top_l, cheek_l, eye_outer_l, brow_l])
+	_patch([hair_r, brow_r, eye_outer_r, cheek_r, ear_top_r, hair_side_r])
+	_patch([brow_l, eye_outer_l, eye_inner_l, brow_inner_l])
+	_patch([brow_inner_l, eye_inner_l, eye_inner_r, brow_inner_r])
+	_patch([brow_inner_r, eye_inner_r, eye_outer_r, brow_r])
+	# One broad lower-face plane: no mouth band, lip mass or cheek micro-facets.
+	_patch([eye_outer_l, chin_l, chin_r, eye_outer_r, eye_inner_r, eye_inner_l])
+	_patch([eye_outer_l, cheek_l, jaw_l, chin_l])
+	_patch([eye_outer_r, chin_r, jaw_r, cheek_r])
+	_patch([chin_l, bottom_l, bottom_r, chin_r])
+	_patch([jaw_l, back_l, bottom_l, chin_l])
+	_patch([jaw_r, chin_r, bottom_r, back_r])
+	_patch([hair_side_l, hair_l, hair_r, hair_side_r], 0, false)
+	_patch([hair_side_l, hair_side_r, ear_top_r, cheek_r, jaw_r, back_r, back_l, jaw_l, cheek_l, ear_top_l], 0, false, Vector3.FORWARD)
+	_patch([bottom_l, back_l, back_r, bottom_r], 0, false, Vector3.DOWN)
+	var nose_width := cut * (0.10 if girl else 0.16)
+	var root_y := -0.22 if girl else -0.08
+	var tip_y := -0.58
+	var nose_z := (1.09 if girl else 1.20) * depth
+	var root_l := Vector3(-nose_width * 0.65, root_y, 1.00 * depth)
+	var root_r := Vector3(nose_width * 0.65, root_y, 1.00 * depth)
+	var tip_l := Vector3(-nose_width * 0.72, tip_y, nose_z)
+	var tip_r := Vector3(nose_width * 0.72, tip_y, nose_z)
+	var wing_l := Vector3(-nose_width, NOSE, 1.00 * depth)
+	var wing_r := Vector3(nose_width, NOSE, 1.00 * depth)
+	_patch([root_l, tip_l, tip_r, root_r], 1)
+	_patch([root_l, wing_l, tip_l], 1)
+	_patch([root_r, tip_r, wing_r], 1)
+	_patch([wing_l, wing_r, tip_r, tip_l], 1)
+	# Deduplicate shared patch boundaries; do not expose render triangulation.
+	var unique: Dictionary = {}
+	var outline: Array = []
+	for edge in secondary_edges:
+		var key_a := str(edge[0].snapped(Vector3.ONE * 0.0001))
+		var key_b := str(edge[1].snapped(Vector3.ONE * 0.0001))
+		var key := key_a + key_b if key_a < key_b else key_b + key_a
+		if not unique.has(key):
+			unique[key] = true
+			outline.append(edge)
+	secondary_edges = outline
 	var body_faces := PackedVector3Array()
 	var nose_faces := PackedVector3Array()
 	for tri in secondary_triangles:
@@ -157,27 +140,32 @@ func _build_secondary() -> void:
 				body_faces.append(tri[i])
 	secondary_bvh.create_from_faces(body_faces)
 	secondary_nose_bvh.create_from_faces(nose_faces)
-	# Eyelid creases follow the recessed surface; they do not alter face width.
-	for side in [-1.0, 1.0]:
-		var upper_lid: Array[Vector3] = []
-		var lower_lid: Array[Vector3] = []
-		for i in 5:
-			var u := float(i) / 4
-			var x: float = side * cut * lerpf(0.22, 0.70, u)
-			var arch := sin(PI * u)
-			var y := -0.26 + 0.055 * arch
-			for target in [0, 1]:
-				var yy := y if target == 0 else -0.26 - 0.015 * arch
-				var hit := secondary_bvh.intersect_ray(Vector3(x, yy, 4), Vector3.FORWARD)
-				var p := Vector3(x, yy, 0.85 * depth) if hit.is_empty() else Vector3(hit.position)
-				p.z += 0.003
-				if target == 0:
-					upper_lid.append(p)
-				else:
-					lower_lid.append(p)
-		for i in 4:
-			secondary_edges.append([upper_lid[i], upper_lid[i + 1], 2])
-			secondary_edges.append([lower_lid[i], lower_lid[i + 1], 2])
+
+func _patch(points: Array[Vector3], part: int = 0, outline: bool = true, desired_normal: Vector3 = Vector3.ZERO) -> void:
+	var normal := Vector3.ZERO
+	for i in points.size():
+		normal += points[i].cross(points[(i + 1) % points.size()])
+	normal = normal.normalized()
+	if normal.length_squared() < 0.5:
+		return
+	var u := normal.cross(Vector3.UP if absf(normal.y) < 0.9 else Vector3.RIGHT).normalized()
+	var v := normal.cross(u)
+	var flat := PackedVector2Array()
+	for p in points:
+		flat.append(Vector2(p.dot(u), p.dot(v)))
+	var indices := Geometry2D.triangulate_polygon(flat)
+	if indices.is_empty():
+		return
+	patch_count += 1
+	if desired_normal != Vector3.ZERO:
+		normal = desired_normal
+	elif normal.z < 0:
+		normal = -normal
+	for i in range(0, indices.size(), 3):
+		_triangle(points[indices[i]], points[indices[i + 1]], points[indices[i + 2]], part, normal)
+	if outline:
+		for i in points.size():
+			secondary_edges.append([points[i], points[(i + 1) % points.size()], part])
 
 func _triangle(a: Vector3, b: Vector3, c: Vector3, part: int, normal: Vector3 = Vector3.ZERO) -> void:
 	var n := (b - a).cross(c - a)
