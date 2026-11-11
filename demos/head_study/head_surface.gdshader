@@ -11,6 +11,7 @@ uniform bool sliced;
 uniform bool caps;
 uniform bool face_enabled;
 uniform bool nose_enabled;
+uniform bool secondary_enabled;
 uniform vec4 face_planes[16];
 uniform int face_count;
 uniform vec4 nose_planes[8];
@@ -94,11 +95,13 @@ void fragment() {
 	if (face_enabled) {
 		vec4 back_skull = solid(origin, direction, low, high, 2);
 		if (back_skull.a > hit.a) { hit = back_skull; }
-		vec4 face = face_solid(origin, direction, false);
-		if (face.a > hit.a) { hit = face; }
-		if (nose_enabled) {
-			vec4 nose = face_solid(origin, direction, true);
-			if (nose.a > hit.a) { hit = nose; }
+		if (!secondary_enabled) {
+			vec4 face = face_solid(origin, direction, false);
+			if (face.a > hit.a) { hit = face; }
+			if (nose_enabled) {
+				vec4 nose = face_solid(origin, direction, true);
+				if (nose.a > hit.a) { hit = nose; }
+			}
 		}
 	}
 	vec4 result = vec4(hit.rgb, hit.a > -9999.0 ? 1.0 : 0.0);

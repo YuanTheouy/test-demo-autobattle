@@ -22,7 +22,11 @@ var axes := true
 var side_meridian := true
 var face_enabled := true
 var nose_enabled := true
-var landmarks := true
+var landmarks := false
+var secondary_enabled := true
+var plane_edges := true
+var secondary_layer: MeshInstance2D
+var secondary_material: ShaderMaterial
 var ball_guides := false
 var face_projection := 1.0
 var chin_width := 0.24
@@ -55,6 +59,12 @@ func _ready() -> void:
 	surface_layer.show_behind_parent = true
 	surface_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(surface_layer)
+	secondary_material = ShaderMaterial.new()
+	secondary_material.shader = preload("res://secondary_surface.gdshader")
+	secondary_layer = MeshInstance2D.new()
+	secondary_layer.material = secondary_material
+	secondary_layer.show_behind_parent = true
+	add_child(secondary_layer)
 	_build_ui()
 	_update_head_basis()
 	resized.connect(queue_redraw)
@@ -100,6 +110,8 @@ func _build_ui() -> void:
 		button.pressed.connect(func(): set_angles(preset[1], preset[2], preset[3]))
 		row.add_child(button)
 	_toggle("显示面部拼接平面", "face_enabled", face_enabled)
+	_toggle("次级面：眼窝 / 颧骨 / 口轮", "secondary_enabled", secondary_enabled)
+	_toggle("显示平面转折边线", "plane_edges", plane_edges)
 	_toggle("简化鼻楔", "nose_enabled", nose_enabled)
 	_toggle("比例线与文字", "landmarks", landmarks)
 	_toggle("叠加球面十字线", "ball_guides", ball_guides)
@@ -187,6 +199,8 @@ func _draw() -> void:
 	surface_material.set_shader_parameter("caps", caps)
 	surface_material.set_shader_parameter("face_enabled", face_enabled)
 	surface_material.set_shader_parameter("nose_enabled", nose_enabled)
+	surface_material.set_shader_parameter("secondary_enabled", secondary_enabled)
+	_update_secondary_surface()
 	# Surface silhouette, a great circle normal to the viewing direction.
 	var inv := inverse_basis
 	_curve(func(t: float): return inv * Vector3(cos(t), sin(t), 0), INK, 2.2, true)
@@ -304,9 +318,20 @@ func _point_visible(p: Vector3) -> bool:
 		top = _solid_depth(q, -cut, cut, Vector3.ZERO)
 		# Transparent caps do not hide the construction lines on the retained head.
 	if face_enabled:
-		top = maxf(top, _face_depth(q, face_model.planes))
-		if nose_enabled:
-			top = maxf(top, _face_depth(q, face_model.nose_planes))
+		if secondary_enabled:
+			var origin := inverse_basis * Vector3(q.x, q.y, 4)
+			var direction := inverse_basis * Vector3.FORWARD
+			var hit: Dictionary = face_model.secondary_bvh.intersect_ray(origin, direction)
+			if not hit.is_empty():
+				top = maxf(top, (head_basis * hit.position).z)
+			if nose_enabled:
+				hit = face_model.secondary_nose_bvh.intersect_ray(origin, direction)
+				if not hit.is_empty():
+					top = maxf(top, (head_basis * hit.position).z)
+		else:
+			top = maxf(top, _face_depth(q, face_model.planes))
+			if nose_enabled:
+				top = maxf(top, _face_depth(q, face_model.nose_planes))
 	return q.z >= top - 0.008
 
 func _face_depth(q: Vector3, bounds: Array[Plane]) -> float:
@@ -349,21 +374,27 @@ func _model_line(a: Vector3, b: Vector3, color: Color, width: float, steps: int 
 		draw_multiline(front, color, width, true)
 
 func _draw_face() -> void:
-	for edge in face_model.edges:
-		_model_line(edge[0], edge[1], Color("6c655c"), 1.8)
-	if nose_enabled:
+	var edges: Array = face_model.secondary_edges if secondary_enabled else face_model.edges
+	if plane_edges:
+		for edge in edges:
+			if edge.size() > 2 and edge[2] == 1 and not nose_enabled:
+				continue
+			var feature: bool = edge.size() > 2 and edge[2] == 2
+			_model_line(edge[0], edge[1], Color(0.24, 0.26, 0.27, 0.82 if feature else 0.50), 1.45 if feature else 1.0, 6)
+	if nose_enabled and not secondary_enabled:
 		for edge in face_model.nose_edges:
 			_model_line(edge[0], edge[1], INK, 1.8, 6)
 	var levels := [[2.0 / 3.0, "发际 +2/3R", GREEN], [0.0, "眉骨 0", RED], [-1.0 / 3.0, "下眼睑 −1/3R", BLUE], [-2.0 / 3.0, "鼻底 −2/3R", GREEN], [-1.0, "嘴线 −R", PURPLE], [-4.0 / 3.0, "下巴 −4/3R", INK]]
 	var ys := [2.0 / 3.0, 0.0, -2.0 / 3.0, -1.0, -4.0 / 3.0]
 	for i in ys.size() - 1:
-		_model_line(face_model.front(ys[i]), face_model.front(ys[i + 1]), BLUE, 2.4)
+		if not secondary_enabled or landmarks:
+			_model_line(_face_front(ys[i]), _face_front(ys[i + 1]), BLUE, 2.0)
 	if landmarks:
 		for level in levels:
-			var ring: Array[Vector3] = face_model.section(level[0])
+			var ring: Array[Vector3] = face_model.secondary_section(level[0]) if secondary_enabled else face_model.section(level[0])
 			for i in ring.size():
 				_model_line(ring[i], ring[(i + 1) % ring.size()], level[2], 2.4, 8)
-			var anchor: Vector3 = face_model.front(level[0])
+			var anchor: Vector3 = _face_front(level[0])
 			if (head_basis * Vector3.BACK).z > -0.2:
 				var label_x := size.x - 675
 				var y := project_point(anchor).y
@@ -376,13 +407,56 @@ func _draw_face() -> void:
 			var t1 := TAU * (i + 1) / 36
 			var a := Vector3(side * (cut + 0.012), -rho + 1.0 / 3.0 + cos(t0) / 3.0, 0.015 + sin(t0) * 0.13)
 			var b := Vector3(side * (cut + 0.012), -rho + 1.0 / 3.0 + cos(t1) / 3.0, 0.015 + sin(t1) * 0.13)
-			_model_line(a, b, PURPLE, 2.6, 1)
+			_model_line(a, b, PURPLE if landmarks else Color("615f59"), 2.0, 1)
 		var ear_bottom := Vector3(side * cut, -rho, 0)
 		var jaw_y := lerpf(-rho, -4.0 / 3.0, 0.28)
 		var corner := Vector3(side * lerpf(cut, chin_width, 0.28), jaw_y, 0.10)
 		var chin := Vector3(side * chin_width, -4.0 / 3.0, 0.68 * face_projection)
-		_model_line(ear_bottom, corner, INK, 3.0)
-		_model_line(corner, chin, INK, 3.0)
+		if not secondary_enabled:
+			_model_line(ear_bottom, corner, INK, 3.0)
+			_model_line(corner, chin, INK, 3.0)
+
+func _face_front(y: float) -> Vector3:
+	return face_model.secondary_front(y) if secondary_enabled else face_model.front(y)
+
+func _update_secondary_surface() -> void:
+	secondary_layer.visible = face_enabled and secondary_enabled
+	if not secondary_layer.visible:
+		return
+	for entry in [["center", center], ["radius", radius], ["inverse_basis", inverse_basis], ["cut", cut], ["sliced", sliced], ["caps", caps], ["cap_opacity", cap_opacity]]:
+		secondary_material.set_shader_parameter(entry[0], entry[1])
+	var triangles: Array = []
+	for tri in face_model.secondary_triangles:
+		if tri[4] == 1 and not nose_enabled:
+			continue
+		var normal: Vector3 = head_basis * tri[3]
+		# Keep back-facing triangles for the back of the closed facial shell too.
+		var depth: float = (head_basis * ((tri[0] + tri[1] + tri[2]) / 3)).z
+		triangles.append([depth, tri, normal])
+	triangles.sort_custom(func(a: Array, b: Array): return a[0] < b[0])
+	var positions := PackedVector2Array()
+	var colors := PackedColorArray()
+	var uv := PackedVector2Array()
+	var light := Vector3(-0.55, 0.65, 0.8).normalized()
+	for item in triangles:
+		var tri: Array = item[1]
+		var normal: Vector3 = item[2]
+		var brightness := maxf(0, normal.dot(light))
+		var shade := Color("8e999a").lerp(Color("f3e6cc"), brightness * 0.94)
+		if tri[4] == 1:
+			shade = shade.lerp(Color("ddc6a7"), 0.12)
+		for i in 3:
+			positions.append(project_point(tri[i]))
+			colors.append(shade)
+			uv.append(Vector2((head_basis * tri[i]).z, 0))
+	var arrays: Array = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = positions
+	arrays[Mesh.ARRAY_COLOR] = colors
+	arrays[Mesh.ARRAY_TEX_UV] = uv
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	secondary_layer.mesh = mesh
 
 func _solid_depth(q: Vector3, low: float, high: float, offset: Vector3) -> float:
 	var inv := inverse_basis

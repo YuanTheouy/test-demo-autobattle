@@ -17,6 +17,7 @@ func distance(a: Color, b: Color) -> float:
 func _run() -> void:
 	var study = load("res://main.tscn").instantiate()
 	root.add_child(study)
+	study.secondary_enabled = false
 	study.face_enabled = false
 	study.set_angles(0, 0, 0)
 	study.hidden_lines = false

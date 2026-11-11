@@ -11,6 +11,7 @@ func check(condition: bool, message: String) -> void:
 func _run() -> void:
 	var study = load("res://main.tscn").instantiate()
 	root.add_child(study)
+	study.secondary_enabled = false
 	study._sync_face_model()
 	check(is_equal_approx(sqrt(1 - study.cut * study.cut), 2.0 / 3.0), "Default side circle has radius 2R/3")
 	var model = study.face_model
